@@ -190,7 +190,7 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
 static rio_Expr rio_identifier(rio_Vm *vm) {
   rio_Token *t = &vm->compiler->tok;
   int i = rio_lookup(vm, t->text, t->len);
-  if (i < 0) rio_FAIL_AT_TOKEN(rio_voidExpr(), "undefined name");
+  if (i < 0) rio_FAIL_AT_TOKEN(rio_voidExpr(), vm->compiler->tok.len == 1 && vm->compiler->tok.text[0] == '_' ? rio_msgUnderscore : "undefined name");
   return rio_symbolExpr(vm, i);
 }
 

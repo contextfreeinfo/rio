@@ -54,7 +54,7 @@ xs: [4]Int               # 4 Ints, all 0
 part := xs[1..<3]          # a []Int of 2, viewing xs
 part[0] = 7
 names: [..8]String       # up to 8; empty for now
-names.push("ann")
+_ = names.push("ann")
 log(xs[1], part.len(), names.len(), names.cap())
 ```
 
@@ -383,7 +383,7 @@ for shape in shapes
   log(shape(0.25))
 end
 voices: [..4]proc(Float) -> Float
-voices.push(square)
+_ = voices.push(square)
 log(voices[0](0.75))
 ```
 

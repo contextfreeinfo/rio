@@ -80,7 +80,7 @@ raw := hexBlob("1b 5b 32 4a ff 48 69")
 zeros: Blob[2]
 log(raw, "caf\xc3\xa9", Tag{name = "a\tb\x01"}, zeros)
 b: Blob[..8]
-b.print(raw)
+_ = b.print(raw)
 log(b.len(), b[0], b)
 ```
 
@@ -195,13 +195,13 @@ These change a builder `[..N]T` or a builder view `[..]T` (`Blob[..N]` and `Blob
 ```rio
 xs: [..4]Int
 for i in 0..<5
-  xs.push(i * 10)            # the fifth doesn't fit
+  _ = xs.push(i * 10)            # the fifth doesn't fit
 end
 xs.remove(0)                 # 10 20 30
 xs.swapRemove(0)             # 30 20
 last := xs.pop()             # 20; leaves 30
 title: Blob[..16]
-title.print("hp ", 7, " ", 2.5)
+_ = title.print("hp ", 7, " ", 2.5)
 log(xs.len(), xs[0], last, title[])
 ```
 
@@ -236,15 +236,15 @@ another call:
 
 ```rio
 b: Blob[..120]
-b.format({width = 4}, 7, ":", 42, " ")
-b.format({textWidth = -6}, "hp", true)
-b.format({digits = 2, places = 1}, 3.14159, " ", -0.25, " ")
-b.format({base = 16, digits = 4}, 48879, " ", 10, " ", -1)
+_ = b.format({width = 4}, 7, ":", 42, " ")
+_ = b.format({textWidth = -6}, "hp", true)
+_ = b.format({digits = 2, places = 1}, 3.14159, " ", -0.25, " ")
+_ = b.format({base = 16, digits = 4}, 48879, " ", 10, " ", -1)
 log(b[])
 b.clear()
-b.format({digits = 3}, [3]Int{1, 20, 300})
+_ = b.format({digits = 3}, [3]Int{1, 20, 300})
 hex := Format{base = 16}
-b.format(hex, hex)
+_ = b.format(hex, hex)
 log(b[])
 ```
 
@@ -262,9 +262,9 @@ lives in a hidden word next to `b`, which every copy of `b` shares:
 ```rio
 mem: [4]Int
 b: [..]Int = mem
-b.push(7)
+_ = b.push(7)
 fill :: proc(out: [..]Int)
-  out.push(8)
+  _ = out.push(8)
 end
 fill(b)
 log(b.len(), mem[0], mem[1])
@@ -323,7 +323,7 @@ elements change). For a byte builder, `at` counts within its length.
 ```rio
 xs := [3]Int{5, 300, 70000}
 out: Blob[..16]
-out.pack(xs[1..<3])
+_ = out.pack(xs[1..<3])
 ys: [2]Int
 out.unpack(0, ys[])
 log(out.len(), ys[0], ys[1], out.pack(xs[]), out.len())

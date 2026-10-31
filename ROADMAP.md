@@ -17,6 +17,12 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
   variable, and `_ = f()` dropping a result on purpose. Then a call's result left unused is an error,
   so it can't be dropped by accident: `b.push(x)` alone becomes `_ = b.push(x)` (or the `ok := ...`
   apps write today, which `_ =` replaces). This breaks existing source, rinc's included.
+- **Procs marked to be values:** only a proc declared for it, `f :: callback proc(...)` (the word open,
+  contextual as `static` is), can be used as a proc value, and its own body is checked as one: it can't
+  call through proc values, whether or not anything uses it as a value yet. Today that's checked
+  where a proc is used as a value, so adding such a call to `f`'s body can break a distant `x := f`;
+  the mark keeps each proc's checks to its own code, and says the intent. Host procs are marked
+  already (they can't call back). Breaks existing source: rinc's proc values would need the mark.
 
 Each other change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
 `a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
@@ -29,6 +35,12 @@ Rinc's and Studio's apps, would change with it.
 In this order:
 
 - **`_`:** as above, under Decide first.
+- **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a host
+  proc named inside its type (C name `module_Color_rgb`), with `rio -H` writing it. Static only at
+  first; host methods with `self` only if wanted.
+- **In rinc, points and sizes:** `Point :: [2]Float` (or `[2]Int` where pixels want it) and sizes
+  across `pc` (rinc's roadmap, Decide first), kept by apps as values. Breaking for apps, so before
+  more is built on `pc`; host static procs can give it constructors.
 - **`riosys`, a host for scripting:** a `riosys` build of the CLI whose host module, `sys`, has files,
   directories, running programs, the environment and arguments, so the repo's scripts (`tools/stats.py`,
   the test runners) can be Rio. It's for dogfooding before the spec is finalized: what writing real
@@ -36,9 +48,6 @@ In this order:
   modules can share procs and types where that makes lots of sense. Whether the default `rio` build
   is `riosys` is open: leaning to keep `rio` minimal (it's the reference embedding, and boards have no
   files or processes), with `riosys` beside it.
-- **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a host
-  proc named inside its type (C name `module_Color_rgb`), with `rio -H` writing it. Static only at
-  first; host methods with `self` only if wanted.
 - **Then the memory spec and the full spec** (Before 1.0, below), with tests drawn from them.
 
 ## Leaning yes
@@ -69,11 +78,13 @@ In this order:
     for each such call.
 
 - **`==` on structs and unions:** today structs refuse it (compare their fields) and unions compare
-  only with nil. Two ways: field by field, each field as its own `==` does (Strings by their text,
-  Floats as numbers, unions by tag then value), compiled per type; or bytes, which is cheap but wrong
-  where `==` already means more than bytes (a `String`'s bytes are its address; `-0.0` and `NaN`), and
-  where bytes a value doesn't use (a union's room past a smaller type, bitfield gaps) may differ.
-  Leaning to field by field, with bytes ruled out for that reason.
+  only with nil. Leaning to field by field, each field as its own `==` does (Strings by their text,
+  Floats as numbers, unions by tag then value), and only for types whose every field compares that
+  way: numbers, Bools, enums, Strings and Blobs, maybes, and structs and unions of those. A slice,
+  array, builder or proc field refuses `==`, so it never follows a view past one level (a String's
+  bytes). Plain bytes alone would be wrong where `==` already means more (a String's bytes are its
+  address; `-0.0` and `NaN`; a union's unused room), but the compiler can use them for structs of
+  just Ints, Bools and enums.
 - **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
   already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
   backfilling a commit again could add samples to its row rather than a second row, so a jump in the

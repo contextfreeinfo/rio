@@ -304,15 +304,15 @@ loop starts. `by` means this only after a `for`'s range: elsewhere it's a name l
 ```rio
 out: Blob[..80]
 for i in 0..<10 by 3
-  out.print(i, " ")
+  _ = out.print(i, " ")
 end
 for i in 0..<5 by -1           # 4 down to 0
-  out.print(i, " ")
+  _ = out.print(i, " ")
 end
 r := 2..=8
 step := -3
 for i in r by step             # from r.last down
-  out.print(i, " ")
+  _ = out.print(i, " ")
 end
 log(out[])
 ```
@@ -398,7 +398,7 @@ grid := [2][2]Int{{1, 2}, {3, 4}}
 pts: [3]Vec = {{x = 1}, {y = 2}}
 steps := [Dir]Int{-16, 1, 16, -1}  # in the enum's order
 todo := [..8]Int{4, 5}
-todo.push(6)
+_ = todo.push(6)
 log(xs[2], xs[4], grid[1][0], pts[1].y, steps[.south], todo.len())
 ```
 

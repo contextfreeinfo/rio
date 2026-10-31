@@ -17,6 +17,7 @@ int rio_addName(rio_Vm *vm, const char *s, int n) {
 void rio_addSymbol(rio_Vm *vm, const char *s, int n, int kind, int type, int32_t value) {
   rio_Compiler *c = vm->compiler;
   rio_Symbol *y;
+  if (n == 1 && s[0] == '_') rio_FAIL(, rio_msgUnderscore);
   if (c->symCount >= (int)c->limits.symbols) rio_FAIL(, "too many symbols");
   y = &c->syms[c->symCount++];
   if ((uint32_t)c->symCount > c->high.symbols) c->high.symbols = (uint32_t)c->symCount;

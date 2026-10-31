@@ -9,7 +9,7 @@ Enemy :: struct
 end
 enemies: [..64]Enemy
 for i in 0..<3
-  enemies.push({x = i * 10, hp = 3})
+  _ = enemies.push({x = i * 10, hp = 3})
 end
 for e in enemies
   e.hp -= 1
@@ -28,7 +28,7 @@ takes a builder view, `[..]T`, that pushes into the caller's builder:
 ```rio
 spawn :: proc(out: [..]Int, n: Int)
   for i in 0..<n
-    out.push(i)
+    _ = out.push(i)
   end
 end
 xs: [..8]Int
@@ -49,8 +49,8 @@ without spaces:
 ```rio
 line: Blob[..32]
 hp := 7
-line.print("hp: ", hp, "/", 10)
-line.push('!')
+_ = line.print("hp: ", hp, "/", 10)
+_ = line.push('!')
 log(line[])
 ```
 
@@ -63,7 +63,7 @@ settings for widths, digits and bases first (see [format](../spec/builtins.md#fo
 
 ```rio
 row: Blob[..32]
-row.format({width = 3}, 7, 42, 100)
+_ = row.format({width = 3}, 7, 42, 100)
 log(row[])
 ```
 

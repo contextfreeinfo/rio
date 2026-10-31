@@ -299,7 +299,7 @@ spawnE :: proc(out: [..]Enemy, x: Int) -> Bool
   return out.push(Enemy{x = x, hp = 3})
 end
 for i in 0..<6
-  spawnE(enemies, i * 10)
+  _ = spawnE(enemies, i * 10)
 end
 check(enemies.len() == 4 and enemies[3].x == 30, "push through a view; full builder drops")
 check(not enemies.push(Enemy{x = 99}), "push when full is false")
@@ -316,7 +316,7 @@ enemies.clear()
 check(enemies.len() == 0, "clear")
 nums: [..8]Int
 for i in 0..<5
-  nums.push(i * i)
+  _ = nums.push(i * i)
 end
 check(nums[4] == 16 and total(nums[]) == 30 and total(nums[1..<3]) == 5, "Int builder and sub-slices")
 title: Blob[..32]
@@ -404,10 +404,10 @@ check(more.pushAll(nums) and not more.pushAll(nums) and more.len() == 5 and more
 check(more.pushAll(nums[3..]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")
 localBuilder :: proc() -> Int
   xs: [..3]Int
-  xs.push(5)
-  xs.push(6)
+  _ = xs.push(5)
+  _ = xs.push(6)
   v := xs
-  v.push(7)
+  _ = v.push(7)
   return xs.len() * 100 + xs[2] + v.cap()
 end
 check(localBuilder() == 310 and localBuilder() == 310, "local builder resets per call; := makes a view")
@@ -416,7 +416,7 @@ Inv :: struct
   gold: Int
 end
 bags: [2]Inv
-bags[1].items.push(9)
+_ = bags[1].items.push(9)
 check(bags[1].items.len() == 1 and bags[1].items[0] == 9 and bags[0].items.len() == 0, "builder inside a struct inside an array")
 
 # ---- methods: Type.name :: proc, with an implicit self
@@ -582,14 +582,14 @@ for s, i in squad[1..<3]
 end
 check(seen == 110 + 120 + 1, "a slice, with its own index")
 hits: [..8]Int
-hits.push(4)
-hits.push(5)
+_ = hits.push(4)
+_ = hits.push(5)
 hsum := 0
 for h in hits
   hsum += h
   h = 1
   if hsum > 0
-    hits.push(9)
+    _ = hits.push(9)
   end
 end
 check(hsum == 9 and hits[0] == 1 and hits[1] == 1 and hits.len() == 4, "a builder: the elements there when the loop starts")
@@ -697,7 +697,7 @@ swapvx :: proc(a: &Ship, b: &Ship)
   t := a.vx
   a.vx = b.vx
   b.vx = t
-  a.hurt(1)                       # methods and fields work through a reference
+  _ = a.hurt(1)                       # methods and fields work through a reference
 end
 addto :: proc(n: &Int, by: Int)
   n += by
@@ -930,18 +930,18 @@ check(fm[0][0] == 0 and fm2[0][0] == 1, "16 words is still small")
 # ---- builder views over any array or slice: name: [..]T = memory, starting empty
 bbuf: [8]Int
 bb: [..]Int = bbuf
-bb.push(3)
-bb.push(4)
+_ = bb.push(3)
+_ = bb.push(4)
 check(bb.len() == 2 and bb.cap() == 8 and bbuf[1] == 4 and bb[1] == 4, "pushes land in the array")
 bfill :: proc(out: [..]Int, n: Int)
   for i in 0..<n
-    out.push(i * 10)
+    _ = out.push(i * 10)
   end
 end
 bfill(bb, 3)
 check(bb.len() == 5 and bb[4] == 20, "passed to a proc, the length is shared")
 bpart: [..]Int = bbuf[5..<8]
-bpart.push(7)
+_ = bpart.push(7)
 check(bbuf[5] == 7 and bpart.len() == 1 and bpart.cap() == 3 and bb.len() == 5, "over part of an array")
 bsum := 0
 for x in bb
@@ -952,21 +952,21 @@ check(bb.pop() == 20 and bb.len() == 4, "pop")
 bb.swapRemove(0)
 check(bb[0] == 10 and bb.len() == 3, "swapRemove")
 bc := bb
-bc.push(99)
+_ = bc.push(99)
 check(bb.len() == 4, "copies share the length")
 bscr: Blob[16]
 btxt: Blob[..] = bscr[4..<12]
-btxt.print("hi ", 42)
+_ = btxt.print("hi ", 42)
 check(btxt[].asString() == "hi 42" and bscr[4] == 'h', "a byte builder view over part of a Blob")
 blocal :: proc() -> Int
   loc: [4]Float
   lb: [..]Float = loc
-  lb.push(1.5)
-  lb.push(2.5)
+  _ = lb.push(1.5)
+  _ = lb.push(2.5)
   xs: [..3]Int
-  xs.push(1)
+  _ = xs.push(1)
   v: [..]Int = xs
-  v.push(2)
+  _ = v.push(2)
   return lb.len() * 10 + xs.len()
 end
 check(blocal() == 22, "builder views over locals and builders inside a proc")
@@ -1042,7 +1042,7 @@ end
 check(eds[3] == .west and eds[0] != .east, "an array of enums")
 enames: Blob[..64]
 for d, i in Dir                         # an enum's values, in the order listed
-  enames.print(d, i, " ")
+  _ = enames.print(d, i, " ")
 end
 check(enames[].asString() == "north0 east1 south2 west3 ", "for d in Dir, and print prints names")
 ecounts: [Dir]Int                       # one element per value, indexed by the enum
@@ -1511,7 +1511,7 @@ rvP := rvPairOf("ann", 3)
 check(rvP.key == "ann" and rvP.n == 3 and rvPairOf("bo", 1).key.len() == 2, "a struct holding a String, returned")
 check((rvFirstWord("hello there") or "-") == "hello" and (rvFirstWord("") or "-") == "-", "a ?String, returned")
 rvSeen: Blob[..32]
-for w in RvWords{text = "one two three"} do rvSeen.print(w, ";")
+for w in RvWords{text = "one two three"} do _ = rvSeen.print(w, ";")
 check(rvSeen[].asString() == "one;two;three;" and (rvLong(RvWords{text = "a bc d"}) or "") == "bc", "a loop's next returning a ?String")
 rvMake := rvPairOf
 check(rvMake("cy", 2).key == "cy", "through a proc value")
@@ -1893,7 +1893,7 @@ end
 tcF: proc(Int, Int,) -> Int = tcAdd
 tcXs := [3]Int{1, 2, 3,}
 tcL: [..4]Int
-tcL.push(5,)
+_ = tcL.push(5,)
 check(tcAdd(1, 2,) == 3 and tcF(3, 4,) == 7 and tcXs[2] == 3 and tcL[0] == 5, "trailing commas")
 check(
   "abc".len() == 3,
@@ -2104,7 +2104,7 @@ for i in 0..<20 by 4
 end
 check(rangeOut == 16, "continue and break in a stepped loop")
 rangeText: Blob[..20]
-rangeText.print(rangeA, " ", rangeE)
+_ = rangeText.print(rangeA, " ", rangeE)
 check(rangeText[].asString() == "2..=4 7..=6", "ranges printed")
 
 # ---- proc values as elements: arrays, slices, builders, [Enum]T, fields
@@ -2130,8 +2130,8 @@ check(procOps[0](5) == 6 and procOne(1) == 2, "an element set at a running index
 procByDir: [Dir]proc(Int) -> Int
 procByDir[.east] = procDouble
 procMore: [..4]proc(Int) -> Int
-procMore.push(procDouble)
-procMore.push(procInc)
+_ = procMore.push(procDouble)
+_ = procMore.push(procInc)
 check(procByDir[.east](4) == 8 and procMore.len() == 2 and procMore[1](7) == 8 and procSum(procMore[], 1) == 4, "by enum, and a builder")
 ProcMachine :: struct
   steps: [2]proc(Int) -> Int
@@ -2208,11 +2208,11 @@ bitsOf :: proc(h: BitHead) -> Int
 end
 check(bitsOf(bitHead) == 4464, "a struct with bitfields passed")
 bitText: Blob[..200]
-bitText.print(bitLit)
+_ = bitText.print(bitLit)
 check(bitText[].asString() == "BitHead{kind = 15, level = 0, flags = 0, size = 1, count = 0, a = 0, b = 2, wide = 0, low = 0}", "bitfields printed")
 bitText.clear()
 bitLit.level = -1
-bitText.format({base = 16}, bitLit.level, " ", bitLit)
+_ = bitText.format({base = 16}, bitLit.level, " ", bitLit)
 check(bitText.len() > 12 and bitText[0] == 'f', "bitfields formatted")
 
 # ---- hex escapes

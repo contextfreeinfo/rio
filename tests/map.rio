@@ -97,7 +97,7 @@ text :: "the cat and the dog and the bird saw the cat " # (a space after each wo
 word: Blob[..16]
 for c in text
   if c != 32
-    word.push(c)
+    _ = word.push(c)
     continue
   end
   check(put(word[].asString(), getOr(word[].asString(), 0) + 1), "put a word")

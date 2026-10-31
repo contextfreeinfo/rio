@@ -165,8 +165,9 @@ class Gen:
       self.emit("for i in 0..<2")
       self.block(scope, budget - 1)
     elif self.procs:
-      got = self.call(self.r.choice(self.procs), scope, ALL)
-      if got: self.emit(got[0])
+      proc = self.r.choice(self.procs)
+      got = self.call(proc, scope, ALL)
+      if got: self.emit(f"_ = {got[0]}" if proc[2] else got[0])  # (a result left unused is an error)
     else:
       self.emit("gc = not gc")
 
@@ -242,8 +243,9 @@ class Gen:
         elif got: self.emit(f"gv{self.r.randrange(3)} = {got[0]}" + (".v" if proc[2] == "V" else ""))
       elif roll < 0.8:
         self.emit("gc = not gc")
-      got = self.call(self.r.choice(self.procs), None, G)
-      if got: self.emit(got[0])
+      proc = self.r.choice(self.procs)
+      got = self.call(proc, None, G)
+      if got: self.emit(f"_ = {got[0]}" if proc[2] else got[0])
       for g in ["gv0", "gv1", "gv2", "gV.v"]: self.logGlobal(g)
     return "\n".join(self.lines) + "\n"
 

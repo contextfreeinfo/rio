@@ -512,8 +512,10 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
 
 /* a field of the type being declared */
 static rio_Field *rio_addField(rio_Vm *vm, const char *name, int nameLen, int type, int offset) {
-  int i = rio_newField(vm);
+  int i;
   rio_Field *f;
+  if (nameLen == 1 && name[0] == '_') rio_FAIL(0, rio_msgUnderscore);
+  i = rio_newField(vm);
   if (i < 0) return 0;
   f = rio_field(vm, i);
   f->name = (uint16_t)rio_addName(vm, name, nameLen);

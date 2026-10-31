@@ -13,7 +13,7 @@ end
 balls: [..64]Ball
 
 drop :: proc(x: Float)
-  balls.push({x, y = 0})
+  _ = balls.push({x, y = 0})
 end
 
 update* :: proc(dt: Float)

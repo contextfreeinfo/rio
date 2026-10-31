@@ -96,7 +96,7 @@ static const Case cases[] = {
   /* views of a proc's own memory: the next call rewrites it, so they can't be returned or kept */
   {"f :: proc() -> []Int\n  a: [4]Int\n  return a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
   {"f :: proc() -> []Int\n  a: [4]Int\n  return a\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
-  {"f :: proc(id: Int) -> String\n  buf: Blob[16]\n  b: Blob[..] = buf\n  b.print(\"p \", id)\n  return b[].asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this returns a view of the proc's own memory"},
+  {"f :: proc(id: Int) -> String\n  buf: Blob[16]\n  b: Blob[..] = buf\n  _ = b.print(\"p \", id)\n  return b[].asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this returns a view of the proc's own memory"},
   {"f :: proc() -> [..]Int\n  xs: [..4]Int\n  return xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
   {"ga: [4]Int\nf :: proc() -> [..]Int\n  b: [..]Int = ga\n  return b\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this returns a view of the proc's own memory"}, /* its length lives here */
   {"P :: struct\n  s: String\nend\nf :: proc() -> P\n  b: Blob[4]\n  return P{s = b[].asString()}\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this holds a view of the proc's own memory"},
@@ -408,7 +408,7 @@ static const Case cases[] = {
   {"b: Blob[8]\nn := 5\nb.pack(n, n)\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "pack out of bounds"},
   {"b: Blob[8]\nn := -1\nb.setInt(n, 8, 1)\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "setInt out of bounds"},
   {"b: Blob[8]\nw := 12\nlog(b.getInt(0, w))\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "getInt takes 8, 16, 24 or 32 bits"},
-  {"b: Blob[..8]\nb.push(1)\nn := 0\nb.unpack(0, &n)\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "unpack out of bounds"},
+  {"b: Blob[..8]\n_ = b.push(1)\nn := 0\nb.unpack(0, &n)\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "unpack out of bounds"},
   {"b: Blob[..8]\nok := b.format({wide = 4}, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "no such field"},
   {"S :: struct\n  x: Int\nend\nS.f :: proc()\n  self.f()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 8, 1, "recursion is not allowed"},
   {"S :: struct\n  x: Int\nend\nS.x :: proc()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 3, 1, "same name as a field"},
@@ -472,7 +472,7 @@ static const Case cases[] = {
   {"log(\"abc)\n", 0, 0, 0, rio_ErrorKind_compile, -1, -1, -1, "unclosed bracket"}, /* (a closing quote left out: the string ends with its line) */
   /* runtime errors report the line */
   {"xs: [4]Int\ni := 2\nf :: proc(n: Int) -> Int\n  return xs[n * 3]\nend\nlog(f(i))\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "index out of bounds"},
-  {"xs: [..2]Int\nfor j in 0..<3\n  xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, rio_ErrorKind_runtime, 5, 0, 0, "pop from empty builder"},
+  {"xs: [..2]Int\nfor j in 0..<3\n  _ = xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, rio_ErrorKind_runtime, 5, 0, 0, "pop from empty builder"},
   {"main :: proc()\n  a := 0\n  b := 5\n  log(b / a)\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "division by zero"},
   {"a: [3]Int\nn := 5\nb := a[1..<n]\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "slice out of bounds"},
   {"xs: [2]Int\ni := 0\nfor xs[i] == 0\n  i += 1\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "index out of bounds"}, /* rotated loop condition */

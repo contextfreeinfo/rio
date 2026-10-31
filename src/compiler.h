@@ -535,6 +535,7 @@ void rio_emitElemSize(rio_Vm *vm, int elem);
 int rio_mentions(rio_Vm *vm, int t, int type);
 int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);
 int rio_paramPattern(rio_Vm *vm, int proc, int i);
+#define rio_msgUnderscore "_ isn't a name: it means what's left out (_ = f(), for _ in xs, [_]T{...})"
 int rio_genericOf(rio_Vm *vm, int tmpl);
 void rio_openLiteral(rio_Vm *vm);
 void rio_constLiteral(rio_Vm *vm, rio_Expr *e);

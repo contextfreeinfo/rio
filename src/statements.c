@@ -376,12 +376,13 @@ static void rio_forIn(rio_Vm *vm) {
   int nameLen = c->tok.len, indexLen = 0, counter, limit, index = rio_NONE;
   rio_Block *b;
   rio_Expr e;
+  if (nameLen == 1 && name[0] == '_') nameLen = 0; /* for _ in ...: no name (one no lookup finds) */
   rio_next(vm);
   if (c->tok.kind == ',') {
     rio_next(vm);
     if (c->tok.kind != rio_Tok_id) rio_FAIL_AT_TOKEN(, "index name expected");
     indexName = rio_keep(vm, c->tok.text, c->tok.len);
-    indexLen = c->tok.len;
+    indexLen = c->tok.len == 1 && indexName[0] == '_' ? 0 : c->tok.len;
     rio_next(vm);
   }
   if (c->tok.kind != rio_Tok_in) rio_FAIL_AT_TOKEN(, "'in' expected");
@@ -939,6 +940,13 @@ static void rio_expressionStatement(rio_Vm *vm) {
   rio_Block *top = rio_topBlock(vm);
   rio_Expr l, r, current;
   int op, k;
+  if (c->tok.kind == rio_Tok_id && c->tok.len == 1 && c->tok.text[0] == '_' && c->peek.kind == '=') { /* _ = f(): dropped on purpose */
+    rio_next(vm);
+    rio_next(vm);
+    l = rio_parseExpr(vm);
+    if (!rio_failed(vm) && (l.kind == rio_ExprKind_void || l.type == rio_TypeId_void)) rio_FAIL(, "nothing to drop: this has no value");
+    return;
+  }
   if (top && top->value && c->valueBlocks[top->value - 1].dst.type != rio_TypeId_void)
     c->targetType = c->valueBlocks[top->value - 1].dst.type; /* (a branch's value, maybe: {1, 2}, .small, nil) */
   l = rio_parseExpr(vm);
@@ -947,7 +955,12 @@ static void rio_expressionStatement(rio_Vm *vm) {
       rio_branchValue(vm, top, &l); /* a value block's branch's last line: its value */
       return;
     }
-    if (vm->inRepl && c->curProc < 0 && !c->blockCount && l.kind <= rio_ExprKind_indirect) rio_autoPrint(vm, &l);
+    if (vm->inRepl && c->curProc < 0 && !c->blockCount && l.kind <= rio_ExprKind_indirect) {
+      rio_autoPrint(vm, &l);
+      return;
+    }
+    if (!rio_failed(vm) && l.kind != rio_ExprKind_void && l.type != rio_TypeId_void && !(top && top->value && c->tok.kind == rio_Tok_eof))
+      rio_FAIL(, "this value isn't used: write _ = ... to drop it"); /* (at the end of a REPL piece in a value block: more is coming) */
     return;
   }
   if (l.access & rio_Access_narrowed) {
