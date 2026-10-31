@@ -1649,12 +1649,26 @@ GnList :: struct[T]
   less: GnLess[T]
 end
 gnSortList :: proc[T](l: &GnList[T]) do gnSortBy(l.items, l.less)
+GnList.of :: static proc[T](items: []T, less: GnLess[T]) -> GnList[T] do return GnList[T]{items = items, less = less}
+GnList.sort :: proc[T]() do gnSortBy(self.items, self.less)
+GnList.isSorted :: proc[T]() -> Bool
+  for i in 1..<self.items.len()
+    if self.less(&self.items[i], &self.items[i - 1]) do return false
+  end
+  return true
+end
+Int.pickFrom :: proc[T](xs: []T) -> Int do return self % xs.len()
 gnFirst :: proc[T](l: GnList[T]) -> Int do return l.items.len()
 gnList := GnList[GnP]{items = gnPs[], less = gnByY}
 gnPs[0].y = 99
 gnSortList(&gnList)
 gnOther: GnList[GnP] = gnList
 check(gnPs[2].y == 99 and gnFirst(gnOther) == 3 and gnOther.items[0].y == 20, "a generic struct, filled in and passed to generic procs")
+gnPs[0].y = 50
+gnL2 := GnList.of(gnPs[], gnByY)
+gnWasSorted := gnL2.isSorted()
+gnL2.sort()
+check(not gnWasSorted and gnL2.isSorted() and gnPs[1].y == 50 and 5.pickFrom(gnPs[]) == 2, "generic methods, a generic static proc, and a generic method on Int")
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

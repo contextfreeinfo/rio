@@ -137,6 +137,7 @@ typedef struct {
   uint8_t typeParams;
   uint8_t viewTypes;   /* the ones it copies into memory it was given (bit j): a T holding views can't go there */
   uint16_t firstTypeParam, sizeSlots;
+  uint16_t selfType;   /* a generic struct's method: self's type, the struct filled in with the first Ts */
 } rio_ProcDef;
 
 typedef struct {
@@ -531,6 +532,7 @@ extern const char rio_msgOpaque[];
 int rio_typeSizeSlot(rio_Vm *vm, int t);
 int rio_mentions(rio_Vm *vm, int t, int type);
 int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);
+int rio_paramPattern(rio_Vm *vm, int proc, int i);
 void rio_openLiteral(rio_Vm *vm);
 void rio_constLiteral(rio_Vm *vm, rio_Expr *e);
 int rio_literalData(rio_Vm *vm, rio_Expr *e);

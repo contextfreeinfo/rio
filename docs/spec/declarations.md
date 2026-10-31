@@ -461,7 +461,13 @@ A struct can take types the same way, `Table :: struct[K, V]`, filled in where i
 `Table[Int, Point]`, or `Table[K, V]` in a generic proc, which finds K and V through it. A T goes in a
 field only in a `[]T` or a proc type, so every field's size is the same whatever T is: each filled-in
 struct is its own type, laid out as the others are, and no code is made per type. Each type parameter
-must be in some field's type. A generic struct can't have methods yet; generic procs take it instead.
+must be in some field's type.
+
+A generic struct's methods name its types first, in order, as a generic proc does: `Table.put ::
+proc[K, V](key: &K, value: &V)`, with `self` a `Table[K, V]`, found from the value it's called on. More
+can follow (`proc[K, V, U]`), found from the arguments. A static proc on one is generic the same way,
+found from its arguments, `Table.make(ks[], vs[], eq)`, or named, `Table[Int, Point].make(...)`. Any
+type's methods can be generic too: `Int.pick :: proc[T](xs: []T) -> T`.
 
 ```rio
 Table :: struct[K, V]

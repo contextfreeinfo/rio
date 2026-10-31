@@ -148,29 +148,28 @@ Table :: struct[K, V]
 end
 
 # the slot holding key, or else the empty slot where it would go
-slotIn :: proc[K, V](m: &Table[K, V], key: &K) -> Int
-  mask := m.keys.len() - 1
-  i := m.hash(&key) & mask
-  for m.used[i] and not m.eq(&m.keys[i], &key)
+Table.slot :: proc[K, V](key: &K) -> Int
+  mask := self.keys.len() - 1
+  i := self.hash(&key) & mask
+  for self.used[i] and not self.eq(&self.keys[i], &key)
     i = (i + 1) & mask
   end
   return i
 end
 
-putIn :: proc[K, V](m: &Table[K, V], key: &K, value: &V)
-  i := slotIn(&m, &key)
-  m.used[i] = true
-  m.keys[i] = key
-  m.values[i] = value
+Table.put :: proc[K, V](key: &K, value: &V)
+  i := self.slot(&key)
+  self.used[i] = true
+  self.keys[i] = key
+  self.values[i] = value
 end
 
 # the slot holding key, or -1
-findIn :: proc[K, V](m: &Table[K, V], key: &K) -> Int
-  i := slotIn(&m, &key)
-  if not m.used[i] do return -1
+Table.find :: proc[K, V](key: &K) -> Int
+  i := self.slot(&key)
+  if not self.used[i] do return -1
   return i
 end
-
 Point :: struct
   x, y: Int
 end
@@ -182,10 +181,10 @@ intHash :: proc(key: &Int) -> Int do return (key * -1640531535) >> 28 # (Fibonac
 intEq :: proc(a, b: &Int) -> Bool do return a == b
 pointTable := Table[Int, Point]{keys = pointKey[], values = points[], used = pointUsed[], eq = intEq, hash = intHash}
 
-putPoint :: proc(key: Int, p: Point) do putIn(&pointTable, &key, &p)
+putPoint :: proc(key: Int, p: Point) do pointTable.put(&key, &p)
 
 getPoint :: proc(key: Int) -> ?Point
-  i := findIn(&pointTable, &key)
+  i := pointTable.find(&key)
   if i < 0 do return nil
   return points[i]
 end

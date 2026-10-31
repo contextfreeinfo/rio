@@ -72,6 +72,9 @@ int rio_lookupMethod(rio_Vm *vm, int type, const char *s, int n) {
         rio_nameIs(vm, y->name, y->nameLen, s, n))
       return i;
   }
+  if (rio_type(vm, type)->kind == rio_TypeKind_struct && rio_type(vm, type)->elem) /* (a generic struct filled in: its template's) */
+    for (i = rio_TypeId_builtinCount; i < c->typeCount; i++)
+      if (rio_type(vm, i)->kind == rio_TypeKind_generic && rio_type(vm, i)->elem == rio_type(vm, type)->elem) return rio_lookupMethod(vm, i, s, n);
   return -1;
 }
 

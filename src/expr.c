@@ -983,11 +983,10 @@ static void rio_bindCall(rio_Vm *vm, rio_PendingOp *m, int *bound) {
   int i, j, visible = p->paramCount - p->typeParams;
   for (j = 0; j < p->typeParams; j++) bound[j] = -1;
   for (i = 0; i < visible && i < m->argCount; i++) {
-    rio_Param *q = &c->params[p->firstParam + i];
     rio_Expr *arg = &c->values[m->valueBase + i];
     if (arg->kind == rio_ExprKind_proc || arg->kind == rio_ExprKind_ffi) rio_toProcValue(vm, arg, -1);
     if (rio_failed(vm)) return;
-    if (!rio_unify(vm, m->b, q->refType ? q->refType : q->type, rio_valueType(arg->type), bound)) rio_FAIL(, "type mismatch");
+    if (!rio_unify(vm, m->b, rio_paramPattern(vm, m->b, i), rio_valueType(arg->type), bound)) rio_FAIL(, "type mismatch");
   }
   for (j = 0; j < p->typeParams; j++) {
     rio_Type *t;
@@ -1356,7 +1355,7 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
       return rio_Expect_operator;
     }
   }
-  if (t == rio_Tok_id) { /* Map[Int, Point]: a generic type, filled in */
+  if (t == rio_Tok_id && c->peek.kind == '[') { /* Map[Int, Point]: a generic type, filled in (Map.make: its static proc) */
     int i = rio_lookup(vm, c->tok.text, c->tok.len);
     if (i >= 0 && c->syms[i].kind == rio_SymKind_type && rio_type(vm, c->syms[i].type)->kind == rio_TypeKind_generic) {
       int type = rio_parseType(vm);

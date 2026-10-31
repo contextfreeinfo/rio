@@ -30,8 +30,10 @@ Nothing open: see Leaning yes.
 - **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
   only through `&T` and `[]T`, like C's `void*` with its size, but typed. Still to come, if wanted:
   - **More on a `[]T`:** `for x in xs` and slicing, and `[..]T` builder views (push, pop).
-  - **Generic methods,** likely, static ones too (`Table.make :: static proc[K, V](...)`), on generic
-    structs (an error for now) and for `core.rio`'s declarations.
+  - **`core.rio` declared for real:** with generic methods, the list builtins could be checked
+    declarations: `([..]T).push :: host proc[T](value: T) -> Bool`, the receiver a built-in generic type
+    and a T by value allowed in a host declaration (it's a signature only; the builtin is compiled as
+    now). `print`, `format` and `pack` need constraints, so they stay comments.
   - **Where to stop:** no T by value and no constraints. Generic structs did make `tests/map.rio` read
     clearly better (`putIn(&pointTable, &key, &p)`, not seven arguments).
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
@@ -132,6 +134,9 @@ Nothing open: see Leaning yes.
 
 ## Done recently
 
+- **Generic methods:** `Table.put :: proc[K, V](key: &K, value: &V)`, the struct's Ts first, then any
+  more; static ones (`Table.make(...)`, or `Table[Int, Point].make(...)`); and generic methods on any type.
+  `tests/map.rio`'s table reads `pointTable.put(&key, &p)`.
 - **Generic types:** proc types, `Less :: (proc[T](a, b: &T) -> Bool)`, and structs, `Table :: struct[K,
   V]`, filled in where they're named (`Less[Point]`, `Table[Int, Point]`, or with a generic proc's Ts).
   A T goes in a field only in a `[]T` or a proc type, so a generic struct has one layout for every T,
