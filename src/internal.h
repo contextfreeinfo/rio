@@ -80,6 +80,8 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
                             slot data a says; x: 0 Int, 1 Float, 2 Bool, 3 text (c, c+1: a slice)
      popa                   a = address of the removed last element of builder view b
      lrem lswap             remove element b of builder view a, keeping order / moving the last into it
+                         (lidx, pusha, pushs, popa, lrem, lswap: the element size is the data's, or
+                         slot data.a's when it names one: a generic proc's T)
      lview                  a, a+1 = slice of builder view b's live elements
    Bytes: a Blob is 2 slots (address, length), as a slice; at is a byte offset in it (bounds-checked).
      bpack                  x 0: copy bytes c (address, how many) into Blob a at b; x 1: from it

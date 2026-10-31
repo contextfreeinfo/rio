@@ -497,8 +497,9 @@ static void rio_clampCall(rio_Vm *vm, rio_PendingOp *call) {
 static rio_Expr rio_pushCall(rio_Vm *vm, rio_PendingOp *call, rio_Expr *x, int builder, int elem, int size) {
   rio_Expr dst;
   int t = rio_allocSlots(vm, 1), full, d;
+  (void)size;
   rio_emit(vm, rio_Op_pusha, t, builder, 0);
-  rio_emitData(vm, 0, (uint32_t)size);
+  rio_emitElemSize(vm, elem);
   full = rio_emit(vm, rio_Op_jz, t, 0, rio_NONE);
   dst = rio_exprOf(rio_ExprKind_indirect, elem, t);
   rio_store(vm, &dst, x);
@@ -572,13 +573,14 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
     c->freeSlot = call->freeAtStart;
     d = rio_allocSlots(vm, 1);
     rio_emit(vm, rio_Op_popa, d, builder, 0);
-    rio_emitData(vm, 0, (uint32_t)size);
+    rio_emitElemSize(vm, elem);
     r = rio_exprOf(rio_ExprKind_indirect, elem, d);
+    r.access = rio_Access_readOnly; /* (a place with no home: the next push reuses it, so it's copied, not borrowed) */
   } else if (id == rio_Builtin_remove || id == rio_Builtin_swapRemove) {
     rio_coerce(vm, a + 1, rio_TypeId_int);
     s = rio_toSlot(vm, a + 1, 1);
-    rio_emit(vm, id == rio_Builtin_remove ? rio_Op_lrem : rio_Op_lswap, builder, s, 0);
-    rio_emitData(vm, 0, (uint32_t)size);
+    rio_emit(vm, id == rio_Builtin_remove ? rio_Op_lrem : rio_Op_lswap, builder, s, 0); /* (within the builder: views stay as safe) */
+    rio_emitElemSize(vm, elem);
   } else if (id == rio_Builtin_pushAll) {
     rio_Expr *x = a + 1;
     int xk;
@@ -594,7 +596,9 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
     c->freeSlot = call->freeAtStart;
     d = rio_allocSlots(vm, 1);
     rio_emit(vm, rio_Op_pushs, d, builder, s);
-    rio_emitData(vm, 0, (uint32_t)size);
+    rio_emitElemSize(vm, elem);
+    if (rio_type(vm, elem)->kind == rio_TypeKind_param) /* (Ts copied into memory it was given: calls check) */
+      c->procDefs[rio_type(vm, elem)->elem].viewTypes |= (uint8_t)(1u << rio_type(vm, elem)->count);
     r = rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4);
   } else r = rio_pushCall(vm, call, a + 1, builder, elem, size);
   if (r.kind == rio_ExprKind_void) c->freeSlot = call->freeAtStart;

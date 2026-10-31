@@ -484,8 +484,11 @@ static uint32_t rio_shareFrames(rio_Vm *vm) {
   for (pc = 0; pc < (int)vm->codeLen; pc++) { /* operands */
     rio_Instr *in = &vm->code[pc];
     int which;
-    if (in->op == rio_Op_data) { /* only slice's has a slot */
-      if (pc && vm->code[pc - 1].op == rio_Op_slice) in->a = (uint16_t)rio_MAP_SLOT(in->a);
+    if (in->op == rio_Op_data) { /* slice's has a slot, and a builder op's may (a T's size) */
+      int prev = pc ? vm->code[pc - 1].op : 0;
+      if (prev == rio_Op_slice || ((prev == rio_Op_lidx || prev == rio_Op_pusha || prev == rio_Op_pushs || prev == rio_Op_popa ||
+                                    prev == rio_Op_lrem || prev == rio_Op_lswap) && in->a))
+        in->a = (uint16_t)rio_MAP_SLOT(in->a);
       continue;
     }
     which = rio_slotOperands(in->op);

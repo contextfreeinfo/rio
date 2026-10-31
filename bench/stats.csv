@@ -45,3 +45,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-31,9d9c063+,puddle,31708,181437,14708,299520,44.4,83404,0.611,0.009,0.542,0.007,0.399,0.012,0.656,0.117,"Add generic methods"
 2026-10-31,953e443+,puddle,31708,182273,14754,300544,26.4,83404,0.599,0.006,0.524,0.004,0.397,0.008,0.56,0.111,"Infer generic struct literal types"
 2026-10-31,b1907c4+,puddle,31708,182573,14796,300544,34.4,84328,0.586,0.008,0.548,0.007,0.396,0.011,0.585,0.118,"Declare core generics; for and slices over []T"
+2026-10-31,73adf92+,puddle,31796,183005,14825,301568,49.7,85832,0.682,0.008,0.521,0.007,0.346,0.014,0.588,0.123,"Allow [..]T in generic code"

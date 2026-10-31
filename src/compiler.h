@@ -531,6 +531,7 @@ int rio_retarget(rio_Vm *vm, int from, int to);
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
 extern const char rio_msgOpaque[];
 int rio_typeSizeSlot(rio_Vm *vm, int t);
+void rio_emitElemSize(rio_Vm *vm, int elem);
 int rio_mentions(rio_Vm *vm, int t, int type);
 int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);
 int rio_paramPattern(rio_Vm *vm, int proc, int i);

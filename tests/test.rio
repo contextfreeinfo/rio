@@ -1681,6 +1681,48 @@ gnCopyIn(gnQs[], gnInts[])
 gnT := gnTail(gnPs[], 1)
 check(gnCountIf(gnPs[], gnBig) == 2 and gnQs[3] == gnInts[3] and gnT.len() == 2 and gnT[1].y == 99 and gnTail(gnPs[], 3).len() == 0 and
       gnCountIf(gnPs[0..<2], gnBig) == 1, "for over a []T, and slicing one")
+GnUndo :: struct[T]
+  done: [..]T
+  undone: [..]T
+end
+GnUndo.record :: proc[T](step: &T) -> Bool
+  self.undone.clear()
+  return self.done.push(step)
+end
+GnUndo.undo :: proc[T](into: &T) -> Bool
+  if self.done.len() == 0 do return false
+  into = self.done.pop()
+  return self.undone.push(into)
+end
+gnMoveAll :: proc[T](to, from: [..]T) -> Bool
+  for from.len() > 0
+    if not to.push(from.pop()) do return false
+  end
+  return true
+end
+gnSumAt :: proc[T](xs: [..]T, at: proc(a: &T) -> Int) -> Int
+  n := 0
+  for x in xs do n += at(&x)
+  return n + at(&xs[0])
+end
+GnS :: struct
+  x: Int
+end
+gnX :: proc(s: &GnS) -> Int do return s.x
+gnSteps: [..4]GnS
+gnRedo: [..4]GnS
+gnU := GnUndo{done = gnSteps, undone = gnRedo}
+for i in 1..=3
+  s := GnS{x = i}
+  ok := gnU.record(&s)
+end
+gnLast: GnS
+gnA := gnU.undo(&gnLast)
+gnB2 := gnU.undo(&gnLast)
+gnAll: [..8]GnS
+gnMoved := gnMoveAll(gnAll, gnSteps)
+check(gnA and gnB2 and gnLast.x == 2 and gnRedo.len() == 2 and gnMoved and gnSteps.len() == 0 and gnAll.len() == 1 and
+      gnSumAt(gnRedo, gnX) == 8, "[..]T in generic code: push a place, pop and copy, for, index")
 gnPs[0].y = 50
 gnL2 := GnList.of(gnPs[], gnByY)
 gnWasSorted := gnL2.isSorted()

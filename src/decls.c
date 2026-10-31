@@ -105,7 +105,7 @@ int rio_parseType(rio_Vm *vm) {
   made = rio_procTypeOf(vm, params, n, result, optional, refs);
   if (!generic) return made;
   c->symCount = symAt; /* (its Ts were named only in it) */
-  if (!rio_genericOk(vm, made, 0)) rio_FAIL(0, "a T goes here only as &T or []T, in a proc type too (its size is known only while running)");
+  if (!rio_genericOk(vm, made, 0)) rio_FAIL(0, "a T goes here only as &T, []T or [..]T, in a proc type too (its size is known only while running)");
   return rio_newType(vm, rio_TypeKind_generic, made, (uint32_t)generic, (uint32_t)firstParam);
 }
 
@@ -354,7 +354,8 @@ static int rio_genericOk(rio_Vm *vm, int t, int top) {
   uint32_t i;
   if (!rio_mentions(vm, t, -1)) return 1;
   if (y->kind == rio_TypeKind_param) return top;
-  if (y->kind == rio_TypeKind_slice) return rio_type(vm, y->elem)->kind == rio_TypeKind_param || rio_genericOk(vm, y->elem, 0);
+  if (y->kind == rio_TypeKind_slice || y->kind == rio_TypeKind_builderView)
+    return rio_type(vm, y->elem)->kind == rio_TypeKind_param || rio_genericOk(vm, y->elem, 0);
   if (y->kind == rio_TypeKind_struct) { /* (a generic struct's, filled in with Ts: its fields are) */
     for (i = 0; i < y->fieldCount; i++)
       if (!rio_genericOk(vm, rio_field(vm, y->firstField + i)->type, 0)) return 0;
@@ -374,7 +375,7 @@ static void rio_genericParams(rio_Vm *vm, int proc) {
   int i, j;
   for (i = 0; i < p->paramCount; i++)
     if (!rio_genericOk(vm, rio_paramPattern(vm, proc, i), 1))
-      rio_FAIL(, "a T goes here only as &T or []T, in a proc type too (its size is known only while running)");
+      rio_FAIL(, "a T goes here only as &T, []T or [..]T, in a proc type too (its size is known only while running)");
   for (j = 0; j < p->typeParams; j++) {
     int t = p->firstTypeParam + j, found = 0;
     for (i = 0; i < p->paramCount && !found; i++) found = rio_mentions(vm, rio_paramPattern(vm, proc, i), t);
@@ -611,7 +612,7 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
       rio_expect(vm, ')', "')' expected");
     } else t = rio_parseType(vm);
     if (rio_type(vm, t)->kind == rio_TypeKind_void) rio_FAIL(, "invalid field type");
-    if (!rio_genericOk(vm, t, 0)) rio_FAIL(, "a T goes in a field only in a []T or a proc type, so every field's size is the same whatever T is");
+    if (!rio_genericOk(vm, t, 0)) rio_FAIL(, "a T goes in a field only in a []T, a [..]T or a proc type, so every field's size is the same whatever T is");
     rio_keepFieldsTogether(vm, st, st->fieldCount);
     for (j = 0; j < n; j++) {
       rio_Field *f;
@@ -814,8 +815,8 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   k = ty->kind;
   if (k == rio_TypeKind_void) rio_FAIL(, "variable has no type");
   if (k == rio_TypeKind_param) rio_FAIL(, "a T can't be kept in a variable: copy between places (a = b), or swap them (xs.swap(i, j))");
-  if (rio_mentions(vm, type, -1) && k != rio_TypeKind_slice && k != rio_TypeKind_proc && k != rio_TypeKind_struct)
-    rio_FAIL(, "a T goes in a variable only as []T, or in a generic struct (for now)");
+  if (rio_mentions(vm, type, -1) && k != rio_TypeKind_slice && k != rio_TypeKind_builderView && k != rio_TypeKind_proc && k != rio_TypeKind_struct)
+    rio_FAIL(, "a T goes in a variable only as []T or [..]T, or in a generic struct");
   if (has && (e.access & rio_Access_literal) && e.type == type && c->curProc < 0 && !c->blockCount && !vm->inRepl &&
       rio_literalData(vm, &e)) { /* a top-level variable from a literal of constants: its starting value */
     rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, e.value);

@@ -437,7 +437,7 @@ static void rio_index(rio_Vm *vm, rio_Expr *o, rio_Expr *i) {
     c->freeSlot = o->tempStart;
     d = rio_allocSlots(vm, 1);
     rio_emit(vm, rio_Op_lidx, d, s, ix);
-    rio_emitData(vm, 0, (uint32_t)size);
+    rio_emitElemSize(vm, elem);
     o->kind = rio_ExprKind_indirect;
     o->value = d;
     o->offset = 0;
@@ -958,6 +958,7 @@ static int rio_unify(rio_Vm *vm, int p, int pattern, int actual, int *bound) {
     return bound[y->count] == actual;
   }
   if (y->kind == rio_TypeKind_slice) return (a->kind == rio_TypeKind_slice || a->kind == rio_TypeKind_array) && rio_unify(vm, p, y->elem, a->elem, bound);
+  if (y->kind == rio_TypeKind_builderView) return (a->kind == rio_TypeKind_builderView || a->kind == rio_TypeKind_builder) && rio_unify(vm, p, y->elem, a->elem, bound);
   if (y->kind == rio_TypeKind_struct) { /* a generic struct filled in: the same one, field by field */
     if (a->kind != rio_TypeKind_struct || !y->elem || a->elem != y->elem) return 0;
     for (i = 0; i < y->fieldCount; i++)
@@ -1007,6 +1008,7 @@ int rio_bindType(rio_Vm *vm, int p, int t, const int *bound) {
   if (!rio_mentions(vm, t, -1)) return t;
   if (y->kind == rio_TypeKind_param) return y->elem == p ? bound[y->count] : t; /* (another's T stays) */
   if (y->kind == rio_TypeKind_slice) return rio_sliceOf(vm, rio_bindType(vm, p, y->elem, bound));
+  if (y->kind == rio_TypeKind_builderView) return rio_builderViewOf(vm, rio_bindType(vm, p, y->elem, bound));
   if (y->kind == rio_TypeKind_struct) return rio_structOf(vm, p, t, bound);
   for (i = 0; i < y->fieldCount && i < 16; i++) {
     params[i] = rio_bindType(vm, p, rio_field(vm, y->firstField + i)->type, bound);

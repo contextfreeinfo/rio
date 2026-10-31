@@ -729,6 +729,12 @@ static void rio_storeBits(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
 const char rio_msgOpaque[] = "a T can only be copied, compared with ==, taken from a []T, and passed on (its size is known only while running)";
 
 /* the slot holding the size of type parameter t, in its generic proc */
+/* a builder op's data: its element's size, or the slot holding it for a generic proc's T */
+void rio_emitElemSize(rio_Vm *vm, int elem) {
+  if (rio_type(vm, elem)->kind == rio_TypeKind_param) rio_emitData(vm, rio_typeSizeSlot(vm, elem), 0);
+  else rio_emitData(vm, 0, rio_type(vm, elem)->size);
+}
+
 int rio_typeSizeSlot(rio_Vm *vm, int t) {
   rio_Type *y = rio_type(vm, t);
   return vm->compiler->procDefs[y->elem].sizeSlots + (int)y->count;

@@ -408,11 +408,13 @@ the arguments, so each must be in a parameter's type. The proc is compiled once,
 passes, unseen, what T is, and so its size. In the body a T's size is known only while running, so a T
 is only ever reached through a reference or a slice, never held:
 
-- **Where a T goes:** `x: &T` and `xs: []T`, as parameters, in a proc type's parameters
-  (`less: proc(a, b: &T) -> Bool`), and in a variable as `[]T`.
+- **Where a T goes:** `x: &T`, `xs: []T` and `xs: [..]T`, as parameters, in a proc type's parameters
+  (`less: proc(a, b: &T) -> Bool`), and in a variable as `[]T` or `[..]T`.
 - **What a T does:** it's copied from place to place (`xs[i] = x`, `a = b`), swapped
   (`xs.swap(i, j)`), and passed on, to a generic proc or a proc value as `&xs[i]`. A `[]T` is indexed,
-  sliced and walked with `for x in xs` (x is the element itself, as for any slice). Anything else is an
+  sliced and walked with `for x in xs` (x is the element itself, as for any slice). A `[..]T` has its
+  builder methods too: `xs.push(x)` copies from a place, and `xs.pop()` gives the last one's place to
+  copy from (`out[i] = xs.pop()`, `ys.push(xs.pop())`). Anything else is an
   error: comparing (pass in a proc that compares), arithmetic, printing, keeping one in a variable. A
   generic proc can't return a T, or be a proc value.
 - **What a call checks:** each T found agrees everywhere it's found. And a proc that copies its T into
@@ -495,6 +497,29 @@ log(t.values[find(&t, &three)], t)
 ```output
 three {keys = [7, 3], values = ["seven", "three"], eq = proc}
 ```
+### The ideas behind them
+
+Generics follow from the rest of Rio, and these are worth checking new code against:
+
+1. **Storage gives places; computation gives values.** `for x in xs`, a `&T` parameter, `self`,
+   `xs[i]` and `p.f` are places. A call's result, a `next()` result and `xs.pop()` are computed: they're
+   copied, not borrowed (`&xs.pop()` is an error, since the next push reuses its slot). A T is always a
+   place, since a generic body can't give one a home of its own.
+2. **Copies are visible.** `a = b` copies, so does `xs.push(x)`, and every T copy is from place to
+   place.
+3. **A proc stores only what it owns.** A view or T that came in borrowed can't be stored where it
+   outlives the call. A generic proc that copies its T into memory it was given takes no T holding
+   views; moving within one sequence (`swap`, `remove`, `swapRemove`) is fine.
+4. **What depends on the type comes in as a proc:** comparing, ordering, hashing (`less`, `eq`,
+   `hash`). There are no constraints on a T.
+5. **Values decide types, in the order written:** `[_]{...}`, a generic call's arguments, and a generic
+   struct's fields, `Table{...}`. The first that settles a type wins, and the rest must agree.
+6. **Type parameters go on the keyword and are filled in by name:** `proc[T]`, `struct[K, V]`,
+   `Name[...]`. A call never names them, so `[...]` after a value is always indexing.
+
+A generic container gives its elements as slices to walk, not through `next()`, which would return a
+T by value.
+
 ## Host procs
 
 `host proc` and `host struct` declare something the host provides: see

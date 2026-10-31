@@ -132,6 +132,14 @@ static int rio_procAtPc(rio_Aot *a, int pc) {
 
 #define rio_V(s, view) rio_operand(a, s, view)
 
+/* a builder op's element size: its data's, or a slot's (a generic proc's T) */
+static const char *rio_elemSize(rio_Aot *a, const rio_Instr *data) {
+  static char b[16];
+  if (data->a) return rio_operand(a, data->a, 'u');
+  sprintf(b, "%uu", rio_dataSize(data));
+  return b;
+}
+
 /* the statement for the instruction at pc */
 static void rio_instruction(rio_Aot *a, int pc) {
   static const char *const binary[] = {"+", "-", "*", 0, 0, "&", "|", "^"};
@@ -277,16 +285,16 @@ static void rio_instruction(rio_Aot *a, int pc) {
   }
   case rio_Op_zero: rio_print(a, "memset(rio_M + %s, 0, %uu);\n", rio_V(A, 'u'), rio_dataSize(in)); break;
   case rio_Op_lidx:
-    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= rio_builderLen(%s, %s)) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
-              rio_V(C, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(B + 1, 'u'), rio_dataSize(data));
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= rio_builderLen(%s, %s)) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %s; }\n",
+              rio_V(C, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(B + 1, 'u'), rio_elemSize(a, data));
     break;
   case rio_Op_pusha:
-    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rio_builderLen(b_, c_); if (n_ >= c_) %s = 0; else { rio_WORD(b_).u = n_ + 1; %s = d_ + n_ * %uu; } }\n",
-              rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(A, 'u'), rio_dataSize(data));
+    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rio_builderLen(b_, c_); if (n_ >= c_) %s = 0; else { rio_WORD(b_).u = n_ + 1; %s = d_ + n_ * %s; } }\n",
+              rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(A, 'u'), rio_elemSize(a, data));
     break;
   case rio_Op_pushs:
-    rio_print(a, "%s = rio_listPush(%s, %s, %s, rio_M + %s, %s, %uu);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'),
-              rio_V(C, 'u'), rio_V(C + 1, 'u'), rio_dataSize(data));
+    rio_print(a, "%s = rio_listPush(%s, %s, %s, rio_M + %s, %s, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'),
+              rio_V(C, 'u'), rio_V(C + 1, 'u'), rio_elemSize(a, data));
     break;
   case rio_Op_pusht:
     rio_print(a, "%s = rio_listPushText(%s, %s, %s, %d, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), in->x,
@@ -297,12 +305,12 @@ static void rio_instruction(rio_Aot *a, int pc) {
               rio_V((int)rio_dataSize(data), 'u'), in->x, rio_V(C, 'u'), in->x == 3 ? rio_V(C + 1, 'u') : "0u");
     break;
   case rio_Op_popa:
-    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, n_ = rio_builderLen(b_, %s); if (!n_) rio_RT_ERROR(\"pop from empty builder\"); rio_WORD(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
-              rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_dataSize(data));
+    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, n_ = rio_builderLen(b_, %s); if (!n_) rio_RT_ERROR(\"pop from empty builder\"); rio_WORD(b_).u = --n_; %s = d_ + n_ * %s; }\n",
+              rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_elemSize(a, data));
     break;
   case rio_Op_lrem: case rio_Op_lswap:
-    rio_print(a, "rio_listRemove(%s, %s, %s, %s, %uu, %d, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'u'), rio_V(A + 2, 'u'), rio_V(B, 'u'),
-              rio_dataSize(data), in->op == rio_Op_lswap);
+    rio_print(a, "rio_listRemove(%s, %s, %s, %s, %s, %d, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'u'), rio_V(A + 2, 'u'), rio_V(B, 'u'),
+              rio_elemSize(a, data), in->op == rio_Op_lswap);
     break;
   case rio_Op_lview:
     rio_print(a, "{ uint32_t d_ = %s, n_ = rio_builderLen(%s, %s); %s = d_; %s = n_; }\n", rio_V(B + 1, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'),

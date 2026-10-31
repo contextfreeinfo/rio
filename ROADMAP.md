@@ -29,15 +29,22 @@ Nothing open: see Leaning yes.
 
 - **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
   only through `&T` and `[]T`, like C's `void*` with its size, but typed. Left, if wanted:
-  - **`[..]T` builder views:** `push` and `pop` in a generic body need a T by value, so they'd take
-    `&T` (`xs.push(&x)`) or copy into the next slot.
+  - **Generic host procs:** a host module declaring `sortBy* :: host proc[T](xs: []T, less: proc(a, b:
+    &T) -> Bool)`, implemented in C. The C function gets each T's hidden word (its size, and the
+    descriptor once there is one) after the other arguments, and calls proc values through
+    `rio_callValue`. The view flag can't see into C, so a host proc must say if it stores Ts it's given
+    (or the rule is that it never keeps them past the call, as with views now).
+  - **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a
+    host proc named inside its type (C name `module_Color_rgb`), with the header helper writing it.
+    Static only at first; host methods with `self` later, if wanted.
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
     descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
     it yet; it's kept for reflection (see Maybe).
   - **Where to stop:** no T by value and no constraints (no traits): anything type-specific comes in
     as a proc. `log`, `print`, `format`, `pack`, `sizeOf` and the enum builtins stay comments in
     `core.rio`, since declaring them would need constraints.
-  - **Sort and find in Rio:** a small library of them, now that they can be written.
+  - **Sort and find in Rio:** a small library of them, now that they can be written. Not yet.
+  - **No constraints, ever:** decided. Type-specific behavior comes in as procs.
 - **Returning any value:** a proc returns a value of up to 16 words, views in it or not (host procs
   return no views). What's left, when something needs it:
   - **Big values** (over 16 words): the caller passes an address for the proc to fill in, and `return`
@@ -125,6 +132,11 @@ Nothing open: see Leaning yes.
 
 ## Done recently
 
+- **`[..]T` in generic code:** builder views of T as parameters, variables and generic struct fields.
+  `xs.push(x)` copies from a place and `xs.pop()` gives a place to copy from (and `&xs.pop()` is now an
+  error everywhere, since the next push reuses its slot). The builder instructions take T's size from a
+  slot named in their data word, so there are no new instructions. The spec lists the ideas generics
+  follow, to check new work against.
 - **More on generics:** `for x in xs` and slicing over a `[]T` (T's size from its slot, with no new
   instructions); `core.rio`'s list builtins declared for real (`([..]T).push* :: host proc[T](value:
   T) -> Bool`), each checked with T standing for a type of its own; and generic struct literals typed
