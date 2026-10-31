@@ -452,17 +452,22 @@ static uint32_t rio_placeFrames(rio_Vm *vm, uint32_t *top) {
    the shared frames of everything it can call, unless a slot of it ever has its address taken: those must
    keep their memory for good (a view of them may live on). The slots that stay are packed together,
    starting right after the constants actually used (the room reserved for constants is only needed while
-   compiling); every operand, address constant and table that names a slot is renumbered. Returns the
-   longest chain of calls, which sizes the return stack. */
+   compiling), the starting data of top-level variables first (rio_literalData: at the top of that room,
+   moved down with its words); every operand, address constant and table that names a slot is
+   renumbered. Returns the longest chain of calls, which sizes the return stack. */
 static uint32_t rio_shareFrames(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Val *R = (rio_Val *)vm->mem;
   uint16_t *map = c->slotMap;
   uint32_t lo = vm->constCap, hi = c->slotHigh, s, keep, top, i;
   uint32_t start = vm->inRepl ? lo : vm->constCount; /* where the slots that stay start */
+  uint32_t data = vm->inRepl ? 0 : c->limits.consts - lo; /* (starting data: kept with the constants) */
   uint32_t depth = rio_placeFrames(vm, &top);
   int k, pc;
-  if (!top && start == lo) return depth; /* nothing moves */
+  if (!top && start == lo) { /* nothing moves */
+    vm->constCap = lo + data;
+    return depth;
+  }
   /* the map: slots that stay, packed from start; then the shared frames, after them */
   for (s = lo; s < hi; s++) map[s] = 0;
   for (k = 0; k < vm->procCount; k++)
@@ -490,6 +495,12 @@ static uint32_t rio_shareFrames(rio_Vm *vm) {
   }
   for (i = 1; i < vm->constCount; i++) /* address constants */
     if (rio_bitGet(c->constIsAddr, i)) R[i].u = rio_MAP_ADDR(R[i].u);
+  for (s = lo; s < lo + data; s++) { /* starting data, down to its place (and its Strings' marks) */
+    int isString = rio_bitGet(c->constIsString, s);
+    R[map[s]] = R[s];
+    rio_bitClear(c->constIsString, s);
+    if (isString) rio_bitSet(c->constIsString, map[s]);
+  }
   for (s = start; s < lo; s++) rio_bitClear(c->exposed, s); /* unused constant room */
   for (s = lo; s < hi; s++) { /* address-taken marks follow their slots, which only move down */
     int wasExposed = rio_bitGet(c->exposed, s);
@@ -510,7 +521,7 @@ static uint32_t rio_shareFrames(rio_Vm *vm) {
 #undef rio_MAP_SLOT
 #undef rio_MAP_ADDR
   c->slotHigh = c->liveSlots = c->freeSlot = keep + top;
-  vm->constCap = start;
+  vm->constCap = start + data;
   return depth;
 }
 
@@ -651,7 +662,7 @@ static void rio_finish(rio_Vm *vm) {
     x++;
   }
   memmove(c->pool + linesAt, c->pool + c->poolCap, lineSize); /* lines go right after the exports */
-  for (i = 1; i < vm->constCount; i++) /* strings: pool offsets become addresses */
+  for (i = 1; i < vm->constCap; i++) /* strings: pool offsets become addresses (starting data's too) */
     if (rio_bitGet(c->constIsString, i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
   for (k = 0; k < vm->procCount; k++) rio_fillRuntimeProc(vm, (rio_Proc *)(void *)(c->pool + procsAt) + k, k);
   for (k = 2, p = fileNamesAt; k < c->moduleCount; k++) {
@@ -672,7 +683,7 @@ static void rio_finish(rio_Vm *vm) {
   vm->procs = (rio_Proc *)(void *)(vm->mem + base + procsAt);
   if (vm->usage) { /* where the memory goes, running */
     rio_Usage *u = vm->usage;
-    u->consts = vm->constCap * 4;
+    u->consts = vm->constCount * 4; /* (starting data, after them, counts as data) */
     u->code = codeSize;
     u->tables = size;
     u->free = (codeAt ? codeAt : base) - c->slotHigh * 4;

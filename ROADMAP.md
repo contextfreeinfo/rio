@@ -46,12 +46,13 @@ Nothing open: see Leaning yes.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **Constant tables (soon):** `[N]T` constants built while compiling, kept once in the image's
-  constants. Today a table literal costs about five times its data: each value a constant word of its
-  own, an instruction storing each one, and the literal built in a second copy before it's stored (a
-  64-entry `[64]Int`: 1,348 bytes against 312 without its values). Rinc copies an image's constants
-  and code into RAM when it loads one, so a table still costs its own bytes there, but nothing more.
-  (Building a global literal in place, with no second copy, may come first, on its own.)
+- **Literal sizes and types from their values:** `[_]T{...}` sized by its values, `[_]{...}` typed by
+  the first, and slice literals, `[]T{...}` and `[]{...}`. A literal can grow an element at a time,
+  since each value's temporaries are freed once it's stored.
+- **Read-only views, and constant tables with them:** `NAME :: [N]T{...}`, kept once with the
+  constants, needs a view that can't write (`[]const T`, say) to be passed to procs. Starting values
+  already give top-level tables nearly all of the saving; a constant table adds what it says, and
+  nothing to copy in for one in a proc.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
   both are errors, and `x is nil` is the way to test for nil.
 
@@ -127,6 +128,14 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Literals of constants built while compiling:** a literal whose values are all constants (a table
+  of Ints or Strings, nested arrays, structs) is run as it's compiled, its code dropped, and its words
+  kept with the constants: one instruction copies them in where it goes. A top-level variable from one
+  starts as those words, kept with the constants in memory and images, so nothing runs to set it. A
+  64-Int table at the top level costs 284 bytes over an empty program, not 1,316. Seven of rinc's and
+  studio's apps, unchanged, take 10.6 KB less RAM (colors 4.6 KB, sound 2.6 KB, themes 1.7 KB), once
+  rinc moves to this Rio.
 
 - **Returning values holding views:** a struct with a `String` field, a `?String`, an array or union
   of views, returned as a `String` is, so an iterator's `next` can give text. Holding a view of the

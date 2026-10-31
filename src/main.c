@@ -282,7 +282,7 @@ static void rio_memoryReport(void) {
   rio_Vm *vm = &rio_vm;
   rio_Compiler *c = vm->compiler;
   int procCount = vm->procCount, i, j, pc, heaviest = -1, shown, sharedCount = 0;
-  uint32_t consts = vm->constCap * 4, slots = (c->slotHigh - vm->constCap) * 4, codeSize = vm->codeLen * (uint32_t)sizeof(rio_Instr);
+  uint32_t consts = vm->constCount * 4, data = (vm->constCap - vm->constCount) * 4, slots = (c->slotHigh - vm->constCap) * 4, codeSize = vm->codeLen * (uint32_t)sizeof(rio_Instr);
   uint32_t tables = vm->memSize - vm->top - c->bigBytes - codeSize; /* (the code sits just below the tables) */
   uint32_t procBig = 0, own = 0, area = 0, all = 0, depth = 0, callStack, globals, total;
   for (i = 0; i < procCount; i++) {
@@ -313,10 +313,11 @@ static void rio_memoryReport(void) {
   }
   callStack = (depth + 1) * 4;
   globals = slots - own - area - callStack;
-  total = consts + slots + c->bigBytes + tables + codeSize;
+  total = consts + data + slots + c->bigBytes + tables + codeSize;
   printf("memory: %u bytes in use (of %u)\n", total, vm->memSize);
   printf("  %-24s %8u   (%u words; rio_Limits.consts is only room while compiling)\n", "constants", consts, vm->constCount);
-  printf("  %-24s %8u\n", "globals", globals + (c->bigBytes - procBig));
+  printf("  %-24s %8u   (%u of them starting as literals, kept with the constants: nothing runs to set them)\n", "globals",
+         globals + data + (c->bigBytes - procBig), data);
   printf("  %-24s %8u   (%d procs share it; without sharing their frames would take %u)\n", "shared frames", area, sharedCount, all - own);
   printf("  %-24s %8u   (%d procs with an address-taken slot keep their own frame; %u of it in big locals)\n", "own frames",
          own + procBig, procCount - sharedCount, procBig);

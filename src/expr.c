@@ -602,10 +602,20 @@ static int rio_hasBitfields(rio_Vm *vm, int t) {
   return 0;
 }
 
+/* a literal is complete: its value, in its temporaries, or kept with the constants when they were all
+   it moved there (rio_constLiteral) */
+static void rio_literalDone(rio_Vm *vm, rio_PendingOp *lit) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr e = rio_exprOf(rio_ExprKind_static, lit->b, lit->c);
+  c->freeSlot = (uint32_t)(lit->c / 4 + rio_typeWords(vm, lit->b));
+  rio_constLiteral(vm, &e);
+  if (e.access & rio_Access_literal) c->freeSlot = lit->freeAtStart;
+  rio_pushResult(vm, e, lit->freeAtStart);
+}
+
 /* the zeroing for fields a literal left out (an array: the elements after its values; a builder: its
    length too), then the struct or array as the result */
 static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
-  rio_Compiler *c = vm->compiler;
   rio_Type *st = rio_type(vm, lit->b);
   rio_Field *fields = rio_field(vm, st->firstField);
   int i = 0, j, w, from, to;
@@ -619,8 +629,7 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
     if (to - from <= 64)
       for (w = from / 4; w < to / 4; w++) rio_emit(vm, rio_Op_mov, lit->c / 4 + w, rio_constSlot(vm, 0), 0);
     else rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)(lit->c + from), (uint32_t)(to - from)), to - from, 0);
-    c->freeSlot = (uint32_t)(lit->c / 4 + rio_typeWords(vm, lit->b));
-    rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, lit->b, lit->c), lit->freeAtStart);
+    rio_literalDone(vm, lit);
     return;
   }
   while (st->fieldCount <= 64 && !rio_hasBitfields(vm, lit->b) && i < st->fieldCount) { /* (structs with more fields, or bitfields, were zeroed up front) */
@@ -636,8 +645,7 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
     else rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)(lit->c + from), (uint32_t)(to - from)), to - from, 0);
     i = j;
   }
-  c->freeSlot = (uint32_t)(lit->c / 4 + rio_typeWords(vm, lit->b));
-  rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, lit->b, lit->c), lit->freeAtStart);
+  rio_literalDone(vm, lit);
 }
 
 /* ------------------------------------------------------------------ calls */
@@ -651,7 +659,8 @@ static void rio_ffiStructArg(rio_Vm *vm, rio_PendingOp *m, rio_Expr *e, int type
   int d = m->freeAtStart + m->c, size = (int)rio_type(vm, type)->size;
   rio_needValue(vm, e);
   if (rio_failed(vm)) return;
-  if (rio_isTemp(vm, e) && e->value / 4 + rio_typeWords(vm, type) > m->punAt) m->punAt = e->value / 4 + rio_typeWords(vm, type);
+  if (e->kind == rio_ExprKind_static && (uint32_t)e->value >= c->liveSlots * 4 && (uint32_t)e->value < vm->top &&
+      e->value / 4 + rio_typeWords(vm, type) > m->punAt) m->punAt = e->value / 4 + rio_typeWords(vm, type);
   if (e->kind == rio_ExprKind_static) {
     uint32_t v[2];
     v[0] = rio_expose(vm, (uint32_t)e->value, (uint32_t)size);
@@ -820,6 +829,11 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
         continue;
       }
       if ((!i && p->selfByRef) || param->refType) { /* the place's address (a view it returns may view that place) */
+        if (arg->access & rio_Access_readOnly) { /* (a constant: the method has a copy, since it may change self) */
+          rio_Expr copy = rio_exprOf(rio_ExprKind_static, rio_valueType(arg->type), rio_allocSlots(vm, rio_typeWords(vm, arg->type)) * 4);
+          rio_store(vm, &copy, arg);
+          *arg = copy;
+        }
         rio_placeMarks(vm, arg, &resultLocal, &resultFrom);
         rio_emit(vm, rio_Op_mov, (int)(dst.value / 4), rio_toAddrSlot(vm, arg), 0);
         continue;
@@ -1365,6 +1379,7 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
     int k = rio_type(vm, type.type)->kind, isArray = k == rio_TypeKind_array || k == rio_TypeKind_builder;
     if (type.kind != rio_ExprKind_type || (k != rio_TypeKind_struct && !isArray)) return rio_Expect_done;
     c->valueCount--;
+    rio_openLiteral(vm);
     o = rio_pushOp(vm, rio_Pending_literal, 0, isArray);
     o->b = type.type;
     o->c = rio_allocSlots(vm, rio_typeWords(vm, type.type)) * 4;

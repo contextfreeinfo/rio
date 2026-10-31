@@ -135,6 +135,7 @@ static int rio_rollback(rio_Vm *vm, const rio_ReplMark *m) {
   c->resumeCount = 0;
   c->curModule = c->curFile = 1;
   c->exporting = 0;
+  c->literalCount = 0; /* (a literal an error left open) */
   c->failed = 0;
   if (more) {
     vm->errorKind = rio_ErrorKind_none;

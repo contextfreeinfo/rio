@@ -143,7 +143,13 @@ int rio_constSlot(rio_Vm *vm, uint32_t value) { return rio_findConsts(vm, &value
 uint32_t rio_expose(rio_Vm *vm, uint32_t addr, uint32_t bytes) {
   rio_Compiler *c = vm->compiler;
   uint32_t w;
-  for (w = addr / 4; w < c->limits.slots && w * 4 < addr + bytes; w++) rio_bitSet(c->exposed, w);
+  for (w = addr / 4; w < c->limits.slots && w * 4 < addr + bytes; w++) {
+    if (c->literalCount && !rio_bitGet(c->exposed, w)) { /* (logged: an open literal may be undone) */
+      if (c->exposedCount < sizeof c->exposedLog / sizeof c->exposedLog[0]) c->exposedLog[c->exposedCount] = (uint16_t)w;
+      c->exposedCount++;
+    }
+    rio_bitSet(c->exposed, w);
+  }
   return addr;
 }
 
@@ -364,9 +370,243 @@ static void rio_storeView(rio_Vm *vm, const rio_Expr *dst, const rio_Expr *src) 
 
 /* ------------------------------------------------------------------ values */
 
-/* a value in the compiler's temporary slots (a call's or an expression's result), not a variable */
+/* a value in the compiler's temporary slots (a call's or an expression's result), or a literal kept with
+   the constants: a computed value, not a variable */
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e) {
-  return e->kind == rio_ExprKind_static && (uint32_t)e->value >= vm->compiler->liveSlots * 4 && (uint32_t)e->value < vm->top;
+  return e->kind == rio_ExprKind_static &&
+         ((e->access & rio_Access_literal) || ((uint32_t)e->value >= vm->compiler->liveSlots * 4 && (uint32_t)e->value < vm->top));
+}
+
+/* ------------------------------------------------------------------ literals of constants */
+
+/* A top-level variable from a literal of constants (rio_constLiteral) starts as its words: they become
+   the variable, with nothing run to set it. Such data comes down from the top of the constants' room
+   while compiling, and is moved to just after the constants at the end (rio_shareFrames), so an image
+   keeps it with them. The literal's own constants go, when nothing else has them. 0: no room. */
+int rio_literalData(rio_Vm *vm, rio_Expr *e) {
+  rio_Compiler *c = vm->compiler;
+  rio_Val *R = (rio_Val *)vm->mem;
+  uint32_t words = (uint32_t)rio_typeWords(vm, e->type), k = (uint32_t)e->value / 4, at, i;
+  int fresh = c->freshLiteral == (int32_t)k && k + words == vm->constCount;
+  if (vm->constCap < words || vm->constCap - words < (fresh ? k : vm->constCount)) return 0;
+  at = vm->constCap - words;
+  memmove(&R[at], &R[k], words * 4); /* (at >= k: from the end, for the marks too) */
+  for (i = words; i-- > 0;) {
+    if (rio_bitGet(c->constIsString, k + i)) rio_bitSet(c->constIsString, at + i);
+    else rio_bitClear(c->constIsString, at + i);
+  }
+  if (fresh) {
+    for (i = k; i < at && i < k + words; i++) rio_bitClear(c->constIsString, i);
+    vm->constCount = k;
+  }
+  c->freshLiteral = 0;
+  vm->constCap = at;
+  e->value = (int32_t)at * 4;
+  e->access = 0;
+  return 1;
+}
+
+/* A literal opens: where compiling is now, in case its values all turn out to be constants */
+void rio_openLiteral(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  rio_LiteralMark *m;
+  if (!c->literalCount) c->exposedCount = 0;
+  if (c->literalCount++ >= (int)(sizeof c->literals / sizeof c->literals[0])) return; /* (too deep: built as it is) */
+  m = &c->literals[c->literalCount - 1];
+  m->codeLen = vm->codeLen;
+  m->constCount = vm->constCount;
+  m->freeSlot = c->freeSlot;
+  m->slotHigh = c->slotHigh;
+  m->poolCap = c->poolCap;
+  m->lineCount = c->lineCount;
+  m->lastLine = c->lastLine;
+  m->lastLinePc = c->lastLinePc;
+  m->exposedCount = c->exposedCount;
+}
+
+/* A literal's code, run while compiling: its temporaries' words, and what each is */
+typedef struct {
+  rio_Vm *vm;
+  uint32_t lo, n; /* the temporaries: slots lo to lo + n */
+  uint32_t *w;
+  uint8_t *kind;  /* rio_LitKind */
+  int bad;        /* it did something other than move constants around */
+} rio_LitRun;
+enum { rio_LitKind_number, rio_LitKind_string, rio_LitKind_addr }; /* (a String's pool offset, a slot's address: placed later) */
+
+/* slot s's word: a constant, or a temporary */
+static uint32_t rio_litRead(rio_LitRun *t, uint32_t s, uint8_t *kind) {
+  rio_Compiler *c = t->vm->compiler;
+  *kind = rio_LitKind_number;
+  if (s < t->vm->constCount) {
+    if (rio_bitGet(c->constIsString, s)) *kind = rio_LitKind_string;
+    else if (rio_bitGet(c->constIsAddr, s)) *kind = rio_LitKind_addr;
+    return ((rio_Val *)t->vm->mem)[s].u;
+  }
+  if (s >= t->lo && s - t->lo < t->n) {
+    *kind = t->kind[s - t->lo];
+    return t->w[s - t->lo];
+  }
+  t->bad = 1;
+  return 0;
+}
+
+static void rio_litWrite(rio_LitRun *t, uint32_t s, uint32_t v, uint8_t kind) {
+  if (s < t->lo || s - t->lo >= t->n) {
+    t->bad = 1;
+    return;
+  }
+  t->w[s - t->lo] = v;
+  t->kind[s - t->lo] = kind;
+}
+
+/* the byte offset in the temporaries that the address constant in slot s points at, with room for bytes */
+static uint32_t rio_litAddr(rio_LitRun *t, uint32_t s, uint32_t bytes) {
+  uint8_t kind;
+  uint32_t a = rio_litRead(t, s, &kind);
+  if (s >= t->vm->constCount || kind != rio_LitKind_addr || a < t->lo * 4 || a - t->lo * 4 + bytes > t->n * 4) {
+    t->bad = 1;
+    return 0;
+  }
+  return a - t->lo * 4;
+}
+
+/* bytes [at, at + bytes) were written as plain bytes: their words are numbers now (only part of a
+   String's or an address's written: it's no longer one) */
+static void rio_litBytes(rio_LitRun *t, uint32_t at, uint32_t bytes) {
+  uint32_t w;
+  for (w = at / 4; w * 4 < at + bytes; w++) {
+    if (t->kind[w] && (at > w * 4 || at + bytes < w * 4 + 4)) t->bad = 1;
+    t->kind[w] = rio_LitKind_number;
+  }
+}
+
+/* the end of the temporaries the code from pc writes: past what it writes in slots and through addresses */
+static uint32_t rio_litEnd(rio_Vm *vm, uint32_t pc, uint32_t end) {
+  rio_Val *R = (rio_Val *)vm->mem;
+  for (; pc < vm->codeLen; pc++) {
+    rio_Instr *in = &vm->code[pc];
+    uint32_t to = 0;
+    switch (in->op) {
+    case rio_Op_mov: to = in->a + 1u; break;
+    case rio_Op_mov2: to = in->a + 2u; break;
+    case rio_Op_movn: to = in->a + (uint32_t)in->c; break;
+    case rio_Op_zero: case rio_Op_copy: case rio_Op_stw: case rio_Op_stb: {
+      uint32_t bytes = in->op == rio_Op_zero ? (in->b | (uint32_t)in->c << 16) : in->op == rio_Op_copy ? in->c : in->c + 4u;
+      if (in->a < vm->constCount) to = (R[in->a].u + bytes + 3) / 4;
+      break;
+    }
+    }
+    if (to > end) end = to;
+  }
+  return end;
+}
+
+/* A literal closes, e its value in temporaries. When its code only moved constants around, it's run now
+   instead: the words it leaves are kept with the constants, its code is dropped, and e becomes them, a
+   read-only computed value (so a 64-Int table is its 64 words, not those and 64 instructions storing
+   them). A builder isn't, since it's changed in place. */
+void rio_constLiteral(rio_Vm *vm, rio_Expr *e) {
+  rio_Compiler *c = vm->compiler;
+  rio_Val *R = (rio_Val *)vm->mem;
+  rio_LiteralMark *m;
+  rio_LitRun t;
+  uint32_t words = (rio_type(vm, e->type)->size + 3) / 4, first, pc, i, j, k, at, room;
+  uint8_t *scratch = c->pool + ((c->poolUsed + 3) & ~3u), kd;
+  int strings = 0;
+  if (c->literalCount-- > (int)(sizeof c->literals / sizeof c->literals[0])) return;
+  m = &c->literals[c->literalCount];
+  if (rio_failed(vm) || e->kind != rio_ExprKind_static || rio_type(vm, e->type)->kind == rio_TypeKind_builder ||
+      c->exposedCount > sizeof c->exposedLog / sizeof c->exposedLog[0])
+    return;
+  t.vm = vm;
+  t.lo = m->freeSlot;
+  t.n = rio_litEnd(vm, m->codeLen, t.lo) - t.lo;
+  t.bad = 0;
+  room = c->poolCap > (uint32_t)(scratch - c->pool) ? c->poolCap - (uint32_t)(scratch - c->pool) : 0;
+  if (room / 5 < t.n) return; /* (no room to run it: built as it is) */
+  t.w = (uint32_t *)(void *)scratch;
+  t.kind = scratch + t.n * 4;
+  memset(scratch, 0, t.n * 5);
+  for (pc = m->codeLen; pc < vm->codeLen && !t.bad; pc++) {
+    rio_Instr *in = &vm->code[pc];
+    uint8_t *b = (uint8_t *)t.w;
+    uint32_t from, bytes, v;
+    switch (in->op) {
+    case rio_Op_mov: case rio_Op_mov2: case rio_Op_movn:
+      for (j = 0; j < (in->op == rio_Op_mov ? 1u : in->op == rio_Op_mov2 ? 2u : in->c); j++) {
+        v = rio_litRead(&t, in->b + j, &kd);
+        rio_litWrite(&t, in->a + j, v, kd);
+      }
+      break;
+    case rio_Op_zero:
+      bytes = in->b | (uint32_t)in->c << 16;
+      at = rio_litAddr(&t, in->a, bytes);
+      if (t.bad) break;
+      memset(b + at, 0, bytes);
+      rio_litBytes(&t, at, bytes);
+      break;
+    case rio_Op_copy:
+      bytes = in->c;
+      at = rio_litAddr(&t, in->a, bytes);
+      from = rio_litAddr(&t, in->b, bytes);
+      if (t.bad) break;
+      memmove(b + at, b + from, bytes);
+      if ((at | from | bytes) & 3) rio_litBytes(&t, at, bytes);
+      else memmove(t.kind + at / 4, t.kind + from / 4, bytes / 4);
+      break;
+    case rio_Op_stw: case rio_Op_stb:
+      bytes = in->op == rio_Op_stw ? 4 : 1;
+      at = rio_litAddr(&t, in->a, in->c + bytes) + in->c;
+      v = rio_litRead(&t, in->b, &kd);
+      if (t.bad) break;
+      if (bytes == 4 && !(at & 3)) rio_litWrite(&t, t.lo + at / 4, v, kd);
+      else if (kd) t.bad = 1;
+      else {
+        memcpy(b + at, &v, bytes); /* (little-endian: its low byte) */
+        rio_litBytes(&t, at, bytes);
+      }
+      break;
+    default: t.bad = 1;
+    }
+  }
+  first = (uint32_t)e->value / 4;
+  if (t.bad || first < t.lo || first - t.lo + words > t.n) return;
+  first -= t.lo;
+  for (i = 0; i < words; i++) {
+    if (t.kind[first + i] == rio_LitKind_addr) return; /* (a view of a variable: built as it is) */
+    strings |= t.kind[first + i] == rio_LitKind_string;
+  }
+  if (m->constCount + words > vm->constCap) return; /* (no room for its words: built as it is) */
+  /* undone: its code, constants, temporaries, lines and address-taken marks */
+  vm->codeLen = m->codeLen;
+  for (k = m->constCount; k < vm->constCount; k++) {
+    rio_bitClear(c->constIsString, k);
+    rio_bitClear(c->constIsAddr, k);
+  }
+  vm->constCount = m->constCount;
+  c->freeSlot = m->freeSlot;
+  c->slotHigh = m->slotHigh;
+  c->poolCap = m->poolCap;
+  c->lineCount = m->lineCount;
+  c->lastLine = m->lastLine;
+  c->lastLinePc = m->lastLinePc;
+  for (; c->exposedCount > m->exposedCount; c->exposedCount--) rio_bitClear(c->exposed, c->exposedLog[c->exposedCount - 1]);
+  /* its words, as constants: the same words already there are shared, unless they hold Strings */
+  if (!strings) {
+    k = (uint32_t)rio_findConsts(vm, t.w + first, (int)words, 0);
+    c->freshLiteral = k + words == vm->constCount && k >= m->constCount ? (int32_t)k : 0;
+  } else {
+    k = vm->constCount;
+    for (i = 0; i < words; i++) {
+      R[k + i].u = t.w[first + i];
+      if (t.kind[first + i] == rio_LitKind_string) rio_bitSet(c->constIsString, k + i);
+    }
+    vm->constCount += words;
+    c->freshLiteral = (int32_t)k;
+  }
+  e->value = (int32_t)k * 4;
+  e->access = rio_Access_readOnly | rio_Access_literal;
 }
 
 void rio_needValue(rio_Vm *vm, rio_Expr *e) {

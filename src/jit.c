@@ -890,7 +890,7 @@ static int rio_jitAll(rio_Vm *vm) {
   g.len = 0;
   if (g.cap > 65535) g.cap = 65535; /* (labels are 16-bit) */
   g.consts = (const rio_Val *)(const void *)vm->mem;
-  g.constCap = vm->constCap;
+  g.constCap = vm->constCount; /* (starting data, after the constants, changes) */
   g.vm = vm;
   vm->jitCount = 0;
   /* procs, callees first (they're defined before use, but a pass may leave one for the next) */

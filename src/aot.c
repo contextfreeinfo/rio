@@ -483,8 +483,8 @@ static void rio_writeMemory(rio_Aot *a) {
   rio_Vm *vm = a->vm;
   uint8_t *mem = vm->mem;
   int i;
-  fprintf(a->out, "static const uint32_t rio_k[%u] = {", vm->constCount);
-  for (i = 0; i < (int)vm->constCount; i++) fprintf(a->out, "%s%uu", i ? (i % 12 ? ", " : ",\n  ") : "\n  ", ((rio_Val *)mem)[i].u);
+  fprintf(a->out, "static const uint32_t rio_k[%u] = {", vm->constCap); /* (and the starting data after them) */
+  for (i = 0; i < (int)vm->constCap; i++) fprintf(a->out, "%s%uu", i ? (i % 12 ? ", " : ",\n  ") : "\n  ", ((rio_Val *)mem)[i].u);
   fprintf(a->out, "\n};\nstatic void rio_load(void) {\n  memcpy(rio_R, rio_k, sizeof rio_k);\n");
   for (i = (int)vm->top; i < (int)vm->memSize; i++) { /* runs of bytes, broken at 8 zeros */
     int end = i, zeros = 0, start = i;

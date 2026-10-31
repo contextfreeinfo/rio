@@ -169,6 +169,7 @@ enum {
   rio_Access_boundMethod = 2, /* a method with its receiver just below on the value stack */
   rio_Access_ref = 4,         /* &place, not yet given to a & parameter or name := &place */
   rio_Access_narrowed = 8,    /* a narrowed union's copy */
+  rio_Access_literal = 16,    /* a literal of constants, kept with them (with readOnly): a computed value, not a place */
 };
 
 typedef struct {
@@ -272,6 +273,12 @@ typedef struct {
 } rio_ValueBlock;
 enum { rio_Value_place = 1, rio_Value_declare, rio_Value_return };
 
+/* Where compiling was when a literal opened, so what it did can be undone when its values all turn out
+   to be constants (rio_constLiteral) */
+typedef struct {
+  uint32_t codeLen, constCount, freeSlot, slotHigh, poolCap, lineCount, lastLine, lastLinePc, exposedCount;
+} rio_LiteralMark;
+
 /* ------------------------------------------------------------------ the compiler */
 
 typedef struct rio_Compiler {
@@ -345,6 +352,12 @@ typedef struct rio_Compiler {
   int switchCount;
   rio_ValueBlock valueBlocks[8]; /* the open ifs and switches that are values, innermost last */
   int valueBlockCount;
+  rio_LiteralMark literals[8]; /* the open literals, innermost last (past 8: built as they are) */
+  int literalCount;
+  uint16_t exposedLog[128];    /* slots an open literal marked address-taken, to unmark if it's undone */
+  uint32_t exposedCount;       /* (past 128: the literals open then aren't undone) */
+  int32_t freshLiteral;        /* the constant a literal's words were just added at (0: none), which a
+                                  top-level declaration can take as its variable's starting value */
   uint16_t descType[32], descSlot[32]; /* types printed by descriptor (print.h), and where theirs are */
   int descCount;
   struct {
@@ -503,6 +516,9 @@ uint32_t rio_expose(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_addrConst(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_retarget(rio_Vm *vm, int from, int to);
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
+void rio_openLiteral(rio_Vm *vm);
+void rio_constLiteral(rio_Vm *vm, rio_Expr *e);
+int rio_literalData(rio_Vm *vm, rio_Expr *e);
 int rio_isLocalView(rio_Vm *vm, const rio_Expr *e);
 void rio_slotMarks(rio_Vm *vm, rio_Expr *e);
 void rio_partMarks(rio_Vm *vm, rio_Expr *e);

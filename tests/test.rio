@@ -1516,6 +1516,50 @@ check(rvSeen[].asString() == "one;two;three;" and (rvLong(RvWords{text = "a bc d
 rvMake := rvPairOf
 check(rvMake("cy", 2).key == "cy", "through a proc value")
 
+# ---- literals of constants: run while compiling, kept with the constants; a top-level variable from
+# one starts as its words, and anything else copies them
+LcDir :: enum
+  north, east, south, west
+end
+LcP :: struct
+  x, y: Int
+  name: String
+end
+LcP.bump :: proc() -> Int
+  self.x += 1
+  return self.x
+end
+lcSquares := [8]Int{0, 1, 4, 9, 16, 25, 36, 49}
+lcNames := [3]String{"red", "green", "blue"}
+lcSteps := [LcDir][2]Int{{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
+lcHome := LcP{x = 3, y = 4, name = "home"}
+lcBig := [20]Int{5, 6}
+lcBytes: Blob[5] = {1, 2, 3, 250, 7}
+lcI := 2
+lcSquares[lcI] += 100
+lcNames[0] = "crimson"
+lcHome.x = 9
+check(lcSquares[lcI] == 104 and lcSquares[7] == 49 and lcNames[0] == "crimson" and lcNames[lcI] == "blue", "top-level variables starting as literals, changed")
+check(lcSteps[.east][0] == 1 and lcHome.x == 9 and lcHome.name == "home" and lcBig[1] == 6 and lcBig[19] == 0 and lcBytes[3] == 250, "nested, structs, big and bytes")
+lcLookup :: proc(j: Int) -> Int
+  local := [3]Int{10, 20, 30}
+  local[0] += j
+  return local[j] + local[0]
+end
+check(lcLookup(1) == 31 and lcLookup(2) == 42 and lcLookup(1) == 31, "in a proc: copied in at each call")
+lcAgain := 0
+for k in 0..<2
+  again := [2]Int{7, 8}
+  check(again[0] == 7 and again[1] == 8, "in a loop: copied in each time")
+  again[k] = 0
+  lcAgain += again[0] + again[1]
+end
+check(lcAgain == 15, "in a loop, changed")
+check(LcP{x = 1}.bump() == 2 and [3]Int{4, 5, 6}[lcI] == 6, "a method on a literal changes a copy")
+lcV := [2]Float{1, 2}
+lcV = lcV + {0.5, 0.25}
+check(lcV[0] == 1.5 and lcV[1] == 2.25, "arithmetic with a literal")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

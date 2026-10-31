@@ -634,6 +634,11 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   ty = rio_type(vm, type);
   k = ty->kind;
   if (k == rio_TypeKind_void) rio_FAIL(, "variable has no type");
+  if (has && (e.access & rio_Access_literal) && e.type == type && c->curProc < 0 && !c->blockCount && !vm->inRepl &&
+      rio_literalData(vm, &e)) { /* a top-level variable from a literal of constants: its starting value */
+    rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, e.value);
+    return;
+  }
   if (c->curProc >= 0 && rio_isAggregate(k) && ty->hasRefs && (k == rio_TypeKind_builder || rio_isBig(ty)))
     rio_FAIL(, k == rio_TypeKind_builder ? "a builder holding slices or strings must be global"
                                          : "a big struct, array or union (over 16 words) holding slices or strings must be global");
