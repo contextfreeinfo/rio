@@ -33,7 +33,10 @@ Nothing open: see Leaning yes.
     &T) -> Bool)`, implemented in C. The C function gets each T's hidden word (its size, and the
     descriptor once there is one) after the other arguments, and calls proc values through
     `rio_callValue`. The view flag can't see into C, so a host proc must say if it stores Ts it's given
-    (or the rule is that it never keeps them past the call, as with views now).
+    (or the rule is that it never keeps them past the call, as with views now). Waits on two things:
+    host parameters that are slices or `&T` of any type (today only `String`, `Blob`, structs and
+    `&Int`/`&Float`/`&struct`), and host procs calling back (below), without which a host generic proc
+    can only work on bytes (reverse, fill, rotate, hash), not sort or find.
   - **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a
     host proc named inside its type (C name `module_Color_rgb`), with the header helper writing it.
     Static only at first; host methods with `self` later, if wanted.
