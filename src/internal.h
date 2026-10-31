@@ -179,7 +179,7 @@ typedef enum {
   rio_TypeKind_param, /* a generic proc's T (elem: the proc, or rio_NO_PROC for a generic type's; count:
                          which of its type parameters), its size known only while running */
   rio_TypeKind_generic /* a generic type, Less :: (proc[T](...)), filled in where it's named, Less[Point]
-                          (elem: the type with its Ts in it; count: how many) */
+                          (elem: the type with its Ts in it; count: how many; size: the first T's type) */
 } rio_TypeKind;
 
 #define rio_NO_PROC 0xFFFF

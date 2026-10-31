@@ -1649,7 +1649,7 @@ GnList :: struct[T]
   less: GnLess[T]
 end
 gnSortList :: proc[T](l: &GnList[T]) do gnSortBy(l.items, l.less)
-GnList.of :: static proc[T](items: []T, less: GnLess[T]) -> GnList[T] do return GnList[T]{items = items, less = less}
+GnList.of :: static proc[T](items: []T, less: GnLess[T]) -> GnList[T] do return GnList{items, less}
 GnList.sort :: proc[T]() do gnSortBy(self.items, self.less)
 GnList.isSorted :: proc[T]() -> Bool
   for i in 1..<self.items.len()
@@ -1659,7 +1659,7 @@ GnList.isSorted :: proc[T]() -> Bool
 end
 Int.pickFrom :: proc[T](xs: []T) -> Int do return self % xs.len()
 gnFirst :: proc[T](l: GnList[T]) -> Int do return l.items.len()
-gnList := GnList[GnP]{items = gnPs[], less = gnByY}
+gnList := GnList{items = gnPs[], less = gnByY}
 gnPs[0].y = 99
 gnSortList(&gnList)
 gnOther: GnList[GnP] = gnList

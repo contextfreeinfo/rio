@@ -39,7 +39,10 @@ Nothing open: see Leaning yes.
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
     descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
     it yet; it's kept for reflection (see Maybe).
-  - **Generic methods:** `([..]T).push :: proc[T](value: T) -> Bool`, the receiver's T bound by the
+  - **Generic struct literals typed by their fields:** `Table{keys = ks[], values = vs[], eq = intEq}` is
+  a `Table[Int, Point]`, each field's value finding the Ts in its type, in order (as `[_]{...}` takes its
+  element type from its values). Every T must be found; a `{...}` into a field not yet known is an error.
+- **Generic methods:** `([..]T).push :: proc[T](value: T) -> Bool`, the receiver's T bound by the
     proc's list. The receiver comes first in the source, before T is named, so it needs reading after.
   - **No constraints and no traits:** anything type-specific, like `<`, comes in as a proc argument:
     `sort(xs[], less)`.

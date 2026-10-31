@@ -461,7 +461,9 @@ A struct can take types the same way, `Table :: struct[K, V]`, filled in where i
 `Table[Int, Point]`, or `Table[K, V]` in a generic proc, which finds K and V through it. A T goes in a
 field only in a `[]T` or a proc type, so every field's size is the same whatever T is: each filled-in
 struct is its own type, laid out as the others are, and no code is made per type. Each type parameter
-must be in some field's type.
+must be in some field's type. A literal can leave the types out, `Table{keys = ks[], ...}`: each field's
+value finds the ones its type has, in the order they're written, and every one must be found by the
+end. A `{...}` going into a field whose type isn't known yet is an error: name the types then.
 
 A generic struct's methods name its types first, in order, as a generic proc does: `Table.put ::
 proc[K, V](key: &K, value: &V)`, with `self` a `Table[K, V]`, found from the value it's called on. More
@@ -484,7 +486,7 @@ end
 intEq :: proc(a, b: &Int) -> Bool do return a == b
 ks := [_]{7, 3}
 names := [_]{"seven", "three"}
-t := Table[Int, String]{keys = ks[], values = names[], eq = intEq}
+t := Table{keys = ks[], values = names[], eq = intEq}  # a Table[Int, String]
 three := 3
 log(t.values[find(&t, &three)], t)
 ```

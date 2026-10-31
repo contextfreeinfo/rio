@@ -533,6 +533,7 @@ int rio_typeSizeSlot(rio_Vm *vm, int t);
 int rio_mentions(rio_Vm *vm, int t, int type);
 int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);
 int rio_paramPattern(rio_Vm *vm, int proc, int i);
+int rio_genericOf(rio_Vm *vm, int tmpl);
 void rio_openLiteral(rio_Vm *vm);
 void rio_constLiteral(rio_Vm *vm, rio_Expr *e);
 int rio_literalData(rio_Vm *vm, rio_Expr *e);

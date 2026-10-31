@@ -674,6 +674,8 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
     rio_finishGrown(vm, lit);
     return;
   }
+  if (rio_mentions(vm, lit->b, -2))
+    rio_FAIL(, "can't tell all of this struct's types from its fields: give the fields they're in, or name them, Table[K, V]{...}");
   rio_Type *st = rio_type(vm, lit->b);
   rio_Field *fields = rio_field(vm, st->firstField);
   int i = 0, j, w, from, to;
@@ -745,6 +747,9 @@ static void rio_ffiRoom(rio_Vm *vm, rio_PendingOp *o, int ffi) {
   if ((int)c->freeSlot < o->punAt) rio_allocSlots(vm, o->punAt - (int)c->freeSlot);
 }
 
+static void rio_inferFields(rio_Vm *vm, rio_PendingOp *lit, rio_Expr *value);
+static int rio_unify(rio_Vm *vm, int p, int pattern, int actual, int *bound);
+
 static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   rio_Compiler *c = vm->compiler;
   rio_Expr *arg = rio_valueTop(vm), e;
@@ -758,7 +763,13 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount)
       type = rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
     else if (m->kind == rio_Pending_literal && m->op) type = rio_literalElem(vm, m);
-    else if (m->kind == rio_Pending_literal && m->a >= 0) type = rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
+    else if (m->kind == rio_Pending_literal && m->a >= 0) {
+      type = rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
+      if (rio_mentions(vm, type, -2)) { /* (by its own signature: its T found from it, rio_inferFields) */
+        rio_toProcValue(vm, arg, -1);
+        type = -1;
+      }
+    }
     else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_push && m->argCount == 1)
       type = rio_type(vm, c->values[m->valueBase].type)->elem; /* (xs.push(f): a builder of proc values) */
     if (type >= 0 && rio_type(vm, type)->kind == rio_TypeKind_proc) rio_toProcValue(vm, arg, type);
@@ -845,10 +856,14 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     rio_store(vm, &dst, &e);
     c->freeSlot = (uint32_t)(m->c / 4 + rio_typeWords(vm, m->b));
   } else if (m->kind == rio_Pending_literal) { /* stored into the struct at once */
-    rio_Type *st = rio_type(vm, m->b);
+    rio_Type *st;
     rio_Field *f;
     rio_Expr dst;
     if (m->a < 0) rio_punField(vm, m);
+    if (rio_failed(vm)) return;
+    rio_inferFields(vm, m, rio_valueTop(vm));
+    if (rio_failed(vm)) return;
+    st = rio_type(vm, m->b);
     f = rio_field(vm, st->firstField + m->a);
     e = rio_popValue(vm);
     dst = rio_exprOf(rio_ExprKind_static, f->type, m->c + f->offset);
@@ -897,6 +912,22 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   m->argCount++;
 }
 
+/* Table{keys = ks[], ...}: a generic struct's literal with its Ts left out. Each field's value finds the
+   ones its type has, and the literal's type is the struct filled in with what's known so far. */
+static void rio_inferFields(rio_Vm *vm, rio_PendingOp *lit, rio_Expr *value) {
+  int ft = rio_field(vm, rio_type(vm, lit->b)->firstField + lit->a)->type, tmpl, g, bound[8], j;
+  if (!rio_mentions(vm, ft, -2)) return;
+  tmpl = rio_type(vm, lit->b)->elem ? rio_type(vm, lit->b)->elem : lit->b;
+  g = rio_genericOf(vm, tmpl);
+  for (j = 0; j < (int)rio_type(vm, g)->count; j++) bound[j] = -1;
+  if (value->kind == rio_ExprKind_proc || value->kind == rio_ExprKind_ffi) rio_toProcValue(vm, value, -1);
+  if (rio_failed(vm)) return;
+  if (!rio_unify(vm, rio_NO_PROC, ft, rio_valueType(value->type), bound)) rio_FAIL(, "type mismatch");
+  for (j = 0; j < (int)rio_type(vm, g)->count; j++)
+    if (bound[j] < 0) bound[j] = (int)rio_type(vm, g)->size + j; /* (not known yet: stays a T) */
+  lit->b = rio_bindType(vm, rio_NO_PROC, lit->b, bound);
+}
+
 /* zeros into slots [at, at + words): optional parameters a call left out */
 static void rio_zeroSlots(rio_Vm *vm, int at, int words) {
   int z = rio_constSlot(vm, 0), w;
@@ -935,11 +966,11 @@ static int rio_unify(rio_Vm *vm, int p, int pattern, int actual, int *bound) {
 /* A generic struct (from: its template, or one filled in with a generic proc's Ts), filled in: made once
    for each set of field types, elem its template. Every field is the same size whatever T is, so it's
    laid out as the template is. */
-static int rio_structOf(rio_Vm *vm, int from, const int *bound) {
+static int rio_structOf(rio_Vm *vm, int p, int from, const int *bound) {
   rio_Compiler *c = vm->compiler;
   int types[64], tmpl = rio_type(vm, from)->elem ? rio_type(vm, from)->elem : from, n = rio_type(vm, from)->fieldCount, i, j, made;
   if (n > 64) rio_FAIL(0, "too many fields in a generic struct");
-  for (j = 0; j < n; j++) types[j] = rio_bindType(vm, -1, rio_field(vm, rio_type(vm, from)->firstField + j)->type, bound);
+  for (j = 0; j < n; j++) types[j] = rio_bindType(vm, p, rio_field(vm, rio_type(vm, from)->firstField + j)->type, bound);
   for (i = rio_TypeId_builtinCount; i < c->typeCount; i++) {
     rio_Type *y = rio_type(vm, i);
     if (y->kind != rio_TypeKind_struct || y->elem != tmpl) continue;
@@ -959,15 +990,16 @@ static int rio_structOf(rio_Vm *vm, int from, const int *bound) {
   return made;
 }
 
-/* a generic parameter's type with what each T was found to be */
+/* a generic parameter's type with what each T of p's (a proc, or rio_NO_PROC: a generic type's) was
+   found to be */
 int rio_bindType(rio_Vm *vm, int p, int t, const int *bound) {
   rio_Type *y = rio_type(vm, t);
   int params[16], refs = 0;
   uint32_t i;
   if (!rio_mentions(vm, t, -1)) return t;
-  if (y->kind == rio_TypeKind_param) return bound[y->count];
+  if (y->kind == rio_TypeKind_param) return y->elem == p ? bound[y->count] : t; /* (another's T stays) */
   if (y->kind == rio_TypeKind_slice) return rio_sliceOf(vm, rio_bindType(vm, p, y->elem, bound));
-  if (y->kind == rio_TypeKind_struct) return rio_structOf(vm, t, bound);
+  if (y->kind == rio_TypeKind_struct) return rio_structOf(vm, p, t, bound);
   for (i = 0; i < y->fieldCount && i < 16; i++) {
     params[i] = rio_bindType(vm, p, rio_field(vm, y->firstField + i)->type, bound);
     refs |= rio_field(vm, y->firstField + i)->offset << i;
@@ -1402,6 +1434,8 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
     return rio_impliedValue(vm, x, tempStart);
   } else if (t == '{') { /* {field = ...} or {a, b} takes its struct or array type from where the value is going */
     int type = rio_targetType(vm, x), k = type < 0 ? -1 : rio_type(vm, type)->kind;
+    if (type >= 0 && rio_mentions(vm, type, -2))
+      rio_FAIL_AT_TOKEN(rio_Expect_failed, "this field's type isn't known yet: give a field that settles it first, or name the struct's types");
     if (k == rio_TypeKind_slice) { /* (a slice: a literal of its elements, viewed) */
       rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, rio_type(vm, type)->elem, rio_Infer_slice), tempStart);
       x->bareBrace = 1;
@@ -1643,7 +1677,11 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
   if (t == '{') { /* Type{...}, [N]T{...} */
     rio_Expr type = *rio_valueTop(vm);
     rio_PendingOp *o;
-    int k = rio_type(vm, type.type)->kind, isArray = k == rio_TypeKind_array || k == rio_TypeKind_builder;
+    int k, isArray;
+    if (type.kind == rio_ExprKind_type && rio_type(vm, type.type)->kind == rio_TypeKind_generic && rio_type(vm, rio_type(vm, type.type)->elem)->kind == rio_TypeKind_struct)
+      type.type = rio_type(vm, type.type)->elem; /* Table{...}: laid out as its template (every one is), its Ts found from its fields */
+    k = rio_type(vm, type.type)->kind;
+    isArray = k == rio_TypeKind_array || k == rio_TypeKind_builder;
     if (type.kind != rio_ExprKind_type || (k != rio_TypeKind_struct && !isArray)) return rio_Expect_done;
     c->valueCount--;
     rio_openLiteral(vm);
