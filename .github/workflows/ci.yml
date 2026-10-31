@@ -50,6 +50,16 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
 
+  # bench/stats.svg is drawn from bench/stats.csv: tools/stats.py --record (or --svg) redraws it
+  stats:
+    needs: check
+    if: needs.check.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The stats chart matches the stats
+        run: python3 tools/stats.py --svg --check
+
   sanitize:
     needs: check
     if: needs.check.outputs.go == 'true'

@@ -23,8 +23,8 @@ other languages have and people may expect. What's still open is in [ROADMAP.md]
 - **A builtin Map or Dict:** without generic types it would be a special case, and Rio never
   allocates, so a map's capacity and layout are the program's business. Programs write tables for
   their own keys: `[E]T` by enum, a sorted array, or a hash table over arrays.
-- **Truthiness:** conditions stay Bool. (Maybes may be conditions too, if Bool becomes a maybe of
-  nothing: see the roadmap.)
+- **Truthiness:** conditions are Bools and maybes only (a Bool being a maybe of nothing). Zero and
+  empty are values, not missing ones: `count or 10` would replace a real 0.
 - **Recursion, garbage collection, and allocation while running:** each proc has one fixed frame and
   a program's memory is known before it runs. That's what makes Rio predictable on small boards.
 - **Enum values of their own (`= n`):** enums are always 0, 1, 2... in order, so they index arrays and
@@ -37,8 +37,9 @@ other languages have and people may expect. What's still open is in [ROADMAP.md]
 - **C#'s `^1` for indexes from the end:** `xs[end]` is the last index instead. `^` is xor too, `^0`
   (past the end) surprises, and `xs[end - i]` in a loop reads better than `xs[^(i + 1)]`. A wrong
   guess at what `end` means is a bounds error, not a misread.
-- **Formatters in place of `format`:** `b.format(settings, ...)` stays; formatters as values may come
-  beside it.
+- **Formatters, in place of `format` or beside it** (`hex(n)`, `pad(s, 8)` as values that print):
+  `b.format(settings, ...)` stays, and a `Format` is already a value, to keep and reuse. Formatters
+  would only mix settings within one call, which no program has needed: another call does it.
 - **A table of host procs with no declarations:** hosts give their modules' sources (`rio_addSource`)
   and `rio -H` writes the C to match, so declaring each host proc costs nothing and is checked.
 - **`else if`:** `case` continues an if, as in a switch with no value.

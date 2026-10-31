@@ -1,0 +1,1210 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 884" width="820" height="884" role="img" aria-label="Rio size and speed over time, from bench/stats.csv">
+<style>
+svg { --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; }
+@media (prefers-color-scheme: dark) {
+  svg { --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; }
+}
+text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink2); }
+.title { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.tick { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.axis { stroke: var(--axis); stroke-width: 1; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hit { fill: transparent; }
+</style>
+<rect width="100%" height="100%" rx="8" fill="var(--surface)"/>
+<g transform="translate(8,4)">
+<text class="title" x="0" y="16">The VM on the board</text>
+<text class="label" x="0" y="32">KB</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">15</text>
+<line class="grid" x1="44" x2="336" y1="143.5" y2="143.5"/>
+<text class="tick" x="38" y="146.5" text-anchor="end">20</text>
+<line class="grid" x1="44" x2="336" y1="111.0" y2="111.0"/>
+<text class="tick" x="38" y="114.0" text-anchor="end">25</text>
+<line class="grid" x1="44" x2="336" y1="78.5" y2="78.5"/>
+<text class="tick" x="38" y="81.5" text-anchor="end">30</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">35</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M94.1,168.3 L102.4,168.3 L110.7,168.3 L119.1,158.6 L127.4,137.3 L135.8,136.8 L144.1,103.6 L152.5,103.5 L160.8,103.5 L169.1,95.0 L177.5,95.0 L185.8,92.3 L194.2,88.6 L202.5,88.6 L210.9,88.0 L219.2,87.1 L227.5,87.1 L235.9,80.8 L244.2,80.0 L252.6,79.7 L260.9,79.7 L269.3,74.1 L277.6,74.1 L285.9,74.1 L294.3,74.1 L302.6,74.1 L311.0,74.1 L319.3,74.1 L327.7,74.1 L336.0,74.1"/>
+<circle cx="336.0" cy="74.1" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="94.1" cy="168.3" r="6"><title>2026-10-16 38c3c5d: 16.2 KB
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="168.3" r="6"><title>2026-10-17 df156d6: 16.2 KB
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="168.3" r="6"><title>2026-10-18 88c887b: 16.2 KB
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="158.6" r="6"><title>2026-10-19 294c397: 17.7 KB
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="137.3" r="6"><title>2026-10-23 f37c864: 21 KB
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="136.8" r="6"><title>2026-10-24 7a56cb4: 21 KB
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="103.6" r="6"><title>2026-10-25 785e496: 26.1 KB
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="103.5" r="6"><title>2026-10-26 078efae: 26.2 KB
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="103.5" r="6"><title>2026-10-26 95d6e7c+: 26.2 KB
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="95.0" r="6"><title>2026-10-27 d8e3904+: 27.5 KB
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="95.0" r="6"><title>2026-10-27 c0264ec+: 27.5 KB
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="92.3" r="6"><title>2026-10-27 f434996+: 27.9 KB
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="88.6" r="6"><title>2026-10-27 f434996+: 28.5 KB
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="88.6" r="6"><title>2026-10-28 7edfdee+: 28.5 KB
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="88.0" r="6"><title>2026-10-28 89a6e55+: 28.5 KB
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="87.1" r="6"><title>2026-10-28 4316612+: 28.7 KB
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="87.1" r="6"><title>2026-10-28 abc802e+: 28.7 KB
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="80.8" r="6"><title>2026-10-28 f922081+: 29.6 KB
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="80.0" r="6"><title>2026-10-28 c069967+: 29.8 KB
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="79.7" r="6"><title>2026-10-28 e8bb195+: 29.8 KB
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="79.7" r="6"><title>2026-10-28 37b57f8: 29.8 KB
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="74.1" r="6"><title>2026-10-30 18b78d6: 30.7 KB
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="74.1" r="6"><title>2026-10-30 8d89fff: 30.7 KB
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="74.1" r="6"><title>2026-10-30 4532eed: 30.7 KB
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="74.1" r="6"><title>2026-10-30 8403383: 30.7 KB
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="74.1" r="6"><title>2026-10-30 ad828ef: 30.7 KB
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="74.1" r="6"><title>2026-10-30 67259ca: 30.7 KB
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="74.1" r="6"><title>2026-10-30 136978e: 30.7 KB
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="74.1" r="6"><title>2026-10-30 e5c8dc5: 30.7 KB
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="74.1" r="6"><title>2026-10-30 3a1bbfe: 30.7 KB
+backfilled: Add static procs</title></circle>
+<text class="label" x="344" y="78.1">30.7</text>
+</g>
+<g transform="translate(428,4)">
+<text class="title" x="0" y="16">The compiler on the board</text>
+<text class="label" x="0" y="32">KB</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">100</text>
+<line class="grid" x1="44" x2="336" y1="143.5" y2="143.5"/>
+<text class="tick" x="38" y="146.5" text-anchor="end">120</text>
+<line class="grid" x1="44" x2="336" y1="111.0" y2="111.0"/>
+<text class="tick" x="38" y="114.0" text-anchor="end">140</text>
+<line class="grid" x1="44" x2="336" y1="78.5" y2="78.5"/>
+<text class="tick" x="38" y="81.5" text-anchor="end">160</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">180</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M94.1,154.0 L102.4,147.8 L110.7,148.1 L119.1,139.6 L127.4,136.4 L135.8,134.7 L144.1,120.0 L152.5,114.7 L160.8,114.5 L169.1,113.6 L177.5,111.7 L185.8,101.5 L194.2,106.2 L202.5,105.7 L210.9,104.2 L219.2,102.5 L227.5,98.5 L235.9,99.0 L244.2,96.9 L252.6,94.1 L260.9,93.9 L269.3,92.9 L277.6,91.2 L285.9,85.7 L294.3,84.7 L302.6,79.5 L311.0,77.1 L319.3,72.5 L327.7,72.4 L336.0,71.1"/>
+<circle cx="336.0" cy="71.1" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="94.1" cy="154.0" r="6"><title>2026-10-16 38c3c5d: 114 KB
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="147.8" r="6"><title>2026-10-17 df156d6: 117 KB
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="148.1" r="6"><title>2026-10-18 88c887b: 117 KB
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="139.6" r="6"><title>2026-10-19 294c397: 122 KB
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="136.4" r="6"><title>2026-10-23 f37c864: 124 KB
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="134.7" r="6"><title>2026-10-24 7a56cb4: 125 KB
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="120.0" r="6"><title>2026-10-25 785e496: 134 KB
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="114.7" r="6"><title>2026-10-26 078efae: 138 KB
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="114.5" r="6"><title>2026-10-26 95d6e7c+: 138 KB
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="113.6" r="6"><title>2026-10-27 d8e3904+: 138 KB
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="111.7" r="6"><title>2026-10-27 c0264ec+: 140 KB
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="101.5" r="6"><title>2026-10-27 f434996+: 146 KB
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="106.2" r="6"><title>2026-10-27 f434996+: 143 KB
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="105.7" r="6"><title>2026-10-28 7edfdee+: 143 KB
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="104.2" r="6"><title>2026-10-28 89a6e55+: 144 KB
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="102.5" r="6"><title>2026-10-28 4316612+: 145 KB
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="98.5" r="6"><title>2026-10-28 abc802e+: 148 KB
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="99.0" r="6"><title>2026-10-28 f922081+: 147 KB
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="96.9" r="6"><title>2026-10-28 c069967+: 149 KB
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="94.1" r="6"><title>2026-10-28 e8bb195+: 150 KB
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="93.9" r="6"><title>2026-10-28 37b57f8: 151 KB
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="92.9" r="6"><title>2026-10-30 18b78d6: 151 KB
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="91.2" r="6"><title>2026-10-30 8d89fff: 152 KB
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="85.7" r="6"><title>2026-10-30 4532eed: 156 KB
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="84.7" r="6"><title>2026-10-30 8403383: 156 KB
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="79.5" r="6"><title>2026-10-30 ad828ef: 159 KB
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="77.1" r="6"><title>2026-10-30 67259ca: 161 KB
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="72.5" r="6"><title>2026-10-30 136978e: 164 KB
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="72.4" r="6"><title>2026-10-30 e5c8dc5: 164 KB
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="71.1" r="6"><title>2026-10-30 3a1bbfe: 165 KB
+backfilled: Add static procs</title></circle>
+<text class="label" x="344" y="75.1">165</text>
+</g>
+<g transform="translate(8,224)">
+<text class="title" x="0" y="16">Lines of C in src</text>
+<text class="label" x="0" y="32">lines</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">0</text>
+<line class="grid" x1="44" x2="336" y1="132.7" y2="132.7"/>
+<text class="tick" x="38" y="135.7" text-anchor="end">5,000</text>
+<line class="grid" x1="44" x2="336" y1="89.3" y2="89.3"/>
+<text class="tick" x="38" y="92.3" text-anchor="end">10,000</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">15,000</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M44.0,154.6 L52.3,141.4 L60.7,134.3 L69.0,133.7 L77.4,133.7 L85.7,133.7 L94.1,93.6 L102.4,90.9 L110.7,91.0 L119.1,86.8 L127.4,83.6 L135.8,82.0 L144.1,75.6 L152.5,73.7 L160.8,73.6 L169.1,72.9 L177.5,72.2 L185.8,70.9 L194.2,67.5 L202.5,67.0 L210.9,66.4 L219.2,65.8 L227.5,64.9 L235.9,63.4 L244.2,63.1 L252.6,62.2 L260.9,62.2 L269.3,61.4 L277.6,61.0 L285.9,59.4 L294.3,59.4 L302.6,57.8 L311.0,56.9 L319.3,56.4 L327.7,56.4 L336.0,56.2"/>
+<circle cx="336.0" cy="56.2" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="154.6" r="6"><title>2026-10-09 e11d036: 2,466 lines
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="141.4" r="6"><title>2026-10-10 fe4ad2a: 3,988 lines
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="134.3" r="6"><title>2026-10-11 18df018: 4,812 lines
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="133.7" r="6"><title>2026-10-12 bd1f342: 4,881 lines
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="133.7" r="6"><title>2026-10-13 2ad4a87: 4,881 lines
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="133.7" r="6"><title>2026-10-15 a80e13f: 4,881 lines
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="93.6" r="6"><title>2026-10-16 38c3c5d: 9,510 lines
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="90.9" r="6"><title>2026-10-17 df156d6: 9,821 lines
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="91.0" r="6"><title>2026-10-18 88c887b: 9,809 lines
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="86.8" r="6"><title>2026-10-19 294c397: 10,294 lines
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="83.6" r="6"><title>2026-10-23 f37c864: 10,665 lines
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="82.0" r="6"><title>2026-10-24 7a56cb4: 10,851 lines
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="75.6" r="6"><title>2026-10-25 785e496: 11,588 lines
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="73.7" r="6"><title>2026-10-26 078efae: 11,807 lines
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="73.6" r="6"><title>2026-10-26 95d6e7c+: 11,816 lines
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="72.9" r="6"><title>2026-10-27 d8e3904+: 11,900 lines
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="72.2" r="6"><title>2026-10-27 c0264ec+: 11,978 lines
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="70.9" r="6"><title>2026-10-27 f434996+: 12,130 lines
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="67.5" r="6"><title>2026-10-27 f434996+: 12,523 lines
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="67.0" r="6"><title>2026-10-28 7edfdee+: 12,573 lines
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="66.4" r="6"><title>2026-10-28 89a6e55+: 12,642 lines
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="65.8" r="6"><title>2026-10-28 4316612+: 12,721 lines
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="64.9" r="6"><title>2026-10-28 abc802e+: 12,815 lines
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="63.4" r="6"><title>2026-10-28 f922081+: 12,993 lines
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="63.1" r="6"><title>2026-10-28 c069967+: 13,027 lines
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="62.2" r="6"><title>2026-10-28 e8bb195+: 13,126 lines
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="62.2" r="6"><title>2026-10-28 37b57f8: 13,128 lines
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="61.4" r="6"><title>2026-10-30 18b78d6: 13,221 lines
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="61.0" r="6"><title>2026-10-30 8d89fff: 13,274 lines
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="59.4" r="6"><title>2026-10-30 4532eed: 13,452 lines
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="59.4" r="6"><title>2026-10-30 8403383: 13,450 lines
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="57.8" r="6"><title>2026-10-30 ad828ef: 13,637 lines
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="56.9" r="6"><title>2026-10-30 67259ca: 13,741 lines
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="56.4" r="6"><title>2026-10-30 136978e: 13,803 lines
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="56.4" r="6"><title>2026-10-30 e5c8dc5: 13,804 lines
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="56.2" r="6"><title>2026-10-30 3a1bbfe: 13,820 lines
+backfilled: Add static procs</title></circle>
+<text class="label" x="344" y="60.2">13,820</text>
+</g>
+<g transform="translate(428,224)">
+<text class="title" x="0" y="16">tests/test.rio as an image</text>
+<text class="label" x="0" y="32">KB</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">30</text>
+<line class="grid" x1="44" x2="336" y1="150.0" y2="150.0"/>
+<text class="tick" x="38" y="153.0" text-anchor="end">40</text>
+<line class="grid" x1="44" x2="336" y1="124.0" y2="124.0"/>
+<text class="tick" x="38" y="127.0" text-anchor="end">50</text>
+<line class="grid" x1="44" x2="336" y1="98.0" y2="98.0"/>
+<text class="tick" x="38" y="101.0" text-anchor="end">60</text>
+<line class="grid" x1="44" x2="336" y1="72.0" y2="72.0"/>
+<text class="tick" x="38" y="75.0" text-anchor="end">70</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">80</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M60.7,158.4 L69.0,156.6 L77.4,156.6 L85.7,156.6 L94.1,156.6 L102.4,155.1 L110.7,155.1 L119.1,154.3 L127.4,143.5 L135.8,134.9 L144.1,97.9 L152.5,96.2 L160.8,96.2 L169.1,95.8 L177.5,95.8 L185.8,95.8 L194.2,95.8 L202.5,95.8 L210.9,95.8 L219.2,95.8 L227.5,95.3 L235.9,95.2 L244.2,95.2 L252.6,94.8 L260.9,94.8 L269.3,89.6 L277.6,85.7 L285.9,79.9 L294.3,79.8 L302.6,75.1 L311.0,68.3 L319.3,62.3 L327.7,62.3 L336.0,60.1"/>
+<circle cx="336.0" cy="60.1" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="60.7" cy="158.4" r="6"><title>2026-10-11 18df018: 36.8 KB
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="156.6" r="6"><title>2026-10-12 bd1f342: 37.5 KB
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="156.6" r="6"><title>2026-10-13 2ad4a87: 37.5 KB
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="156.6" r="6"><title>2026-10-15 a80e13f: 37.5 KB
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="156.6" r="6"><title>2026-10-16 38c3c5d: 37.5 KB
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="155.1" r="6"><title>2026-10-17 df156d6: 38 KB
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="155.1" r="6"><title>2026-10-18 88c887b: 38 KB
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="154.3" r="6"><title>2026-10-19 294c397: 38.3 KB
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="143.5" r="6"><title>2026-10-23 f37c864: 42.5 KB
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="134.9" r="6"><title>2026-10-24 7a56cb4: 45.8 KB
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="97.9" r="6"><title>2026-10-25 785e496: 60 KB
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="96.2" r="6"><title>2026-10-26 078efae: 60.7 KB
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="96.2" r="6"><title>2026-10-26 95d6e7c+: 60.7 KB
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="95.8" r="6"><title>2026-10-27 d8e3904+: 60.9 KB
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="95.8" r="6"><title>2026-10-27 c0264ec+: 60.9 KB
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="95.8" r="6"><title>2026-10-27 f434996+: 60.9 KB
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="95.8" r="6"><title>2026-10-27 f434996+: 60.9 KB
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="95.8" r="6"><title>2026-10-28 7edfdee+: 60.9 KB
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="95.8" r="6"><title>2026-10-28 89a6e55+: 60.9 KB
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="95.8" r="6"><title>2026-10-28 4316612+: 60.9 KB
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="95.3" r="6"><title>2026-10-28 abc802e+: 61.1 KB
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="95.2" r="6"><title>2026-10-28 f922081+: 61.1 KB
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="95.2" r="6"><title>2026-10-28 c069967+: 61.1 KB
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="94.8" r="6"><title>2026-10-28 e8bb195+: 61.2 KB
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="94.8" r="6"><title>2026-10-28 37b57f8: 61.2 KB
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="89.6" r="6"><title>2026-10-30 18b78d6: 63.2 KB
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="85.7" r="6"><title>2026-10-30 8d89fff: 64.7 KB
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="79.9" r="6"><title>2026-10-30 4532eed: 67 KB
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="79.8" r="6"><title>2026-10-30 8403383: 67 KB
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="75.1" r="6"><title>2026-10-30 ad828ef: 68.8 KB
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="68.3" r="6"><title>2026-10-30 67259ca: 71.4 KB
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="62.3" r="6"><title>2026-10-30 136978e: 73.7 KB
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="62.3" r="6"><title>2026-10-30 e5c8dc5: 73.7 KB
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="60.1" r="6"><title>2026-10-30 3a1bbfe: 74.6 KB
+backfilled: Add static procs</title></circle>
+<text class="label" x="344" y="64.1">74.6</text>
+</g>
+<g transform="translate(8,444)">
+<text class="title" x="0" y="16">Compiling tests/test.rio</text>
+<text class="label" x="0" y="32">ms</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">0</text>
+<line class="grid" x1="44" x2="336" y1="143.5" y2="143.5"/>
+<text class="tick" x="38" y="146.5" text-anchor="end">20</text>
+<line class="grid" x1="44" x2="336" y1="111.0" y2="111.0"/>
+<text class="tick" x="38" y="114.0" text-anchor="end">40</text>
+<line class="grid" x1="44" x2="336" y1="78.5" y2="78.5"/>
+<text class="tick" x="38" y="81.5" text-anchor="end">60</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">80</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M60.7,137.6 L69.0,144.8 L77.4,141.1 L85.7,135.9 L94.1,143.3 L102.4,132.9 L110.7,128.7 L119.1,134.6 L127.4,140.7 L135.8,105.0 L144.1,133.9 L152.5,135.9 L160.8,134.1 L169.1,137.3 L177.5,114.4 L185.8,135.5 L194.2,136.8 L202.5,137.6 L210.9,141.9 L219.2,135.7 L227.5,134.9 L235.9,134.2 L244.2,135.4 L252.6,138.1 L260.9,121.1 L269.3,135.1 L277.6,46.8 L285.9,125.8 L294.3,129.8 L302.6,133.1 L311.0,93.5 L319.3,132.9 L327.7,133.3 L336.0,132.1"/>
+<circle cx="336.0" cy="132.1" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="60.7" cy="137.6" r="6"><title>2026-10-11 18df018: 23.6 ms
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="144.8" r="6"><title>2026-10-12 bd1f342: 19.2 ms
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="141.1" r="6"><title>2026-10-13 2ad4a87: 21.5 ms
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="135.9" r="6"><title>2026-10-15 a80e13f: 24.7 ms
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="143.3" r="6"><title>2026-10-16 38c3c5d: 20.1 ms
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="132.9" r="6"><title>2026-10-17 df156d6: 26.5 ms
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="128.7" r="6"><title>2026-10-18 88c887b: 29.1 ms
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="134.6" r="6"><title>2026-10-19 294c397: 25.5 ms
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="140.7" r="6"><title>2026-10-23 f37c864: 21.7 ms
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="105.0" r="6"><title>2026-10-24 7a56cb4: 43.7 ms
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="133.9" r="6"><title>2026-10-25 785e496: 25.9 ms
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="135.9" r="6"><title>2026-10-26 078efae: 24.7 ms
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="134.1" r="6"><title>2026-10-26 95d6e7c+: 25.8 ms
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="137.3" r="6"><title>2026-10-27 d8e3904+: 23.8 ms
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="114.4" r="6"><title>2026-10-27 c0264ec+: 37.9 ms
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="135.5" r="6"><title>2026-10-27 f434996+: 24.9 ms
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="136.8" r="6"><title>2026-10-27 f434996+: 24.1 ms
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="137.6" r="6"><title>2026-10-28 7edfdee+: 23.6 ms
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="141.9" r="6"><title>2026-10-28 89a6e55+: 21 ms
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="135.7" r="6"><title>2026-10-28 4316612+: 24.8 ms
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="134.9" r="6"><title>2026-10-28 abc802e+: 25.3 ms
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="134.2" r="6"><title>2026-10-28 f922081+: 25.7 ms
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="135.4" r="6"><title>2026-10-28 c069967+: 25 ms
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="138.1" r="6"><title>2026-10-28 e8bb195+: 23.3 ms
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="121.1" r="6"><title>2026-10-28 37b57f8: 33.8 ms
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="135.1" r="6"><title>2026-10-30 18b78d6: 25.2 ms
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="46.8" r="6"><title>2026-10-30 8d89fff: 79.5 ms
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="125.8" r="6"><title>2026-10-30 4532eed: 30.9 ms
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="129.8" r="6"><title>2026-10-30 8403383: 28.4 ms
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="133.1" r="6"><title>2026-10-30 ad828ef: 26.4 ms
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="93.5" r="6"><title>2026-10-30 67259ca: 50.8 ms
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="132.9" r="6"><title>2026-10-30 136978e: 26.5 ms
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="133.3" r="6"><title>2026-10-30 e5c8dc5: 26.3 ms
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="132.1" r="6"><title>2026-10-30 3a1bbfe: 27 ms
+backfilled: Add static procs</title></circle>
+<text class="label" x="344" y="136.1">27</text>
+</g>
+<g transform="translate(428,444)">
+<text class="title" x="0" y="16">rio.exe on this machine</text>
+<text class="label" x="0" y="32">KB</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">50</text>
+<line class="grid" x1="44" x2="336" y1="150.0" y2="150.0"/>
+<text class="tick" x="38" y="153.0" text-anchor="end">100</text>
+<line class="grid" x1="44" x2="336" y1="124.0" y2="124.0"/>
+<text class="tick" x="38" y="127.0" text-anchor="end">150</text>
+<line class="grid" x1="44" x2="336" y1="98.0" y2="98.0"/>
+<text class="tick" x="38" y="101.0" text-anchor="end">200</text>
+<line class="grid" x1="44" x2="336" y1="72.0" y2="72.0"/>
+<text class="tick" x="38" y="75.0" text-anchor="end">250</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">300</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M44.0,150.5 L52.3,121.1 L60.7,115.7 L69.0,115.2 L77.4,115.2 L85.7,115.2 L94.1,114.6 L102.4,110.7 L110.7,111.0 L119.1,106.3 L127.4,99.0 L135.8,98.5 L144.1,86.0 L152.5,82.9 L160.8,82.9 L169.1,81.1 L177.5,80.3 L185.8,78.2 L194.2,74.3 L202.5,74.1 L210.9,73.3 L219.2,72.3 L227.5,71.5 L235.9,70.4 L244.2,70.2 L252.6,68.9 L260.9,68.9 L269.3,67.1 L277.6,66.3 L285.9,63.7 L294.3,63.9 L302.6,61.9 L311.0,60.3 L319.3,60.3 L327.7,60.3 L336.0,60.0"/>
+<circle cx="336.0" cy="60.0" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="150.5" r="6"><title>2026-10-09 e11d036: 99 KB
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="121.1" r="6"><title>2026-10-10 fe4ad2a: 156 KB
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="115.7" r="6"><title>2026-10-11 18df018: 166 KB
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="115.2" r="6"><title>2026-10-12 bd1f342: 167 KB
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="115.2" r="6"><title>2026-10-13 2ad4a87: 167 KB
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="115.2" r="6"><title>2026-10-15 a80e13f: 167 KB
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="114.6" r="6"><title>2026-10-16 38c3c5d: 168 KB
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="110.7" r="6"><title>2026-10-17 df156d6: 176 KB
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="111.0" r="6"><title>2026-10-18 88c887b: 175 KB
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="106.3" r="6"><title>2026-10-19 294c397: 184 KB
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="99.0" r="6"><title>2026-10-23 f37c864: 198 KB
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="98.5" r="6"><title>2026-10-24 7a56cb4: 199 KB
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="86.0" r="6"><title>2026-10-25 785e496: 223 KB
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="82.9" r="6"><title>2026-10-26 078efae: 229 KB
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="82.9" r="6"><title>2026-10-26 95d6e7c+: 229 KB
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="81.1" r="6"><title>2026-10-27 d8e3904+: 232 KB
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="80.3" r="6"><title>2026-10-27 c0264ec+: 234 KB
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="78.2" r="6"><title>2026-10-27 f434996+: 238 KB
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="74.3" r="6"><title>2026-10-27 f434996+: 246 KB
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="74.1" r="6"><title>2026-10-28 7edfdee+: 246 KB
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="73.3" r="6"><title>2026-10-28 89a6e55+: 248 KB
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="72.3" r="6"><title>2026-10-28 4316612+: 250 KB
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="71.5" r="6"><title>2026-10-28 abc802e+: 251 KB
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="70.4" r="6"><title>2026-10-28 f922081+: 253 KB
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="70.2" r="6"><title>2026-10-28 c069967+: 254 KB
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="68.9" r="6"><title>2026-10-28 e8bb195+: 256 KB
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="68.9" r="6"><title>2026-10-28 37b57f8: 256 KB
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="67.1" r="6"><title>2026-10-30 18b78d6: 260 KB
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="66.3" r="6"><title>2026-10-30 8d89fff: 261 KB
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="63.7" r="6"><title>2026-10-30 4532eed: 266 KB
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="63.9" r="6"><title>2026-10-30 8403383: 266 KB
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="61.9" r="6"><title>2026-10-30 ad828ef: 270 KB
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="60.3" r="6"><title>2026-10-30 67259ca: 272 KB
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="60.3" r="6"><title>2026-10-30 136978e: 272 KB
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="60.3" r="6"><title>2026-10-30 e5c8dc5: 272 KB
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="60.0" r="6"><title>2026-10-30 3a1bbfe: 273 KB
+backfilled: Add static procs</title></circle>
+<text class="label" x="344" y="64.0">273</text>
+</g>
+<g transform="translate(8,664)">
+<text class="title" x="0" y="16">Benches in the VM</text>
+<text class="label" x="0" y="32">seconds</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">0</text>
+<line class="grid" x1="44" x2="336" y1="150.0" y2="150.0"/>
+<text class="tick" x="38" y="153.0" text-anchor="end">0.25</text>
+<line class="grid" x1="44" x2="336" y1="124.0" y2="124.0"/>
+<text class="tick" x="38" y="127.0" text-anchor="end">0.5</text>
+<line class="grid" x1="44" x2="336" y1="98.0" y2="98.0"/>
+<text class="tick" x="38" y="101.0" text-anchor="end">0.75</text>
+<line class="grid" x1="44" x2="336" y1="72.0" y2="72.0"/>
+<text class="tick" x="38" y="75.0" text-anchor="end">1</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">1.25</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M44.0,118.7 L52.3,107.7 L60.7,120.8 L69.0,122.6 L77.4,123.0 L85.7,121.2 L94.1,118.5 L102.4,103.8 L110.7,104.4 L119.1,99.0 L127.4,116.0 L135.8,119.0 L144.1,115.5 L152.5,120.7 L160.8,121.9 L169.1,113.5 L177.5,69.3 L185.8,120.4 L194.2,118.6 L202.5,118.7 L210.9,115.9 L219.2,114.4 L227.5,118.8 L235.9,118.8 L244.2,118.6 L252.6,106.9 L260.9,112.8 L269.3,120.2 L277.6,122.0 L285.9,120.0 L294.3,116.9 L302.6,120.2 L311.0,119.5 L319.3,120.3 L327.7,119.2 L336.0,119.2"/>
+<circle cx="336.0" cy="119.2" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="118.7" r="6"><title>2026-10-09 e11d036 calls: 0.551 seconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="107.7" r="6"><title>2026-10-10 fe4ad2a calls: 0.657 seconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="120.8" r="6"><title>2026-10-11 18df018 calls: 0.531 seconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="122.6" r="6"><title>2026-10-12 bd1f342 calls: 0.513 seconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="123.0" r="6"><title>2026-10-13 2ad4a87 calls: 0.51 seconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="121.2" r="6"><title>2026-10-15 a80e13f calls: 0.527 seconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="118.5" r="6"><title>2026-10-16 38c3c5d calls: 0.553 seconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="103.8" r="6"><title>2026-10-17 df156d6 calls: 0.694 seconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="104.4" r="6"><title>2026-10-18 88c887b calls: 0.688 seconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="99.0" r="6"><title>2026-10-19 294c397 calls: 0.74 seconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="116.0" r="6"><title>2026-10-23 f37c864 calls: 0.577 seconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="119.0" r="6"><title>2026-10-24 7a56cb4 calls: 0.548 seconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="115.5" r="6"><title>2026-10-25 785e496 calls: 0.582 seconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="120.7" r="6"><title>2026-10-26 078efae calls: 0.532 seconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="121.9" r="6"><title>2026-10-26 95d6e7c+ calls: 0.52 seconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="113.5" r="6"><title>2026-10-27 d8e3904+ calls: 0.601 seconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="69.3" r="6"><title>2026-10-27 c0264ec+ calls: 1.03 seconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="120.4" r="6"><title>2026-10-27 f434996+ calls: 0.535 seconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="118.6" r="6"><title>2026-10-27 f434996+ calls: 0.552 seconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="118.7" r="6"><title>2026-10-28 7edfdee+ calls: 0.551 seconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="115.9" r="6"><title>2026-10-28 89a6e55+ calls: 0.578 seconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="114.4" r="6"><title>2026-10-28 4316612+ calls: 0.592 seconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="118.8" r="6"><title>2026-10-28 abc802e+ calls: 0.55 seconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="118.8" r="6"><title>2026-10-28 f922081+ calls: 0.55 seconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="118.6" r="6"><title>2026-10-28 c069967+ calls: 0.552 seconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="106.9" r="6"><title>2026-10-28 e8bb195+ calls: 0.664 seconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="112.8" r="6"><title>2026-10-28 37b57f8 calls: 0.608 seconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="120.2" r="6"><title>2026-10-30 18b78d6 calls: 0.537 seconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="122.0" r="6"><title>2026-10-30 8d89fff calls: 0.519 seconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="120.0" r="6"><title>2026-10-30 4532eed calls: 0.538 seconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="116.9" r="6"><title>2026-10-30 8403383 calls: 0.568 seconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="120.2" r="6"><title>2026-10-30 ad828ef calls: 0.537 seconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="119.5" r="6"><title>2026-10-30 67259ca calls: 0.543 seconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="120.3" r="6"><title>2026-10-30 136978e calls: 0.536 seconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="119.2" r="6"><title>2026-10-30 e5c8dc5 calls: 0.546 seconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="119.2" r="6"><title>2026-10-30 3a1bbfe calls: 0.546 seconds
+backfilled: Add static procs</title></circle>
+<path class="line" stroke="var(--s2)" d="M44.0,119.3 L52.3,119.1 L60.7,117.3 L69.0,116.5 L77.4,116.7 L85.7,116.6 L94.1,117.6 L102.4,116.1 L110.7,115.3 L119.1,114.1 L127.4,116.5 L135.8,118.8 L144.1,122.1 L152.5,123.5 L160.8,122.3 L169.1,119.8 L177.5,93.4 L185.8,121.8 L194.2,121.1 L202.5,121.2 L210.9,121.2 L219.2,120.8 L227.5,121.7 L235.9,119.6 L244.2,120.6 L252.6,115.4 L260.9,120.2 L269.3,121.1 L277.6,136.3 L285.9,118.5 L294.3,115.9 L302.6,120.7 L311.0,121.8 L319.3,120.9 L327.7,121.6 L336.0,121.0"/>
+<circle cx="336.0" cy="121.0" r="4" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="119.3" r="6"><title>2026-10-09 e11d036 loop: 0.545 seconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="119.1" r="6"><title>2026-10-10 fe4ad2a loop: 0.547 seconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="117.3" r="6"><title>2026-10-11 18df018 loop: 0.564 seconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="116.5" r="6"><title>2026-10-12 bd1f342 loop: 0.572 seconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="116.7" r="6"><title>2026-10-13 2ad4a87 loop: 0.57 seconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="116.6" r="6"><title>2026-10-15 a80e13f loop: 0.571 seconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="117.6" r="6"><title>2026-10-16 38c3c5d loop: 0.562 seconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="116.1" r="6"><title>2026-10-17 df156d6 loop: 0.576 seconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="115.3" r="6"><title>2026-10-18 88c887b loop: 0.584 seconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="114.1" r="6"><title>2026-10-19 294c397 loop: 0.595 seconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="116.5" r="6"><title>2026-10-23 f37c864 loop: 0.572 seconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="118.8" r="6"><title>2026-10-24 7a56cb4 loop: 0.55 seconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="122.1" r="6"><title>2026-10-25 785e496 loop: 0.518 seconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="123.5" r="6"><title>2026-10-26 078efae loop: 0.505 seconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="122.3" r="6"><title>2026-10-26 95d6e7c+ loop: 0.516 seconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="119.8" r="6"><title>2026-10-27 d8e3904+ loop: 0.54 seconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="93.4" r="6"><title>2026-10-27 c0264ec+ loop: 0.794 seconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="121.8" r="6"><title>2026-10-27 f434996+ loop: 0.521 seconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="121.1" r="6"><title>2026-10-27 f434996+ loop: 0.528 seconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="121.2" r="6"><title>2026-10-28 7edfdee+ loop: 0.527 seconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="121.2" r="6"><title>2026-10-28 89a6e55+ loop: 0.527 seconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="120.8" r="6"><title>2026-10-28 4316612+ loop: 0.531 seconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="121.7" r="6"><title>2026-10-28 abc802e+ loop: 0.522 seconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="119.6" r="6"><title>2026-10-28 f922081+ loop: 0.542 seconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="120.6" r="6"><title>2026-10-28 c069967+ loop: 0.533 seconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="115.4" r="6"><title>2026-10-28 e8bb195+ loop: 0.583 seconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="120.2" r="6"><title>2026-10-28 37b57f8 loop: 0.537 seconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="121.1" r="6"><title>2026-10-30 18b78d6 loop: 0.528 seconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="136.3" r="6"><title>2026-10-30 8d89fff loop: 0.382 seconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="118.5" r="6"><title>2026-10-30 4532eed loop: 0.553 seconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="115.9" r="6"><title>2026-10-30 8403383 loop: 0.578 seconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="120.7" r="6"><title>2026-10-30 ad828ef loop: 0.532 seconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="121.8" r="6"><title>2026-10-30 67259ca loop: 0.521 seconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="120.9" r="6"><title>2026-10-30 136978e loop: 0.53 seconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="121.6" r="6"><title>2026-10-30 e5c8dc5 loop: 0.523 seconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="121.0" r="6"><title>2026-10-30 3a1bbfe loop: 0.529 seconds
+backfilled: Add static procs</title></circle>
+<path class="line" stroke="var(--s3)" d="M44.0,138.7 L52.3,132.5 L60.7,137.4 L69.0,136.8 L77.4,138.0 L85.7,138.0 L94.1,140.1 L102.4,131.6 L110.7,130.7 L119.1,130.3 L127.4,134.7 L135.8,140.3 L144.1,134.7 L152.5,139.6 L160.8,140.2 L169.1,135.2 L177.5,113.0 L185.8,139.7 L194.2,135.9 L202.5,136.1 L210.9,133.2 L219.2,135.4 L227.5,136.3 L235.9,138.1 L244.2,135.6 L252.6,122.6 L260.9,130.1 L269.3,139.3 L277.6,152.6 L285.9,138.8 L294.3,137.8 L302.6,140.7 L311.0,140.0 L319.3,138.6 L327.7,138.5 L336.0,138.2"/>
+<circle cx="336.0" cy="138.2" r="4" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="138.7" r="6"><title>2026-10-09 e11d036 particles: 0.359 seconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="132.5" r="6"><title>2026-10-10 fe4ad2a particles: 0.418 seconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="137.4" r="6"><title>2026-10-11 18df018 particles: 0.371 seconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="136.8" r="6"><title>2026-10-12 bd1f342 particles: 0.377 seconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="138.0" r="6"><title>2026-10-13 2ad4a87 particles: 0.365 seconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="138.0" r="6"><title>2026-10-15 a80e13f particles: 0.365 seconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="140.1" r="6"><title>2026-10-16 38c3c5d particles: 0.345 seconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="131.6" r="6"><title>2026-10-17 df156d6 particles: 0.427 seconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="130.7" r="6"><title>2026-10-18 88c887b particles: 0.436 seconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="130.3" r="6"><title>2026-10-19 294c397 particles: 0.439 seconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="134.7" r="6"><title>2026-10-23 f37c864 particles: 0.397 seconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="140.3" r="6"><title>2026-10-24 7a56cb4 particles: 0.343 seconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="134.7" r="6"><title>2026-10-25 785e496 particles: 0.397 seconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="139.6" r="6"><title>2026-10-26 078efae particles: 0.35 seconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="140.2" r="6"><title>2026-10-26 95d6e7c+ particles: 0.344 seconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="135.2" r="6"><title>2026-10-27 d8e3904+ particles: 0.392 seconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="113.0" r="6"><title>2026-10-27 c0264ec+ particles: 0.606 seconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="139.7" r="6"><title>2026-10-27 f434996+ particles: 0.349 seconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="135.9" r="6"><title>2026-10-27 f434996+ particles: 0.386 seconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="136.1" r="6"><title>2026-10-28 7edfdee+ particles: 0.384 seconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="133.2" r="6"><title>2026-10-28 89a6e55+ particles: 0.412 seconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="135.4" r="6"><title>2026-10-28 4316612+ particles: 0.39 seconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="136.3" r="6"><title>2026-10-28 abc802e+ particles: 0.382 seconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="138.1" r="6"><title>2026-10-28 f922081+ particles: 0.364 seconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="135.6" r="6"><title>2026-10-28 c069967+ particles: 0.388 seconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="122.6" r="6"><title>2026-10-28 e8bb195+ particles: 0.513 seconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="130.1" r="6"><title>2026-10-28 37b57f8 particles: 0.441 seconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="139.3" r="6"><title>2026-10-30 18b78d6 particles: 0.353 seconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="152.6" r="6"><title>2026-10-30 8d89fff particles: 0.225 seconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="138.8" r="6"><title>2026-10-30 4532eed particles: 0.358 seconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="137.8" r="6"><title>2026-10-30 8403383 particles: 0.367 seconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="140.7" r="6"><title>2026-10-30 ad828ef particles: 0.339 seconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="140.0" r="6"><title>2026-10-30 67259ca particles: 0.346 seconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="138.6" r="6"><title>2026-10-30 136978e particles: 0.36 seconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="138.5" r="6"><title>2026-10-30 e5c8dc5 particles: 0.361 seconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="138.2" r="6"><title>2026-10-30 3a1bbfe particles: 0.363 seconds
+backfilled: Add static procs</title></circle>
+<path class="line" stroke="var(--s4)" d="M44.0,114.4 L52.3,111.4 L60.7,116.9 L69.0,118.0 L77.4,116.8 L85.7,113.4 L94.1,115.1 L102.4,115.4 L110.7,114.6 L119.1,114.3 L127.4,116.1 L135.8,118.3 L144.1,114.1 L152.5,120.5 L160.8,119.4 L169.1,116.8 L177.5,89.8 L185.8,111.9 L194.2,117.3 L202.5,117.2 L210.9,109.4 L219.2,116.2 L227.5,117.8 L235.9,114.0 L244.2,113.0 L252.6,108.2 L260.9,111.5 L269.3,115.4 L277.6,138.1 L285.9,126.3 L294.3,110.1 L302.6,115.6 L311.0,117.1 L319.3,115.6 L327.7,118.3 L336.0,115.4"/>
+<circle cx="336.0" cy="115.4" r="4" fill="var(--s4)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="114.4" r="6"><title>2026-10-09 e11d036 sieve: 0.592 seconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="111.4" r="6"><title>2026-10-10 fe4ad2a sieve: 0.621 seconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="116.9" r="6"><title>2026-10-11 18df018 sieve: 0.568 seconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="118.0" r="6"><title>2026-10-12 bd1f342 sieve: 0.558 seconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="116.8" r="6"><title>2026-10-13 2ad4a87 sieve: 0.569 seconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="113.4" r="6"><title>2026-10-15 a80e13f sieve: 0.602 seconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="115.1" r="6"><title>2026-10-16 38c3c5d sieve: 0.586 seconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="115.4" r="6"><title>2026-10-17 df156d6 sieve: 0.583 seconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="114.6" r="6"><title>2026-10-18 88c887b sieve: 0.59 seconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="114.3" r="6"><title>2026-10-19 294c397 sieve: 0.593 seconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="116.1" r="6"><title>2026-10-23 f37c864 sieve: 0.576 seconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="118.3" r="6"><title>2026-10-24 7a56cb4 sieve: 0.555 seconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="114.1" r="6"><title>2026-10-25 785e496 sieve: 0.595 seconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="120.5" r="6"><title>2026-10-26 078efae sieve: 0.534 seconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="119.4" r="6"><title>2026-10-26 95d6e7c+ sieve: 0.544 seconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="116.8" r="6"><title>2026-10-27 d8e3904+ sieve: 0.569 seconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="89.8" r="6"><title>2026-10-27 c0264ec+ sieve: 0.829 seconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="111.9" r="6"><title>2026-10-27 f434996+ sieve: 0.616 seconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="117.3" r="6"><title>2026-10-27 f434996+ sieve: 0.564 seconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="117.2" r="6"><title>2026-10-28 7edfdee+ sieve: 0.565 seconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="109.4" r="6"><title>2026-10-28 89a6e55+ sieve: 0.64 seconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="116.2" r="6"><title>2026-10-28 4316612+ sieve: 0.575 seconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="117.8" r="6"><title>2026-10-28 abc802e+ sieve: 0.56 seconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="114.0" r="6"><title>2026-10-28 f922081+ sieve: 0.596 seconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="113.0" r="6"><title>2026-10-28 c069967+ sieve: 0.606 seconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="108.2" r="6"><title>2026-10-28 e8bb195+ sieve: 0.652 seconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="111.5" r="6"><title>2026-10-28 37b57f8 sieve: 0.62 seconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="115.4" r="6"><title>2026-10-30 18b78d6 sieve: 0.583 seconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="138.1" r="6"><title>2026-10-30 8d89fff sieve: 0.364 seconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="126.3" r="6"><title>2026-10-30 4532eed sieve: 0.478 seconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="110.1" r="6"><title>2026-10-30 8403383 sieve: 0.634 seconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="115.6" r="6"><title>2026-10-30 ad828ef sieve: 0.581 seconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="117.1" r="6"><title>2026-10-30 67259ca sieve: 0.566 seconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="115.6" r="6"><title>2026-10-30 136978e sieve: 0.581 seconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="118.3" r="6"><title>2026-10-30 e5c8dc5 sieve: 0.555 seconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="115.4" r="6"><title>2026-10-30 3a1bbfe sieve: 0.583 seconds
+backfilled: Add static procs</title></circle>
+<line x1="80" x2="94" y1="28" y2="28" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="98" y="32">calls</text>
+<line x1="141" x2="155" y1="28" y2="28" stroke="var(--s2)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="159" y="32">loop</text>
+<line x1="195" x2="209" y1="28" y2="28" stroke="var(--s3)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="213" y="32">particles</text>
+<line x1="284" x2="298" y1="28" y2="28" stroke="var(--s4)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="302" y="32">sieve</text>
+<text class="label" x="344" y="119.4">sieve</text>
+<text class="label" x="344" y="131.4">calls</text>
+<text class="label" x="344" y="143.4">loop</text>
+<text class="label" x="344" y="155.4">particles</text>
+</g>
+<g transform="translate(428,664)">
+<text class="title" x="0" y="16">Benches as C</text>
+<text class="label" x="0" y="32">milliseconds</text>
+<line class="axis" x1="44" x2="336" y1="176.0" y2="176.0"/>
+<text class="tick" x="38" y="179.0" text-anchor="end">0</text>
+<line class="grid" x1="44" x2="336" y1="143.5" y2="143.5"/>
+<text class="tick" x="38" y="146.5" text-anchor="end">50</text>
+<line class="grid" x1="44" x2="336" y1="111.0" y2="111.0"/>
+<text class="tick" x="38" y="114.0" text-anchor="end">100</text>
+<line class="grid" x1="44" x2="336" y1="78.5" y2="78.5"/>
+<text class="tick" x="38" y="81.5" text-anchor="end">150</text>
+<line class="grid" x1="44" x2="336" y1="46.0" y2="46.0"/>
+<text class="tick" x="38" y="49.0" text-anchor="end">200</text>
+<text class="tick" x="44.0" y="191" text-anchor="middle">Oct 9</text>
+<text class="tick" x="94.1" y="191" text-anchor="middle">Oct 16</text>
+<text class="tick" x="144.1" y="191" text-anchor="middle">Oct 25</text>
+<text class="tick" x="202.5" y="191" text-anchor="middle">Oct 28</text>
+<text class="tick" x="269.3" y="191" text-anchor="middle">Oct 30</text>
+<path class="line" stroke="var(--s1)" d="M44.0,170.8 L52.3,170.8 L60.7,170.8 L69.0,172.8 L77.4,170.8 L85.7,173.4 L94.1,171.4 L102.4,170.8 L110.7,170.8 L119.1,170.8 L127.4,172.8 L135.8,172.8 L144.1,170.8 L152.5,172.8 L160.8,171.4 L169.1,173.4 L177.5,172.1 L185.8,171.4 L194.2,173.4 L202.5,173.4 L210.9,172.8 L219.2,173.4 L227.5,173.4 L235.9,172.1 L244.2,171.4 L252.6,172.8 L260.9,171.4 L269.3,171.4 L277.6,170.8 L285.9,172.8 L294.3,171.4 L302.6,172.8 L311.0,170.8 L319.3,170.8 L327.7,170.8 L336.0,170.8"/>
+<circle cx="336.0" cy="170.8" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="170.8" r="6"><title>2026-10-09 e11d036 calls: 8 milliseconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="170.8" r="6"><title>2026-10-10 fe4ad2a calls: 8 milliseconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="170.8" r="6"><title>2026-10-11 18df018 calls: 8 milliseconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="172.8" r="6"><title>2026-10-12 bd1f342 calls: 5 milliseconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="170.8" r="6"><title>2026-10-13 2ad4a87 calls: 8 milliseconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="173.4" r="6"><title>2026-10-15 a80e13f calls: 4 milliseconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="171.4" r="6"><title>2026-10-16 38c3c5d calls: 7 milliseconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="170.8" r="6"><title>2026-10-17 df156d6 calls: 8 milliseconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="170.8" r="6"><title>2026-10-18 88c887b calls: 8 milliseconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="170.8" r="6"><title>2026-10-19 294c397 calls: 8 milliseconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="172.8" r="6"><title>2026-10-23 f37c864 calls: 5 milliseconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="172.8" r="6"><title>2026-10-24 7a56cb4 calls: 5 milliseconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="170.8" r="6"><title>2026-10-25 785e496 calls: 8 milliseconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="172.8" r="6"><title>2026-10-26 078efae calls: 5 milliseconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="171.4" r="6"><title>2026-10-26 95d6e7c+ calls: 7 milliseconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="173.4" r="6"><title>2026-10-27 d8e3904+ calls: 4 milliseconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="172.1" r="6"><title>2026-10-27 c0264ec+ calls: 6 milliseconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="171.4" r="6"><title>2026-10-27 f434996+ calls: 7 milliseconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="173.4" r="6"><title>2026-10-27 f434996+ calls: 4 milliseconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="173.4" r="6"><title>2026-10-28 7edfdee+ calls: 4 milliseconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="172.8" r="6"><title>2026-10-28 89a6e55+ calls: 5 milliseconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="173.4" r="6"><title>2026-10-28 4316612+ calls: 4 milliseconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="173.4" r="6"><title>2026-10-28 abc802e+ calls: 4 milliseconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="172.1" r="6"><title>2026-10-28 f922081+ calls: 6 milliseconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="171.4" r="6"><title>2026-10-28 c069967+ calls: 7 milliseconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="172.8" r="6"><title>2026-10-28 e8bb195+ calls: 5 milliseconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="171.4" r="6"><title>2026-10-28 37b57f8 calls: 7 milliseconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="171.4" r="6"><title>2026-10-30 18b78d6 calls: 7 milliseconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="170.8" r="6"><title>2026-10-30 8d89fff calls: 8 milliseconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="172.8" r="6"><title>2026-10-30 4532eed calls: 5 milliseconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="171.4" r="6"><title>2026-10-30 8403383 calls: 7 milliseconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="172.8" r="6"><title>2026-10-30 ad828ef calls: 5 milliseconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="170.8" r="6"><title>2026-10-30 67259ca calls: 8 milliseconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="170.8" r="6"><title>2026-10-30 136978e calls: 8 milliseconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="170.8" r="6"><title>2026-10-30 e5c8dc5 calls: 8 milliseconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="170.8" r="6"><title>2026-10-30 3a1bbfe calls: 8 milliseconds
+backfilled: Add static procs</title></circle>
+<path class="line" stroke="var(--s2)" d="M44.0,171.4 L52.3,171.4 L60.7,171.4 L69.0,173.4 L77.4,172.1 L85.7,171.4 L94.1,171.4 L102.4,173.4 L110.7,171.4 L119.1,171.4 L127.4,171.4 L135.8,172.1 L144.1,172.1 L152.5,173.4 L160.8,172.1 L169.1,173.4 L177.5,170.8 L185.8,172.8 L194.2,173.4 L202.5,173.4 L210.9,173.4 L219.2,173.4 L227.5,173.4 L235.9,173.4 L244.2,172.8 L252.6,173.4 L260.9,171.4 L269.3,172.1 L277.6,174.7 L285.9,172.1 L294.3,172.1 L302.6,171.4 L311.0,171.4 L319.3,171.4 L327.7,172.1 L336.0,172.1"/>
+<circle cx="336.0" cy="172.1" r="4" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="171.4" r="6"><title>2026-10-09 e11d036 loop: 7 milliseconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="171.4" r="6"><title>2026-10-10 fe4ad2a loop: 7 milliseconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="171.4" r="6"><title>2026-10-11 18df018 loop: 7 milliseconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="173.4" r="6"><title>2026-10-12 bd1f342 loop: 4 milliseconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="172.1" r="6"><title>2026-10-13 2ad4a87 loop: 6 milliseconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="171.4" r="6"><title>2026-10-15 a80e13f loop: 7 milliseconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="171.4" r="6"><title>2026-10-16 38c3c5d loop: 7 milliseconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="173.4" r="6"><title>2026-10-17 df156d6 loop: 4 milliseconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="171.4" r="6"><title>2026-10-18 88c887b loop: 7 milliseconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="171.4" r="6"><title>2026-10-19 294c397 loop: 7 milliseconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="171.4" r="6"><title>2026-10-23 f37c864 loop: 7 milliseconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="172.1" r="6"><title>2026-10-24 7a56cb4 loop: 6 milliseconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="172.1" r="6"><title>2026-10-25 785e496 loop: 6 milliseconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="173.4" r="6"><title>2026-10-26 078efae loop: 4 milliseconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="172.1" r="6"><title>2026-10-26 95d6e7c+ loop: 6 milliseconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="173.4" r="6"><title>2026-10-27 d8e3904+ loop: 4 milliseconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="170.8" r="6"><title>2026-10-27 c0264ec+ loop: 8 milliseconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="172.8" r="6"><title>2026-10-27 f434996+ loop: 5 milliseconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="173.4" r="6"><title>2026-10-27 f434996+ loop: 4 milliseconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="173.4" r="6"><title>2026-10-28 7edfdee+ loop: 4 milliseconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="173.4" r="6"><title>2026-10-28 89a6e55+ loop: 4 milliseconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="173.4" r="6"><title>2026-10-28 4316612+ loop: 4 milliseconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="173.4" r="6"><title>2026-10-28 abc802e+ loop: 4 milliseconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="173.4" r="6"><title>2026-10-28 f922081+ loop: 4 milliseconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="172.8" r="6"><title>2026-10-28 c069967+ loop: 5 milliseconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="173.4" r="6"><title>2026-10-28 e8bb195+ loop: 4 milliseconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="171.4" r="6"><title>2026-10-28 37b57f8 loop: 7 milliseconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="172.1" r="6"><title>2026-10-30 18b78d6 loop: 6 milliseconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="174.7" r="6"><title>2026-10-30 8d89fff loop: 2 milliseconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="172.1" r="6"><title>2026-10-30 4532eed loop: 6 milliseconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="172.1" r="6"><title>2026-10-30 8403383 loop: 6 milliseconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="171.4" r="6"><title>2026-10-30 ad828ef loop: 7 milliseconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="171.4" r="6"><title>2026-10-30 67259ca loop: 7 milliseconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="171.4" r="6"><title>2026-10-30 136978e loop: 7 milliseconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="172.1" r="6"><title>2026-10-30 e5c8dc5 loop: 6 milliseconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="172.1" r="6"><title>2026-10-30 3a1bbfe loop: 6 milliseconds
+backfilled: Add static procs</title></circle>
+<path class="line" stroke="var(--s3)" d="M44.0,164.9 L52.3,166.9 L60.7,168.8 L69.0,167.6 L77.4,166.9 L85.7,170.2 L94.1,166.9 L102.4,167.6 L110.7,166.9 L119.1,170.2 L127.4,168.8 L135.8,166.9 L144.1,170.8 L152.5,170.8 L160.8,169.5 L169.1,170.8 L177.5,168.8 L185.8,167.6 L194.2,170.8 L202.5,170.8 L210.9,168.8 L219.2,170.8 L227.5,170.8 L235.9,170.2 L244.2,167.6 L252.6,170.2 L260.9,169.5 L269.3,166.9 L277.6,172.8 L285.9,166.2 L294.3,170.8 L302.6,166.9 L311.0,170.8 L319.3,166.9 L327.7,168.2 L336.0,166.2"/>
+<circle cx="336.0" cy="166.2" r="4" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="164.9" r="6"><title>2026-10-09 e11d036 particles: 17 milliseconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="166.9" r="6"><title>2026-10-10 fe4ad2a particles: 14 milliseconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="168.8" r="6"><title>2026-10-11 18df018 particles: 11 milliseconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="167.6" r="6"><title>2026-10-12 bd1f342 particles: 13 milliseconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="166.9" r="6"><title>2026-10-13 2ad4a87 particles: 14 milliseconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="170.2" r="6"><title>2026-10-15 a80e13f particles: 9 milliseconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="166.9" r="6"><title>2026-10-16 38c3c5d particles: 14 milliseconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="167.6" r="6"><title>2026-10-17 df156d6 particles: 13 milliseconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="166.9" r="6"><title>2026-10-18 88c887b particles: 14 milliseconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="170.2" r="6"><title>2026-10-19 294c397 particles: 9 milliseconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="168.8" r="6"><title>2026-10-23 f37c864 particles: 11 milliseconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="166.9" r="6"><title>2026-10-24 7a56cb4 particles: 14 milliseconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="170.8" r="6"><title>2026-10-25 785e496 particles: 8 milliseconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="170.8" r="6"><title>2026-10-26 078efae particles: 8 milliseconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="169.5" r="6"><title>2026-10-26 95d6e7c+ particles: 10 milliseconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="170.8" r="6"><title>2026-10-27 d8e3904+ particles: 8 milliseconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="168.8" r="6"><title>2026-10-27 c0264ec+ particles: 11 milliseconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="167.6" r="6"><title>2026-10-27 f434996+ particles: 13 milliseconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="170.8" r="6"><title>2026-10-27 f434996+ particles: 8 milliseconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="170.8" r="6"><title>2026-10-28 7edfdee+ particles: 8 milliseconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="168.8" r="6"><title>2026-10-28 89a6e55+ particles: 11 milliseconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="170.8" r="6"><title>2026-10-28 4316612+ particles: 8 milliseconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="170.8" r="6"><title>2026-10-28 abc802e+ particles: 8 milliseconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="170.2" r="6"><title>2026-10-28 f922081+ particles: 9 milliseconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="167.6" r="6"><title>2026-10-28 c069967+ particles: 13 milliseconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="170.2" r="6"><title>2026-10-28 e8bb195+ particles: 9 milliseconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="169.5" r="6"><title>2026-10-28 37b57f8 particles: 10 milliseconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="166.9" r="6"><title>2026-10-30 18b78d6 particles: 14 milliseconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="172.8" r="6"><title>2026-10-30 8d89fff particles: 5 milliseconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="166.2" r="6"><title>2026-10-30 4532eed particles: 15 milliseconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="170.8" r="6"><title>2026-10-30 8403383 particles: 8 milliseconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="166.9" r="6"><title>2026-10-30 ad828ef particles: 14 milliseconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="170.8" r="6"><title>2026-10-30 67259ca particles: 8 milliseconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="166.9" r="6"><title>2026-10-30 136978e particles: 14 milliseconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="168.2" r="6"><title>2026-10-30 e5c8dc5 particles: 12 milliseconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="166.2" r="6"><title>2026-10-30 3a1bbfe particles: 15 milliseconds
+backfilled: Add static procs</title></circle>
+<path class="line" stroke="var(--s4)" d="M44.0,97.4 L52.3,85.0 L60.7,83.0 L69.0,88.2 L77.4,91.5 L85.7,74.0 L94.1,99.3 L102.4,98.0 L110.7,94.1 L119.1,93.5 L127.4,86.3 L135.8,90.2 L144.1,87.6 L152.5,89.5 L160.8,95.4 L169.1,103.2 L177.5,77.2 L185.8,92.1 L194.2,103.2 L202.5,100.6 L210.9,88.2 L219.2,101.9 L227.5,102.6 L235.9,102.6 L244.2,90.8 L252.6,101.2 L260.9,90.8 L269.3,87.6 L277.6,126.6 L285.9,111.0 L294.3,83.7 L302.6,85.0 L311.0,94.1 L319.3,90.8 L327.7,97.4 L336.0,83.0"/>
+<circle cx="336.0" cy="83.0" r="4" fill="var(--s4)" stroke="var(--surface)" stroke-width="2"/>
+<circle class="hit" cx="44.0" cy="97.4" r="6"><title>2026-10-09 e11d036 sieve: 121 milliseconds
+backfilled: Add repl</title></circle>
+<circle class="hit" cx="52.3" cy="85.0" r="6"><title>2026-10-10 fe4ad2a sieve: 140 milliseconds
+backfilled: Add library cmake</title></circle>
+<circle class="hit" cx="60.7" cy="83.0" r="6"><title>2026-10-11 18df018 sieve: 143 milliseconds
+backfilled: Run qemu arm tests in ci</title></circle>
+<circle class="hit" cx="69.0" cy="88.2" r="6"><title>2026-10-12 bd1f342 sieve: 135 milliseconds
+backfilled: Add hex blob and indent help</title></circle>
+<circle class="hit" cx="77.4" cy="91.5" r="6"><title>2026-10-13 2ad4a87 sieve: 130 milliseconds
+backfilled: Add nightlies</title></circle>
+<circle class="hit" cx="85.7" cy="74.0" r="6"><title>2026-10-15 a80e13f sieve: 157 milliseconds
+backfilled: Ignore ignore</title></circle>
+<circle class="hit" cx="94.1" cy="99.3" r="6"><title>2026-10-16 38c3c5d sieve: 118 milliseconds
+backfilled: Improve docs script for rinc needs (#43)</title></circle>
+<circle class="hit" cx="102.4" cy="98.0" r="6"><title>2026-10-17 df156d6 sieve: 120 milliseconds
+backfilled: Report big values (#48)</title></circle>
+<circle class="hit" cx="110.7" cy="94.1" r="6"><title>2026-10-18 88c887b sieve: 126 milliseconds
+backfilled: Verify and refine const arithmetic</title></circle>
+<circle class="hit" cx="119.1" cy="93.5" r="6"><title>2026-10-19 294c397 sieve: 127 milliseconds
+backfilled: Maybe fix mac (#49)</title></circle>
+<circle class="hit" cx="127.4" cy="86.3" r="6"><title>2026-10-23 f37c864 sieve: 138 milliseconds
+backfilled: Print most anything</title></circle>
+<circle class="hit" cx="135.8" cy="90.2" r="6"><title>2026-10-24 7a56cb4 sieve: 132 milliseconds
+backfilled: Support maybe types</title></circle>
+<circle class="hit" cx="144.1" cy="87.6" r="6"><title>2026-10-25 785e496 sieve: 136 milliseconds
+backfilled: Go with ranges</title></circle>
+<circle class="hit" cx="152.5" cy="89.5" r="6"><title>2026-10-26 078efae sieve: 133 milliseconds
+baseline: stats begin</title></circle>
+<circle class="hit" cx="160.8" cy="95.4" r="6"><title>2026-10-26 95d6e7c+ sieve: 124 milliseconds
+No builders in pack/unpack; tests for no addresses</title></circle>
+<circle class="hit" cx="169.1" cy="103.2" r="6"><title>2026-10-27 d8e3904+ sieve: 112 milliseconds
+Enum and Bool bitfields; unpack checks enums, Bools, union tags</title></circle>
+<circle class="hit" cx="177.5" cy="77.2" r="6"><title>2026-10-27 c0264ec+ sieve: 152 milliseconds
+sizeOf, offsetOf, bitOffsetOf</title></circle>
+<circle class="hit" cx="185.8" cy="92.1" r="6"><title>2026-10-27 f434996+ sieve: 129 milliseconds
+host procs take structs; images bind called host procs, zeros for gained params</title></circle>
+<circle class="hit" cx="194.2" cy="103.2" r="6"><title>2026-10-27 f434996+ sieve: 112 milliseconds
+host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gai</title></circle>
+<circle class="hit" cx="202.5" cy="100.6" r="6"><title>2026-10-28 7edfdee+ sieve: 116 milliseconds
+optional trailing parameters (name?: T)</title></circle>
+<circle class="hit" cx="210.9" cy="88.2" r="6"><title>2026-10-28 89a6e55+ sieve: 135 milliseconds
+host procs take &amp;T (&amp;i, &amp;f, &amp;{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="219.2" cy="101.9" r="6"><title>2026-10-28 4316612+ sieve: 114 milliseconds
+host procs return structs and maybes (&gt;{...}, &gt;Union{...}), rio_putStruct</title></circle>
+<circle class="hit" cx="227.5" cy="102.6" r="6"><title>2026-10-28 abc802e+ sieve: 113 milliseconds
+host procs as proc values (a proc of their own each)</title></circle>
+<circle class="hit" cx="235.9" cy="102.6" r="6"><title>2026-10-28 f922081+ sieve: 113 milliseconds
+hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)</title></circle>
+<circle class="hit" cx="244.2" cy="90.8" r="6"><title>2026-10-28 c069967+ sieve: 131 milliseconds
+module core (core.name); enums by name in layouts and host proc sigs (Enum{...})</title></circle>
+<circle class="hit" cx="252.6" cy="101.2" r="6"><title>2026-10-28 e8bb195+ sieve: 115 milliseconds
+no diverse union; \u{} escapes; xs[end]; proc type aliases; &gt;&gt;&gt; (image 12); rio_hashText skips \r</title></circle>
+<circle class="hit" cx="260.9" cy="90.8" r="6"><title>2026-10-28 37b57f8 sieve: 131 milliseconds
+backfilled: Update many things (#51)</title></circle>
+<circle class="hit" cx="269.3" cy="87.6" r="6"><title>2026-10-30 18b78d6 sieve: 136 milliseconds
+backfilled: Add number parsing</title></circle>
+<circle class="hit" cx="277.6" cy="126.6" r="6"><title>2026-10-30 8d89fff sieve: 76 milliseconds
+backfilled: Support custom iterators</title></circle>
+<circle class="hit" cx="285.9" cy="111.0" r="6"><title>2026-10-30 4532eed sieve: 100 milliseconds
+backfilled: Spread more ops; add clamp</title></circle>
+<circle class="hit" cx="294.3" cy="83.7" r="6"><title>2026-10-30 8403383 sieve: 142 milliseconds
+backfilled: Take out math on structs</title></circle>
+<circle class="hit" cx="302.6" cy="85.0" r="6"><title>2026-10-30 ad828ef sieve: 140 milliseconds
+backfilled: Add switch values</title></circle>
+<circle class="hit" cx="311.0" cy="94.1" r="6"><title>2026-10-30 67259ca sieve: 126 milliseconds
+backfilled: Make boolish maybeish</title></circle>
+<circle class="hit" cx="319.3" cy="90.8" r="6"><title>2026-10-30 136978e sieve: 131 milliseconds
+backfilled: Narrow on fail</title></circle>
+<circle class="hit" cx="327.7" cy="97.4" r="6"><title>2026-10-30 e5c8dc5 sieve: 121 milliseconds
+backfilled: Improve mismatched maybe error message</title></circle>
+<circle class="hit" cx="336.0" cy="83.0" r="6"><title>2026-10-30 3a1bbfe sieve: 143 milliseconds
+backfilled: Add static procs</title></circle>
+<line x1="80" x2="94" y1="28" y2="28" stroke="var(--s1)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="98" y="32">calls</text>
+<line x1="141" x2="155" y1="28" y2="28" stroke="var(--s2)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="159" y="32">loop</text>
+<line x1="195" x2="209" y1="28" y2="28" stroke="var(--s3)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="213" y="32">particles</text>
+<line x1="284" x2="298" y1="28" y2="28" stroke="var(--s4)" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="302" y="32">sieve</text>
+<text class="label" x="344" y="87.0">sieve</text>
+<text class="label" x="344" y="156.0">particles</text>
+<text class="label" x="344" y="168.0">calls</text>
+<text class="label" x="344" y="180.0">loop</text>
+</g>
+<text class="tick" x="8" y="876">36 rows of bench/stats.csv, 2026-10-09 to 2026-10-30, timed on puddle</text>
+</svg>

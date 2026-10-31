@@ -13,7 +13,7 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 Nothing open. Each change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
 `a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
-`format` staying, beside the formatters to come. [REJECTED.md](REJECTED.md) has the reasons. A
+`format` staying, with no formatters. [REJECTED.md](REJECTED.md) has the reasons. A
 change that would break existing source goes here first, since programs already written, such as
 Rinc's and Studio's apps, would change with it.
 
@@ -49,15 +49,12 @@ Nothing open: see Leaning yes.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **Stats as charts:** `tools/stats.py --svg` drawing `bench/stats.csv` as SVGs (the VM's and the
-  compiler's size, compile time, each bench's speed, over the rows), checked in beside it and shown in
-  the README, so how each batch moved things is a glance, not a table. CI could make them again and
-  fail when the checked-in ones are stale, as Rinc's `pc_declared` does for `pc_host.h`. (Stats from
-  different machines aren't comparable: the charts would mark which machine each row came from.)
-- **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
-  lookup table costs no RAM on small boards.
-- **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
-  anywhere a value can print, beside `b.format(settings, ...)`, which stays.
+- **Constant tables (soon):** `[N]T` constants built while compiling, kept once in the image's
+  constants. Today a table literal costs about five times its data: each value a constant word of its
+  own, an instruction storing each one, and the literal built in a second copy before it's stored (a
+  64-entry `[64]Int`: 1,348 bytes against 312 without its values). Rinc copies an image's constants
+  and code into RAM when it loads one, so a table still costs its own bytes there, but nothing more.
+  (Building a global literal in place, with no second copy, may come first, on its own.)
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
   both are errors, and `x is nil` is the way to test for nil.
 
@@ -133,6 +130,10 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Stats as charts:** `bench/stats.svg`, drawn from `bench/stats.csv` by `tools/stats.py` (`--record`
+  redraws it; CI fails when it's stale), shown in the README. Earlier commits backfilled with
+  `--backfill`, each built and measured in a worktree. A row from another machine shows hollow.
 
 - **Static procs on types:** `Rect.of :: static proc(...) -> Rect`, called as `Rect.of(...)`, with no
   `self`, and a proc value as any proc. `static` is a word only there, so it reserves nothing. Methods

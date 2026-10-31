@@ -68,6 +68,16 @@ Raspberry Pi 4 or 5 with 64-bit Raspberry Pi OS). `rio -help` lists what it does
 
 The docs build into a web site with `mdbook build docs`.
 
+## Size and speed
+
+![Rio's size on the board, lines of C, compile time, and bench times, over time](bench/stats.svg)
+
+Each batch of changes adds a row to [bench/stats.csv](bench/stats.csv) with `tools/stats.py --record`,
+which redraws this chart: the VM and compiler built for the Fruit Jam's Cortex-M33, the C source, and
+the benches in the VM and as C, one point per row. Times are from one machine. Rows noted "backfilled"
+were measured later, each from its own commit (`--backfill`); before October 16, when the C was all one
+file, there's no split of the VM from the compiler to show.
+
 ## License
 
 CC0 1.0: dedicated to the public domain (see LICENSE). Use it for anything, with no need to credit; it
