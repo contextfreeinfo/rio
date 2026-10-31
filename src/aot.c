@@ -190,6 +190,10 @@ static void rio_instruction(rio_Aot *a, int pc) {
   case rio_Op_feq: case rio_Op_fne: case rio_Op_flt: case rio_Op_fle:
     rio_print(a, "%s = %s %s %s;\n", rio_V(A, 'i'), rio_V(B, 'f'), compare[in->op - rio_Op_feq], rio_V(C, 'f'));
     break;
+  case rio_Op_scmp:
+    rio_print(a, "{ uint32_t m_ = %s, n_ = %s; int k_ = memcmp(rio_M + %s, rio_M + %s, m_ < n_ ? m_ : n_); %s = k_ ? (k_ < 0 ? -1 : 1) : (m_ < n_ ? -1 : m_ > n_); }\n",
+              rio_V(B + 1, 'u'), rio_V(C + 1, 'u'), rio_V(B, 'u'), rio_V(C, 'u'), rio_V(A, 'i'));
+    break;
   case rio_Op_seq: case rio_Op_sne:
     rio_print(a, "%s = %srio_stringEq(%s, %s, %s, %s);\n", rio_V(A, 'i'), in->op == rio_Op_sne ? "!" : "", rio_V(B, 'i'),
               rio_V(B + 1, 'i'), rio_V(C, 'i'), rio_V(C + 1, 'i'));

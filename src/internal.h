@@ -46,6 +46,8 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      eq ne lt le            a = b op c (Int)
      feq fne flt fle        a = b op c (Float)
      seq sne                a = string b ==/!= string c (2 slots each: address, length)
+   scmp                   a = -1, 0 or 1 as string b orders before, with or after string c (bytes, then
+                          length: a prefix first)
      itof ftoi              a = conversion of b
      ldw ldb                a = word / byte at address b + c (c a constant)
      lea                    a = b + c (c a constant)
@@ -131,7 +133,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \
-  X(fail) X(halt) X(jit) X(idxv) X(copyv) X(swapv)
+  X(fail) X(halt) X(jit) X(idxv) X(copyv) X(swapv) X(scmp)
 
 #define rio_OP_ENUM(o) rio_Op_##o,
 typedef enum {

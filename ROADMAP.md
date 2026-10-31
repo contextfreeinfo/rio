@@ -1,9 +1,10 @@
 # Rio roadmap
 
 The goal is a Rio 1.0 that's robust, nearly complete, and specified well enough that anyone could
-implement it from the [spec](docs/spec/language.md). After 1.0, only bug fixes and implementation
-improvements, with no 1.1, so each item below is decided as now or never. Releases may stay 0.x, or a
-1.0 beta, until Rio has more users.
+implement it from the [spec](docs/spec/language.md). The language itself isn't meant to change after
+1.0: there's no 1.1, so each language item below is decided as now or never. Everything around it
+can keep growing: bug fixes, the implementation, tools, hosts and their modules (`riosys`'s `sys`
+included). Releases may stay 0.x, or a 1.0 beta, until Rio has more users.
 
 This is the list of everything still being considered. Each item says where it stands and which way
 it leans. Rio means to stay small, so some of these will end up as no. Ideas already turned down,
@@ -11,9 +12,11 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
-- **`_` not a name:** `_ := 3` and `_ :: 3` are legal today, and `[_]` already means a literal sized by
-  its values. Making `_` illegal as a name keeps it free for that and for any later "ignore this"
-  use (`for _ in 0..<n`, say).
+- **`_` for "ignore this", not a name:** `_ := 3` and `_ :: 3` are legal today. Instead, `_` is never
+  a name, and means what's left out: `[_]T{...}` sized by its values (as now), `for _ in 0..<n` with no
+  variable, and `_ = f()` dropping a result on purpose. Then a call's result left unused is an error,
+  so it can't be dropped by accident: `b.push(x)` alone becomes `_ = b.push(x)` (or the `ok := ...`
+  apps write today, which `_ =` replaces). This breaks existing source, rinc's included.
 
 Each other change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
 `a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
@@ -23,7 +26,20 @@ Rinc's and Studio's apps, would change with it.
 
 ## Next
 
-Nothing open: see Leaning yes.
+In this order:
+
+- **`_`:** as above, under Decide first.
+- **`riosys`, a host for scripting:** a `riosys` build of the CLI whose host module, `sys`, has files,
+  directories, running programs, the environment and arguments, so the repo's scripts (`tools/stats.py`,
+  the test runners) can be Rio. It's for dogfooding before the spec is finalized: what writing real
+  tools in Rio turns up. In the Rio repo but not standard Rio, and not in rinc, though `sys` and rinc's
+  modules can share procs and types where that makes lots of sense. Whether the default `rio` build
+  is `riosys` is open: leaning to keep `rio` minimal (it's the reference embedding, and boards have no
+  files or processes), with `riosys` beside it.
+- **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a host
+  proc named inside its type (C name `module_Color_rgb`), with `rio -H` writing it. Static only at
+  first; host methods with `self` only if wanted.
+- **Then the memory spec and the full spec** (Before 1.0, below), with tests drawn from them.
 
 ## Leaning yes
 
@@ -37,9 +53,6 @@ Nothing open: see Leaning yes.
     host parameters that are slices or `&T` of any type (today only `String`, `Blob`, structs and
     `&Int`/`&Float`/`&struct`), and host procs calling back (below), without which a host generic proc
     can only work on bytes (reverse, fill, rotate, hash), not sort or find.
-  - **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a
-    host proc named inside its type (C name `module_Color_rgb`), with the header helper writing it.
-    Static only at first; host methods with `self` later, if wanted.
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
     descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
     it yet; it's kept for reflection (see Maybe).
@@ -54,9 +67,13 @@ Nothing open: see Leaning yes.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings, byte by byte, a shorter prefix first.
-  UTF-8's bytes order as its code points do, so that's code point order too, with nothing decoded.
 
+- **`==` on structs and unions:** today structs refuse it (compare their fields) and unions compare
+  only with nil. Two ways: field by field, each field as its own `==` does (Strings by their text,
+  Floats as numbers, unions by tag then value), compiled per type; or bytes, which is cheap but wrong
+  where `==` already means more than bytes (a `String`'s bytes are its address; `-0.0` and `NaN`), and
+  where bytes a value doesn't use (a union's room past a smaller type, bitfield gaps) may differ.
+  Leaning to field by field, with bytes ruled out for that reason.
 - **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
   already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
   backfilling a commit again could add samples to its row rather than a second row, so a jump in the
@@ -64,10 +81,13 @@ Nothing open: see Leaning yes.
 
 ## Maybe
 
-- **Void as a unit type,** with generics: a zero-sized value, so a Bool is a `?Void`, `proc() -> Void`
-  a proc with no result, and a branch with no value a `Void` (as JavaScript's `undefined` or Python's
-  `None`). With it, `??T`: a program writing the inner nil, and `is` and printing telling the two
-  apart. Until then, an empty struct names a second nothing in a union.
+- **Void as a unit type:** a zero-sized value, so `proc() -> Void` is a proc with no result and a
+  branch with no value a `Void` (as JavaScript's `undefined` or Python's `None`). `Bool` stays the
+  name for a `?Void`, being friendlier. Generics don't need it: an empty struct already is a zero-size
+  type, so a set can be a `Table[K, Empty]`.
+- **`??T`, leaning no:** a program writing the inner nil, with `is` and printing telling the two apart.
+  Generics never make one (a generic body never holds a T, so never a `?T`), and an empty struct names
+  a second nothing in a union when one's wanted.
 - **Reflection, through generics:** not now, but designed so generic procs leave room for it. A generic
   proc's hidden descriptor is all reflection needs, so it works on any value at any call, locals
   included, with no stored `Any`: the caller knows the type, as with any generic call.
@@ -94,9 +114,6 @@ Nothing open: see Leaning yes.
   covers only a change of size.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
-- **A `sys` module for scripting,** in the Rio repo but not standard Rio: a separate `rio` build whose
-  host module has files, directories, running programs, the environment and arguments, so scripts
-  (tools such as `tools/stats.py`) can be Rio. Built on hosts registering their modules' sources.
 - **Host procs calling back into Rio while they run:** a sort with a comparison, a parser handing back
   each element, a physics step calling back on each collision. Today a host proc is a leaf: it can't
   call into the program while it runs. What allowing it would take:
@@ -120,6 +137,9 @@ Nothing open: see Leaning yes.
   messages or highlighting. Declaration words, which only follow `::` (`struct`, `enum`, `union`), are
   the easy ones. Control words at the start of a statement (`if`, `for`, `return`) are riskier, since
   `return (x)` and a call `return(x)` would look alike.
+- **`rio fmt`:** one standard look for Rio source, before 1.0, so code (rinc's included) settles into it
+  while the language does.
+- **A language server:** tooling, so it can come before or after 1.0.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:
   - **Procs:** a proc's name as an argument, `log(f)`, is "not a value", though
@@ -131,6 +151,10 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings and Blobs, byte by byte, a prefix first
+  (`scmp`; images are version 15). UTF-8's bytes order as its code points do, so that's code point
+  order too, with nothing decoded.
 
 - **Comparing maybes with `==`:** `x == nil` and `x != nil` test a union or maybe for nil, narrowing
   as `is` did (`if x != nil` makes x its value; `if x == nil do return` makes it its value after).

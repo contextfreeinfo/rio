@@ -467,6 +467,19 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
   isCompare = rio_isCompare(op);
   if (rio_type(vm, lt)->kind == rio_TypeKind_param)
     rio_FAIL(, rio_isCompare(op) ? "a T can't be compared: pass in a proc that compares, eq: proc(a, b: &T) -> Bool" : rio_msgOpaque);
+  if ((lt == rio_TypeId_string || lt == rio_TypeId_blob) && op != rio_Tok_eqEq && op != rio_Tok_notEq && isCompare) {
+    /* ordered by bytes, then length: UTF-8's is code point order */
+    int swap, zero = rio_constSlot(vm, 0), tempStart = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+    ls = rio_toSlot2(vm, l);
+    rs = rio_toSlot2(vm, r);
+    d = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_scmp, d, ls, rs);
+    instr = rio_binaryInstr(vm, op, 0, &swap);
+    rio_emit(vm, instr, d, swap ? zero : d, swap ? d : zero);
+    *l = rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4);
+    l->tempStart = (uint16_t)tempStart;
+    return;
+  }
   if ((lt == rio_TypeId_string || lt == rio_TypeId_blob) && (op == rio_Tok_eqEq || op == rio_Tok_notEq)) {
     ls = rio_toSlot2(vm, l);
     rs = rio_toSlot2(vm, r);

@@ -1592,6 +1592,32 @@ ilFirst :: proc(k: Int) -> Int
 end
 check(ilFirst(1) == 115 and ilFirst(2) == 119, "in a proc, built each call")
 
+# ---- String order: by bytes (UTF-8's is code point order), a prefix first
+soA := "apple"
+soB := "apples"
+soS := "xbanana"
+check(soA < soB and not (soB < soA) and soA < soS[1..] and soS[1..] > soA and soA <= soA and not (soA >= soB), "Strings ordered")
+check("" < soA and "Zebra" < "apple" and "z" < "é" and soS[1..] >= "banana" and not (soS[1..] < "banana"), "String order: bytes, prefix first")
+soX: Blob[2]
+soY: Blob[2]
+soY[1] = 1
+check(soX[] < soY[] and soY[] > soX[], "Blobs ordered")
+
+# ---- maybes with ==: nil, a value, another maybe
+meN := "2".toInt()
+meM := "x".toInt()
+meF: ?Float = 2.0
+meP: ?String = "hi"
+check(meN == 2 and meN != 3 and not (meM == 2) and meM != 2 and meN != nil and meM == nil, "a maybe == a value, == nil")
+check(meF == 2 and meP == "hi" and meP != "ho" and meN == "2".toInt() and meM == "y".toInt() and meN != meM, "maybe == maybe; Float, String")
+meTwice :: proc(m: ?Int) -> Int
+  if m == nil do return -1
+  return m * 2
+end
+meGot := 0
+if meN != nil do meGot = meN + 1
+check(meTwice(meN) == 4 and meTwice(meM) == -1 and meGot == 3, "== nil and != nil narrow")
+
 # ---- generic procs: proc[T], compiled once, each call passing T's size; a T only by &T or []T
 GnP :: struct
   x, y: Int

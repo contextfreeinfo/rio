@@ -220,6 +220,12 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   rio_CASE(fne) R[ip->a].i = R[ip->b].f != R[ip->c].f; rio_NEXT();
   rio_CASE(flt) R[ip->a].i = R[ip->b].f < R[ip->c].f; rio_NEXT();
   rio_CASE(fle) R[ip->a].i = R[ip->b].f <= R[ip->c].f; rio_NEXT();
+  rio_CASE(scmp) {
+    uint32_t m = R[ip->b + 1].u, n = R[ip->c + 1].u;
+    int k = memcmp(M + R[ip->b].u, M + R[ip->c].u, m < n ? m : n);
+    R[ip->a].i = k ? (k < 0 ? -1 : 1) : (m < n ? -1 : m > n);
+    rio_NEXT();
+  }
   rio_CASE(seq) {
     const rio_Val *s = &R[ip->b], *t = &R[ip->c];
     R[ip->a].i = s[1].i == t[1].i && !memcmp(M + s[0].i, M + t[0].i, (size_t)s[1].i);

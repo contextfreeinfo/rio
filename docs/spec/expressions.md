@@ -81,7 +81,9 @@ log(x * n)  # error: type mismatch
 ## Comparisons and logic
 
 `==` and `!=` compare numbers, `Bool`s, enums and `String`s (the same bytes). `<`, `<=`, `>` and `>=`
-compare numbers. Structs and arrays don't compare. `and`, `or` and `not` take `Bool`s, and `and` and
+compare numbers, and `String`s by their bytes, a prefix first (`"apple" < "apples"`): for UTF-8 that's
+the order of their code points, so `"Zebra" < "apple"` and `"z" < "é"`. A maybe compares with `==` and
+`!=` too (see [unions](#unions)). Structs and arrays don't compare. `and`, `or` and `not` take `Bool`s, and `and` and
 `or` skip their right side when the left decides:
 
 ```rio
