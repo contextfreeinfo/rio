@@ -46,13 +46,6 @@ Nothing open: see Leaning yes.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **Literal sizes and types from their values:** `[_]T{...}` sized by its values, `[_]{...}` typed by
-  the first, and slice literals, `[]T{...}` and `[]{...}`. A literal can grow an element at a time,
-  since each value's temporaries are freed once it's stored.
-- **Read-only views, and constant tables with them:** `NAME :: [N]T{...}`, kept once with the
-  constants, needs a view that can't write (`[]const T`, say) to be passed to procs. Starting values
-  already give top-level tables nearly all of the saving; a constant table adds what it says, and
-  nothing to copy in for one in a proc.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
   both are errors, and `x is nil` is the way to test for nil.
 
@@ -128,6 +121,11 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Literals sized and typed by their values:** `[_]T{...}` takes its size from its values, `[_]{...}`
+  its element type from the first too, and slice literals, `[]T{...}`, `[]{...}`, and `{...}` where a
+  slice goes, view an array kept as a hidden variable's would be (a top-level one's starting data, or
+  a proc's own memory). The literal grows a value at a time, so nothing reads ahead.
 
 - **Literals of constants built while compiling:** a literal whose values are all constants (a table
   of Ints or Strings, nested arrays, structs) is run as it's compiled, its code dropped, and its words

@@ -45,5 +45,10 @@ other languages have and people may expect. What's still open is in [ROADMAP.md]
 - **`else if`:** `case` continues an if, as in a switch with no value.
 - **`c ? a : b`:** a branch is an if. If anything, if and switch might give values when setting a
   variable (see the roadmap).
+- **Read-only views (`[]const T`), and constant tables (`NAME :: [N]T{...}`) with them:** a literal
+  of constants is built while compiling, and a top-level variable from one starts as its words, so
+  tables cost their data and no code without new syntax (seven apps: 10.6 KB of RAM, against 11.1 KB
+  as constants). A constant table would need a view that can't write to be passed to procs, a second
+  kind of every slice for that little more. `String` stays the read-only view of bytes.
 - **`&&`, `||` and `!`:** the words `and`, `or` and `not` read better, and the symbols are errors that
   name the word to use.

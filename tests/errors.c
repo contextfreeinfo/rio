@@ -104,6 +104,12 @@ static const Case cases[] = {
   {"P :: struct\n  s: String\nend\ng :: proc(s: String) -> P do return P{s = s}\nf :: proc() -> P\n  b: Blob[4]\n  p := g(b[].asString())\n  return p\nend\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this holds a view of the proc's own memory"}, /* (a call's result views what went in) */
   {"P :: struct\n  s: String\nend\ng :: proc(s: String) -> P do return P{s = s}\ngp: P\nf :: proc()\n  b: Blob[4]\n  gp = g(b[].asString())\nend\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this holds a view of the proc's own memory, which would outlive the call"},
   {"B :: struct\n  b: Blob[4]\nend\nB.view :: proc() -> String do return self.b[].asString()\nf :: proc() -> String\n  x: B\n  return x.view()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "this returns a view of the proc's own memory"}, /* (self has memory of its own) */
+  /* literals sized and typed by their values */
+  {"x := [_]{}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "[_]{} has no values to size it"},
+  {"x := []{}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "[]{} has no values to type it"},
+  {"x := [_]{1, 2.5}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "the elements take the first value's type"},
+  {"x: [_]Int\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "[_] is for a literal"},
+  {"f :: proc() -> []Int do return []{1, 2}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "this returns a view of the proc's own memory"},
   {"W :: struct\n  b: Blob[4]\nend\nW.next :: proc() -> ?String do return self.b[].asString()\nf :: proc() -> String\n  for s in W{}\n    return s\n  end\n  return \"\"\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "this returns a view of the proc's own memory"},
   {"g: []Int\nf :: proc()\n  a: [4]Int\n  g = a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this view of the proc's own memory would outlive the call"},
   {"g: []Int\nf :: proc()\n  a: [4]Int\n  s := a[1..<3]\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view of the proc's own memory would outlive the call"},

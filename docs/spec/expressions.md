@@ -424,6 +424,29 @@ log(next(), next())
 a: [2]Int = {1, 2, 3}  # error: more values than the array holds
 ```
 
+`[_]T{a, b, ...}` is sized by its values, and `[_]{a, b, ...}` takes its element type from the first
+value too (a whole number then a fraction is an error: write `[_]Float`). `[]T{...}` and `[]{...}`
+are slice literals: the array is kept where a variable would be, and the literal is a slice of it, so
+a `{...}` can go where a slice is wanted. In a proc that's the proc's own memory, built again each
+time the literal runs, so it can't be returned or kept past the call:
+
+```rio
+sum :: proc(xs: []Int) -> Int
+  total := 0
+  for x in xs do total += x
+  return total
+end
+primes := [_]Int{2, 3, 5, 7}
+names := [_]{"ann", "bo"}
+odds := []{1, 3, 5}
+odds[0] = 9
+log(primes.len(), names[1], sum(odds), sum({1, 2}), sum([]{10, 20}))
+```
+
+```output
+4 bo 17 3 30
+```
+
 An array indexed by an enum can name its elements instead, as `.value = x`, in any order; the rest are
 zero. Its values are all named or none are, each once, and a name can't stand for its value as a
 struct's can (`{.north}` is an array holding `.north`):

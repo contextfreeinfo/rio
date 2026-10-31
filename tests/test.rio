@@ -1560,6 +1560,38 @@ lcV := [2]Float{1, 2}
 lcV = lcV + {0.5, 0.25}
 check(lcV[0] == 1.5 and lcV[1] == 2.25, "arithmetic with a literal")
 
+# ---- literals sized by their values, [_]T{...}, typed by the first too, [_]{...}; slice literals, []{...}
+IlP :: struct
+  x, y: Int
+end
+ilSum :: proc(xs: []Int) -> Int
+  t := 0
+  for x in xs do t += x
+  return t
+end
+ilA := [_]Int{1, 2, 3}
+ilB := [_]{1.5, 2, 3}
+ilC := [_]{"red", "green"}
+ilD := []{4, 5, 6, 7}
+ilE := []String{"x", "y"}
+ilF := [_]{IlP{x = 1}, {y = 2}}
+ilG := [_]{[2]Int{1, 2}, {3, 4}}
+check(ilA.len() == 3 and ilA[2] == 3 and ilB.len() == 3 and ilB[1] == 2.0 and ilC[1] == "green", "[_]T and [_], sized and typed")
+check(ilD.len() == 4 and ilD[3] == 7 and ilE[0] == "x" and ilF[1].y == 2 and ilG[1][0] == 3, "slices, structs, nested")
+ilD[0] = 40
+check(ilSum(ilD) == 58 and ilSum({1, 2, 3}) == 6 and ilSum([]{10, 20}) == 30 and ilSum(ilA[]) == 6, "a slice literal, changed and passed")
+ilEmpty := []Int{}
+ilN := 7
+ilH := [_]{ilN, ilN * 2, 3}
+check(ilEmpty.len() == 0 and ilH[1] == 14 and ilH.len() == 3, "empty, and not constants")
+ilFirst :: proc(k: Int) -> Int
+  xs := []{k, k + 1, 9}
+  ys := [_]{100, 200}
+  ys[0] += k
+  return xs[1] + ys[0] + ilSum(xs)
+end
+check(ilFirst(1) == 115 and ilFirst(2) == 119, "in a proc, built each call")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

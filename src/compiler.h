@@ -188,6 +188,9 @@ typedef struct {
   int32_t offset;     /* indirect: bytes past the address. (A const 0 with offset 1: xs[..<b]'s left-out start) */
 } rio_Expr;
 
+/* a type before a literal that sizes it by its values (rio_ExprKind_type's value): [_]T{...}, []T{...} */
+enum { rio_Infer_count = 1, rio_Infer_slice };
+
 /* the operator stack: operators waiting for their right side, and open brackets */
 typedef enum {
   rio_Pending_binary, rio_Pending_unary, rio_Pending_and, rio_Pending_or, /* operators */
@@ -205,7 +208,9 @@ typedef enum {
                format: the byte builder's slots; offsetOf and bitOffsetOf: the field path's bit offset + 1
      literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
                c: the struct's address. op 1: an array or builder literal instead (b: its type; its
-               values go in order, argCount so far, or by name: punAt 2, a the element named) */
+               values go in order, argCount so far, or by name: punAt 2, a the element named); op 2,
+               [_]T{...}, and 3, []T{...}: one sized by its values, growing as they come (b: the
+               element type, -1 until the first value gives it) */
 typedef struct {
   uint8_t kind, prec;
   int16_t op;           /* binary, unary: the operator token */

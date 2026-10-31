@@ -531,6 +531,9 @@ static rio_Type *rio_literalArray(rio_Vm *vm, const rio_PendingOp *lit, int *siz
   return at;
 }
 
+/* the type an array literal's next value goes in as, or -1 (not known until its first value) */
+static int rio_literalElem(rio_Vm *vm, const rio_PendingOp *lit) { return lit->op >= 2 ? lit->b : rio_type(vm, lit->b)->elem; }
+
 /* inside Type{...}: the value that follows is for field `name` */
 static void rio_setField(rio_Vm *vm, rio_PendingOp *lit, const char *name, int n) {
   int i = rio_findField(vm, rio_type(vm, lit->b), name, n);
@@ -552,6 +555,7 @@ static void rio_arrayElement(rio_Vm *vm, rio_PendingOp *lit) {
     lit->punAt = 1;
     return;
   }
+  if (lit->op >= 2) rio_FAIL_AT_TOKEN(, "only an array indexed by an enum takes .name = value");
   if (at->kind != rio_TypeKind_array || !at->firstField) rio_FAIL_AT_TOKEN(, "only an array indexed by an enum takes .name = value");
   if (lit->punAt == 1) rio_FAIL_AT_TOKEN(, "name each value (.name = value), or none");
   if (!lit->punAt) /* (named values come in any order: the rest start as zero) */
@@ -613,9 +617,54 @@ static void rio_literalDone(rio_Vm *vm, rio_PendingOp *lit) {
   rio_pushResult(vm, e, lit->freeAtStart);
 }
 
+/* [_]T{...} done: an [n]T of its n values. []T{...}: that array kept somewhere of its own, as a hidden
+   variable is (big locals' memory, or a top-level variable's starting data), and the slice of it as the
+   result: a view of the proc's own memory, in a proc */
+static void rio_finishGrown(rio_Vm *vm, rio_PendingOp *lit) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr e, r;
+  uint32_t v[2], size;
+  int type, elem = lit->b;
+  if (elem < 0) { /* no values: an empty slice, if it has an element type */
+    if (lit->op == 2) rio_FAIL(, "[_]{} has no values to size it: write [0]T{}");
+    rio_FAIL(, "[]{} has no values to type it: write []T{}");
+  }
+  if (!lit->argCount && lit->op == 2) rio_FAIL(, "[_]T{} has no values to size it: write [0]T{}");
+  type = lit->argCount ? rio_arrayOf(vm, lit->b, (uint32_t)lit->argCount) : -1;
+  if (lit->op == 2) {
+    lit->b = type;
+    rio_literalDone(vm, lit);
+    return;
+  }
+  v[0] = v[1] = 0;
+  if (lit->argCount) {
+    lit->b = type;
+    lit->op = 1;
+    rio_literalDone(vm, lit);
+    e = rio_popValue(vm);
+    size = rio_type(vm, type)->size;
+    if (!((e.access & rio_Access_literal) && c->curProc < 0 && !c->blockCount && !vm->inRepl && rio_literalData(vm, &e))) {
+      rio_Expr home = rio_exprOf(rio_ExprKind_static, type, (int32_t)rio_allocHigh(vm, size));
+      rio_store(vm, &home, &e);
+      e = home;
+    }
+    v[0] = rio_expose(vm, (uint32_t)e.value, size);
+    v[1] = (uint32_t)lit->argCount;
+  }
+  c->freeSlot = lit->freeAtStart;
+  r = rio_exprOf(rio_ExprKind_static, rio_sliceOf(vm, elem), rio_findConsts(vm, v, 2, lit->argCount ? 1 : 0) * 4);
+  r.access = rio_Access_readOnly;
+  r.localView = (uint8_t)(c->curProc >= 0 && lit->argCount);
+  rio_pushResult(vm, r, lit->freeAtStart);
+}
+
 /* the zeroing for fields a literal left out (an array: the elements after its values; a builder: its
    length too), then the struct or array as the result */
 static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
+  if (lit->op >= 2) {
+    rio_finishGrown(vm, lit);
+    return;
+  }
   rio_Type *st = rio_type(vm, lit->b);
   rio_Field *fields = rio_field(vm, st->firstField);
   int i = 0, j, w, from, to;
@@ -699,7 +748,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     if (param) type = param->type;
     else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount)
       type = rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
-    else if (m->kind == rio_Pending_literal && m->op) type = rio_type(vm, m->b)->elem;
+    else if (m->kind == rio_Pending_literal && m->op) type = rio_literalElem(vm, m);
     else if (m->kind == rio_Pending_literal && m->a >= 0) type = rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
     else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_push && m->argCount == 1)
       type = rio_type(vm, c->values[m->valueBase].type)->elem; /* (xs.push(f): a builder of proc values) */
@@ -741,6 +790,32 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     return;
   }
   rio_needValue(vm, arg);
+  if (m->kind == rio_Pending_literal && m->op >= 2) { /* [_]{...}: right after the values before it */
+    int words, k, at;
+    rio_Expr dst;
+    e = rio_popValue(vm);
+    if (m->b < 0) { /* the first: its type is the elements' */
+      m->b = rio_valueType(e.type);
+      k = rio_type(vm, m->b)->kind;
+      if (e.kind == rio_ExprKind_const && rio_type(vm, e.type)->kind == rio_TypeKind_union)
+        rio_FAIL(, "nil has no type of its own to give the elements: write [_]T{...}");
+      if (k == rio_TypeKind_void || k == rio_TypeKind_builder || k == rio_TypeKind_builderView || rio_type(vm, m->b)->size % 4)
+        rio_FAIL(, "this can't be an element: write [_]T{...}");
+    } else if (m->a && rio_valueType(e.type) != m->b && !(e.kind == rio_ExprKind_const && e.type == rio_TypeId_int && m->b == rio_TypeId_float))
+      rio_FAIL(, "the elements take the first value's type, and this isn't it: write [_]T{...} to give their type");
+    words = rio_typeWords(vm, m->b);
+    at = m->c / 4 + m->argCount * words;
+    if (at + words > 0xFFFF) rio_FAIL(, "more values than a literal holds");
+    dst = rio_exprOf(rio_ExprKind_static, m->b, at * 4);
+    rio_store(vm, &dst, &e);
+    c->freeSlot = (uint32_t)(at + words);
+    if (c->freeSlot > c->slotHigh) { /* (as rio_allocSlots, but keeping what the store marked) */
+      c->slotHigh = c->freeSlot;
+      if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL(, "out of slots");
+    }
+    m->argCount++;
+    return;
+  }
   if (m->kind == rio_Pending_literal && m->op) { /* stored into the array at once, in order */
     int size, base;
     rio_Type *at = rio_literalArray(vm, m, &size, &base);
@@ -982,7 +1057,7 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   rio_PendingOp *m;
   if (c->opCount == x->opBase) return x->whole;
   m = rio_opTop(vm);
-  if (m->kind == rio_Pending_literal) return m->op ? rio_type(vm, m->b)->elem : rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
+  if (m->kind == rio_Pending_literal) return m->op ? rio_literalElem(vm, m) : rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
   if (m->kind == rio_Pending_index && m->valueBase > 0 && c->valueCount <= m->valueBase + 1) { /* counts[.east], counts[.a..<.b]: an [Enum]T takes its enum */
     rio_Type *array = rio_type(vm, c->values[m->valueBase - 1].type);
     if (array->kind == rio_TypeKind_array && array->firstField) return array->firstField;
@@ -1168,14 +1243,34 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
     return rio_impliedValue(vm, x, tempStart);
   } else if (t == '{') { /* {field = ...} or {a, b} takes its struct or array type from where the value is going */
     int type = rio_targetType(vm, x), k = type < 0 ? -1 : rio_type(vm, type)->kind;
+    if (k == rio_TypeKind_slice) { /* (a slice: a literal of its elements, viewed) */
+      rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, rio_type(vm, type)->elem, rio_Infer_slice), tempStart);
+      x->bareBrace = 1;
+      return rio_Expect_operator;
+    }
     if (k != rio_TypeKind_struct && k != rio_TypeKind_array && k != rio_TypeKind_builder)
       rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct or array this is; write Type{...} or [N]T{...}");
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
     x->bareBrace = 1;
     return rio_Expect_operator; /* the '{' is next: the literal itself */
   } else if (t == '[') { /* [N]T{...}, [..N]T{...}; or after is, any type: x is []Int */
-    int type = rio_parseType(vm), k = rio_type(vm, type)->kind;
+    int type, k, infer = c->peek.kind == ']' ? rio_Infer_slice : 0;
+    if (c->peek.kind == rio_Tok_id && c->peek.len == 1 && c->peek.text[0] == '_' && rio_peekAfterNext(vm) == ']') infer = rio_Infer_count;
+    if (infer) { /* [_]T{...} and []T{...}, sized by their values; [_]{...} and []{...}, typed by the first too */
+      rio_next(vm);
+      if (infer == rio_Infer_count) rio_next(vm);
+      rio_next(vm);
+      type = c->tok.kind == '{' ? rio_TypeId_void : rio_parseType(vm);
+      if (rio_failed(vm)) return rio_Expect_failed;
+      if (c->tok.kind == '{') {
+        rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, infer), tempStart);
+        return rio_Expect_operator;
+      }
+      if (infer == rio_Infer_count) rio_FAIL_AT_TOKEN(rio_Expect_failed, "[_] is for a literal, sized by its values: [_]T{a, b}");
+      type = rio_sliceOf(vm, type); /* (a slice type, after is: x is []Int) */
+    } else type = rio_parseType(vm);
     if (rio_failed(vm)) return rio_Expect_failed;
+    k = rio_type(vm, type)->kind;
     if (c->opCount > x->opBase && c->tok.kind != '{' &&
         ((rio_opTop(vm)->kind == rio_Pending_binary && rio_opTop(vm)->op == rio_Tok_is) ||
          (rio_opTop(vm)->kind == rio_Pending_call && rio_opTop(vm)->a == rio_ExprKind_builtin && rio_opTop(vm)->b == rio_Builtin_sizeOf))) {
@@ -1372,6 +1467,19 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
     rio_member(vm);
     rio_next(vm);
     return rio_Expect_operator;
+  }
+  if (t == '{' && rio_valueTop(vm)->kind == rio_ExprKind_type && rio_valueTop(vm)->value) { /* [_]T{...}, []T{...}: grows a value at a time */
+    rio_Expr type = rio_popValue(vm);
+    rio_PendingOp *o;
+    rio_openLiteral(vm);
+    o = rio_pushOp(vm, rio_Pending_literal, 0, 1 + type.value);
+    o->b = type.type == rio_TypeId_void ? -1 : type.type;
+    o->a = o->b < 0; /* (its first value gives the element type) */
+    o->c = (int32_t)c->freeSlot * 4;
+    x->depth++;
+    rio_next(vm);
+    rio_literalField(vm, o);
+    return rio_Expect_operand;
   }
   if (t == '{') { /* Type{...}, [N]T{...} */
     rio_Expr type = *rio_valueTop(vm);

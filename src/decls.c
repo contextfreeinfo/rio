@@ -130,7 +130,10 @@ static int rio_parseValueType(rio_Vm *vm) {
       rio_next(vm);
       prefix[count++] = c->tok.kind == ']' ? -2 : -3 - rio_parsePositiveConst(vm);
     } else { /* [N]T, [N * 2]T, [m.N + 1]T (constant Int arithmetic folds), or [Enum]T, [m.Enum]T */
-      rio_Expr e = rio_parseExpr(vm);
+      rio_Expr e;
+      if (c->tok.kind == rio_Tok_id && c->tok.len == 1 && c->tok.text[0] == '_' && c->peek.kind == ']')
+        rio_FAIL_AT_TOKEN(0, "[_] is for a literal, sized by its values: [_]T{a, b}");
+      e = rio_parseExpr(vm);
       if (e.kind == rio_ExprKind_type && rio_type(vm, e.type)->kind == rio_TypeKind_enum) {
         enumOf[count] = e.type;
         prefix[count++] = 0;
