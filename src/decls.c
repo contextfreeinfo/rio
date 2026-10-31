@@ -261,9 +261,7 @@ void rio_setProcResult(rio_Vm *vm, int proc, int type) {
   rio_ProcDef *p = &vm->compiler->procDefs[proc];
   rio_Type *ty = rio_type(vm, type);
   p->resultType = (uint16_t)type;
-  if (ty->kind == rio_TypeKind_builder ||
-      ((ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_union) && ty->hasRefs))
-    rio_FAIL(, "invalid return type");
+  if (ty->kind == rio_TypeKind_builder) rio_FAIL(, "invalid return type");
   if (rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
   p->resultAt = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, type)) * 4;
 }

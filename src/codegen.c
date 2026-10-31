@@ -271,6 +271,58 @@ void rio_markHeld(rio_Vm *vm, int type, uint32_t addr, int local, int param) {
   if (param) rio_heldWords(vm, type, addr, vm->compiler->paramViews, 1);
 }
 
+/* a value of type has memory of its own that a view could view: an array or a builder in it */
+static int rio_hasOwnMemory(rio_Vm *vm, int type) {
+  rio_Type *ty = rio_type(vm, type);
+  uint32_t i;
+  if (ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_builder) return 1;
+  if (ty->kind != rio_TypeKind_struct && ty->kind != rio_TypeKind_union) return 0;
+  for (i = 0; i < ty->fieldCount; i++) {
+    rio_Field *f = rio_field(vm, ty->firstField + i);
+    if (!f->bits && f->type != rio_TypeId_void && rio_hasOwnMemory(vm, f->type)) return 1;
+  }
+  return 0;
+}
+
+/* What a view a call returns may view, from a place passed by its address (self, a & parameter): the
+   place itself, when it's this proc's own memory with memory of its own in it, and what it holds. Adds to
+   local and from, as rio_resultMarks takes them. */
+void rio_placeMarks(rio_Vm *vm, const rio_Expr *place, int *local, int *from) {
+  rio_Expr held = *place;
+  rio_slotMarks(vm, &held);
+  *local |= held.localView || (rio_isLocalMemory(vm, place) && rio_hasOwnMemory(vm, place->type));
+  *from |= held.fromParam;
+}
+
+/* r, a call's result copied out: a view in it may view what went in, so it's marked as that was (local:
+   the proc's own memory went in; from: a view that came in as a parameter) */
+void rio_resultMarks(rio_Vm *vm, rio_Expr *r, int local, int from) {
+  rio_Type *ty = rio_type(vm, r->type);
+  if (!rio_isViewKind(ty->kind) && !(rio_isAggregate(ty->kind) && ty->hasRefs)) return;
+  r->localView = (uint8_t)local;
+  r->fromParam = (uint8_t)from;
+  if (rio_isAggregate(ty->kind) && vm->compiler->curProc >= 0) rio_markHeld(vm, r->type, (uint32_t)r->value, local, from);
+}
+
+/* addr is in the result of the proc being compiled */
+static int rio_isResult(rio_Vm *vm, uint32_t addr) {
+  rio_ProcDef *p = &vm->compiler->procDefs[vm->compiler->curProc];
+  return p->resultType != rio_TypeId_void && addr >= p->resultAt && addr < p->resultAt + (uint32_t)rio_typeWords(vm, p->resultType) * 4;
+}
+
+/* a value returned (as itself, or wrapped in the result's union) mustn't view the proc's own memory, which
+   the next call rewrites, nor hold such a view (an array returned as a view, a view of it) */
+void rio_checkReturned(rio_Vm *vm, const rio_Expr *e, int resultType) {
+  rio_Type *ty = rio_type(vm, rio_valueType(e->type));
+  rio_Expr held = *e;
+  if ((rio_isViewKind(ty->kind) || rio_isViewKind(rio_type(vm, resultType)->kind)) && rio_isLocalView(vm, e))
+    rio_FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+  if (!rio_isAggregate(ty->kind) || !ty->hasRefs) return;
+  rio_slotMarks(vm, &held);
+  if (held.localView)
+    rio_FAIL(, "this holds a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+}
+
 /* A view stored into dst: into a local of this proc, that local now holds a view of the proc's own memory,
    or one that came in through a parameter, or no longer does; anywhere else, it mustn't be either. Only a
    store in the local's own block surely runs before the code after it, so only there does the local stop
@@ -282,6 +334,7 @@ static void rio_storeView(rio_Vm *vm, const rio_Expr *dst, const rio_Expr *src) 
   rio_Expr held = *src;
   int holds = rio_isAggregate(rio_type(vm, dst->type)->kind), isLocal, newLocal;
   if (c->curProc < 0 || c->storingArgs) return;
+  if (dst->kind == rio_ExprKind_static && rio_isResult(vm, (uint32_t)dst->value)) return; /* (rio_checkReturned's) */
   if (holds) rio_slotMarks(vm, &held);
   isLocal = holds ? held.localView : rio_isLocalView(vm, src);
   src = &held;

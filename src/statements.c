@@ -220,6 +220,7 @@ static void rio_forNext(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   int type = rio_valueType(e->type), k, addr, res, i;
   rio_ProcDef *p;
   rio_Type *rt;
+  int local, from; /* (what a view it returns may view: what self does) */
   rio_needValue(vm, e);
   if ((k = rio_lookupMethod(vm, type, "next", 4)) < 0) rio_FAIL(, "for needs a range, array, slice or builder, or a struct with next() -> ?T");
   p = &c->procDefs[c->syms[k].value];
@@ -232,6 +233,8 @@ static void rio_forNext(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
     rio_store(vm, &held, e);
     *e = held;
   }
+  local = from = 0;
+  rio_placeMarks(vm, e, &local, &from);
   addr = rio_allocSlots(vm, 1); /* (where it is, kept: each turn passes it as self) */
   rio_emit(vm, rio_Op_mov, addr, rio_toAddrSlot(vm, e), 0);
   res = rio_allocSlots(vm, rio_typeWords(vm, p->resultType));
@@ -249,6 +252,7 @@ static void rio_forNext(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   { /* its result, copied out (the next call would overwrite it): nil ends the loop */
     rio_Expr src = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), dst = rio_exprOf(rio_ExprKind_static, p->resultType, res * 4);
     rio_store(vm, &dst, &src);
+    rio_resultMarks(vm, &dst, local, from);
   }
   b->kind = rio_Block_next;
   b->b = (uint16_t)index;
@@ -582,15 +586,13 @@ static void rio_returnStatement(rio_Vm *vm) {
   p = &c->procDefs[c->curProc];
   if (p->resultType != rio_TypeId_void) {
     rio_Expr d = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), e;
-    int k = rio_type(vm, p->resultType)->kind;
     if (c->tok.kind == rio_Tok_if || c->tok.kind == rio_Tok_switch) { /* return if ...: each branch's value, returned */
       rio_valueBlock(vm, rio_Value_return, &d, -1, 0, 0);
       return;
     }
     c->targetType = p->resultType;
     e = rio_parseExpr(vm);
-    if ((k == rio_TypeKind_slice || k == rio_TypeKind_builderView) && rio_isLocalView(vm, &e))
-      rio_FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+    rio_checkReturned(vm, &e, p->resultType);
     rio_store(vm, &d, &e);
   }
   rio_emit(vm, rio_Op_ret, 0, 0, 0);
@@ -841,9 +843,8 @@ static void rio_branchValue(rio_Vm *vm, rio_Block *b, rio_Expr *e) {
   }
   k = rio_type(vm, v->dst.type)->kind;
   if (k != rio_TypeKind_union || e->type == v->dst.type) rio_coerce(vm, e, v->dst.type); /* (a union's member: the store wraps it) */
+  if (v->how == rio_Value_return) rio_checkReturned(vm, e, v->dst.type);
   if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView) {
-    if (v->how == rio_Value_return && rio_isLocalView(vm, e))
-      rio_FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
     v->local |= (uint8_t)rio_isLocalView(vm, e);
     v->fromParam |= (uint8_t)e->fromParam;
   }

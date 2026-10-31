@@ -237,7 +237,7 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
   rio_FfiDef *def = &c->ffi[i];
   rio_Type *ty = rio_type(vm, procType);
   int same = ty->fieldCount == def->paramCount, j, rk = rio_type(vm, ty->elem)->kind;
-  if (def->resultLayout) { /* (a struct or union, as a Rio proc may return: no views, at most 16 words) */
+  if (def->resultLayout) { /* (a struct or union of at most 16 words, as a Rio proc may return, but with no views) */
     same = same && (rk == rio_TypeKind_struct || rk == rio_TypeKind_union) && rio_layoutIs(vm, ty->elem, vm->ffi[i].sig + def->resultLayout - 1);
     if (same && (rio_type(vm, ty->elem)->hasRefs || rio_isBig(rio_type(vm, ty->elem))))
       rio_FAIL(, "a host proc returns what a proc may: no views in it, and at most 16 words");

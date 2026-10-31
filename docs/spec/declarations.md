@@ -161,6 +161,34 @@ f :: proc() -> []Int
 end
 ```
 
+The same goes for a struct, array or union holding views, such as a struct with a `String` field or a
+`?String`: it can be returned if what it holds views memory other than the proc's own.
+
+```rio
+Entry :: struct
+  key: String
+  n: Int
+end
+entry :: proc(line: String) -> Entry
+  for c, i in line
+    if c == '=' do return Entry{key = line[0..<i], n = line[i + 1..].toInt() or 0}
+  end
+  return Entry{key = line}
+end
+firstWord :: proc(s: String) -> ?String
+  for c, i in s
+    if c == ' ' do return s[0..<i]
+  end
+  return nil
+end
+e := entry("hp=12")
+log(e.key, e.n, firstWord("hello there") or "-", firstWord("one") or "-")
+```
+
+```output
+hp 12 hello -
+```
+
 A view that comes in as a parameter may be one of the caller's own, so it's only borrowed: it can't
 be stored where it outlives the call either. To keep what it views, copy the bytes:
 
@@ -191,8 +219,9 @@ A
 ```
 
 What's read through a `&` parameter or `self` is the caller's too, so a view read there is only
-borrowed in the same way. A call's result, when it's a view, may view what went in, the places of `&`
-arguments included, so it counts as a view of whatever those were:
+borrowed in the same way. A call's result, when it's a view or holds one, may view what went in, so it
+counts as a view of whatever those were. That includes the places of `&` arguments and `self`, when
+there's an array or builder in them for a view to view:
 
 ```rio
 Box :: struct
@@ -242,8 +271,8 @@ f :: proc()
 end
 ```
 
-And a call's result, when it's a view, may view what went in, so it's a view of the caller's own
-memory if any argument was. Each rule is about one proc's own code, so changing a proc's body never
+And a call's result, when it's a view or holds one, may view what went in, so it's a view of the
+caller's own memory if any argument was. Each rule is about one proc's own code, so changing a proc's body never
 changes what its callers may do.
 
 ## Methods

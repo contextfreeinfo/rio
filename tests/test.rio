@@ -1475,6 +1475,47 @@ check(SpDir.last() == .east and SpDir.north == .north and Int.parsed("12") == 12
 static := 3
 check(static == 3, "static is a word only before proc, in a method's declaration")
 
+# ---- returning values holding views: a struct with a String, a maybe, a loop's next
+RvPair :: struct
+  key: String
+  n: Int
+end
+rvPairOf :: proc(k: String, n: Int) -> RvPair
+  return RvPair{key = k, n = n}
+end
+rvFirstWord :: proc(s: String) -> ?String
+  for c, i in s
+    if c == ' ' do return s[0..<i] # (a parameter's view, from in a loop)
+  end
+  if s.len() == 0 do return nil
+  return s
+end
+RvWords :: struct
+  text: String
+  at: Int
+end
+RvWords.next :: proc() -> ?String
+  if self.at >= self.text.len() do return nil
+  start := self.at
+  for self.at < self.text.len() and self.text[self.at] != ' ' do self.at += 1
+  self.at += 1
+  return self.text[start..<self.at - 1]
+end
+rvLong :: proc(w: RvWords) -> ?String # (w has no memory of its own to view: its words are what it holds)
+  for x in w
+    if x.len() > 1 do return x
+  end
+  return nil
+end
+rvP := rvPairOf("ann", 3)
+check(rvP.key == "ann" and rvP.n == 3 and rvPairOf("bo", 1).key.len() == 2, "a struct holding a String, returned")
+check((rvFirstWord("hello there") or "-") == "hello" and (rvFirstWord("") or "-") == "-", "a ?String, returned")
+rvSeen: Blob[..32]
+for w in RvWords{text = "one two three"} do rvSeen.print(w, ";")
+check(rvSeen[].asString() == "one;two;three;" and (rvLong(RvWords{text = "a bc d"}) or "") == "bc", "a loop's next returning a ?String")
+rvMake := rvPairOf
+check(rvMake("cy", 2).key == "cy", "through a proc value")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

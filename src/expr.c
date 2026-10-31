@@ -820,8 +820,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
         continue;
       }
       if ((!i && p->selfByRef) || param->refType) { /* the place's address (a view it returns may view that place) */
-        resultLocal |= rio_isLocalMemory(vm, arg) || rio_isLocalView(vm, arg);
-        resultFrom |= arg->fromParam;
+        rio_placeMarks(vm, arg, &resultLocal, &resultFrom);
         rio_emit(vm, rio_Op_mov, (int)(dst.value / 4), rio_toAddrSlot(vm, arg), 0);
         continue;
       }
@@ -841,13 +840,11 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
       return;
     }
     { /* the result is copied out: the next call of the proc would overwrite it */
-      int view = rio_type(vm, p->resultType)->kind == rio_TypeKind_slice || rio_type(vm, p->resultType)->kind == rio_TypeKind_builderView;
       rio_Expr src = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), dst;
       d = rio_allocSlots(vm, rio_typeWords(vm, p->resultType));
       dst = rio_exprOf(rio_ExprKind_static, p->resultType, d * 4);
       rio_store(vm, &dst, &src);
-      dst.localView = (uint8_t)(view && resultLocal); /* (a view of what was passed in, maybe: as that was) */
-      dst.fromParam = (uint8_t)(view && resultFrom);
+      rio_resultMarks(vm, &dst, resultLocal, resultFrom);
       rio_pushResult(vm, dst, m->freeAtStart);
     }
   } else if (m->a == rio_ExprKind_static) { /* through a proc value: the arguments go to a scratch area, the call copies them over */
@@ -885,9 +882,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     rio_emit(vm, rio_Op_getret, d, m->b, rio_typeWords(vm, type->elem));
     {
       rio_Expr r = rio_exprOf(rio_ExprKind_static, type->elem, d * 4);
-      int view = rio_type(vm, type->elem)->kind == rio_TypeKind_slice || rio_type(vm, type->elem)->kind == rio_TypeKind_builderView;
-      r.localView = (uint8_t)(view && resultLocal);
-      r.fromParam = (uint8_t)(view && resultFrom);
+      rio_resultMarks(vm, &r, resultLocal, resultFrom);
       rio_pushResult(vm, r, m->freeAtStart);
     }
   } else if (m->a == rio_ExprKind_ffi) { /* the arguments are in place; the result comes back in the first slot */

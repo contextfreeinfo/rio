@@ -40,11 +40,8 @@ Nothing open: see Leaning yes.
     `([]T).len` and `([..]T).push`. Their rules, like what can be packed or printed, stay in comments.
   - **Sort and find:** these could then be written in Rio. Without generics, they'd be host builtins
     taking a less proc.
-- **Returning any value:** today a proc returns a value of up to 16 words with no views in it, host
-  procs too. Each of these would lift a limit, for both, and they'd come when something needs them:
-  - **Values holding views** (a struct with a `String` field, a union of strings): returned as a
-    `String` is now. A view of the proc's own memory is still an error, and the caller's copy counts as
-    viewing what the arguments viewed, as a by-value struct parameter's does.
+- **Returning any value:** a proc returns a value of up to 16 words, views in it or not (host procs
+  return no views). What's left, when something needs it:
   - **Big values** (over 16 words): the caller passes an address for the proc to fill in, and `return`
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
@@ -131,6 +128,12 @@ Nothing open: see Leaning yes.
 
 ## Done recently
 
+- **Returning values holding views:** a struct with a `String` field, a `?String`, an array or union
+  of views, returned as a `String` is, so an iterator's `next` can give text. Holding a view of the
+  proc's own memory is an error, and the caller's copy counts as viewing what went in. `self` or a `&`
+  argument counts as its own memory only when there's an array or builder in it to view (a struct of
+  views and numbers is what it holds). Returning a parameter's view from inside a loop works now too.
+
 - **Stats as charts:** `bench/stats.svg`, drawn from `bench/stats.csv` by `tools/stats.py` (`--record`
   redraws it; CI fails when it's stale), shown in the README. Earlier commits backfilled with
   `--backfill`, each built and measured in a worktree. A row from another machine shows hollow.
@@ -165,8 +168,8 @@ Nothing open: see Leaning yes.
 
 - **Iterator structs:** `for x in it` (and `for x, i in it`, the turn from 0) over any struct with a
   method `next() -> ?T`, until it gives nil: a variable stepped in place, so a `break` leaves it where it
-  stopped; anything else kept for the loop. A `next` giving text (`-> ?String`, the next word of a line)
-  waits on values holding views, under Returning any value.
+  stopped; anything else kept for the loop. A `next` can give text (`-> ?String`, the next word of a
+  line) since values holding views can be returned.
 
 - **Text as numbers:** `s.toInt()`, `s.toInt(base)` (2 to 36) and `s.toFloat()`, on Strings, Blobs and
   byte builders, each a maybe: nil when the text isn't a number (images are version 13). A Float reads
