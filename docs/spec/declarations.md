@@ -405,57 +405,53 @@ end
 
 `proc[T, U](...)` names types a proc works on whatever they are. Each is found at every call, from
 the arguments, so each must be in a parameter's type. The proc is compiled once, for every T: a call
-passes, unseen, where T's size is. So in the body a T's size is known only while running, and what can
-be done with one is what needs no more than that:
+passes, unseen, what T is, and so its size. In the body a T's size is known only while running, so a T
+is only ever reached through a reference or a slice, never held:
 
-- **Where a T goes:** a parameter `x: T` (read-only, as a copy would be), `x: &T`, `xs: []T`, and a
-  proc type's `[]T` (`less: proc(xs: []T, i, j: Int) -> Bool`), and a variable, `t := x`.
-- **What a T does:** it's copied (`a = b`, `xs[i] = x`), taken from a `[]T` (`xs[i]`), compared with
-  `==` and `!=` by its bytes, and passed on, to a generic proc or as `&xs[i]`. Anything else on a T is
-  an error: arithmetic, printing it, a `for` over a `[]T` (index it), slicing a `[]T`.
-- **What a call checks:** each T found agrees everywhere it's found. A T the body compares with `==`
-  can't hold views (a String: compare by your own proc), and a T it keeps in a variable can be at most
-  16 words. A generic proc can't return a T, or be a proc value.
+- **Where a T goes:** `x: &T` and `xs: []T`, as parameters, in a proc type's parameters
+  (`less: proc(a, b: &T) -> Bool`), and in a variable as `[]T`.
+- **What a T does:** it's copied from place to place (`xs[i] = x`, `a = b`), swapped
+  (`xs.swap(i, j)`), and passed on, to a generic proc or a proc value as `&xs[i]`. Anything else is an
+  error: comparing (pass in a proc that compares), arithmetic, printing, keeping one in a variable, a
+  `for` over a `[]T` (index it), slicing a `[]T`. A generic proc can't return a T, or be a proc value.
+- **What a call checks:** each T found agrees everywhere it's found. And a proc that copies its T into
+  memory it was given can't take a T holding views (a `String`, a struct with one): it could keep a
+  view past what it views, as any proc could by storing a borrowed view (`xs.swap` is fine, since both
+  places are in `xs`).
 
 ```rio
-swap :: proc[T](a, b: &T)
-  t := a
-  a = b
-  b = t
-end
-find :: proc[T](xs: []T, x: T) -> Int
-  for i in 0..<xs.len()
-    if xs[i] == x do return i
-  end
-  return -1
-end
-sortBy :: proc[T](xs: []T, less: proc(xs: []T, i, j: Int) -> Bool)
+sortBy :: proc[T](xs: []T, less: proc(a, b: &T) -> Bool)
   for i in 1..<xs.len()
     j := i
-    for j > 0 and less(xs, j, j - 1)
-      swap(&xs[j], &xs[j - 1])
+    for j > 0 and less(&xs[j], &xs[j - 1])
+      xs.swap(j, j - 1)
       j -= 1
     end
   end
+end
+find :: proc[T](xs: []T, x: &T, eq: proc(a, b: &T) -> Bool) -> Int
+  for i in 0..<xs.len()
+    if eq(&xs[i], &x) do return i
+  end
+  return -1
 end
 Player :: struct
   name: String
   score: Int
 end
-byScore :: proc(ps: []Player, i, j: Int) -> Bool do return ps[i].score < ps[j].score
+byScore :: proc(a, b: &Player) -> Bool do return a.score < b.score
+intEq :: proc(a, b: &Int) -> Bool do return a == b
 players := [_]{Player{name = "ann", score = 30}, Player{name = "bo", score = 10}}
 sortBy(players[], byScore)
 nums := [_]{4, 8, 15}
-a := "left"
-b := "right"
-swap(&a, &b)
-log(players[0].name, find(nums[], 8), find(nums[], 9), a)
+eight := 8
+nine := 9
+log(players[0].name, find(nums[], &eight, intEq), find(nums[], &nine, intEq))
 ```
 
 ```output
-bo 1 -1 right
+bo 1 -1
 ```
-
 ## Host procs
 
 `host proc` and `host struct` declare something the host provides: see

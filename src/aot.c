@@ -254,8 +254,9 @@ static void rio_instruction(rio_Aot *a, int pc) {
     rio_print(a, "{ uint32_t i_ = %s; if (i_ >= %s) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %s; }\n", rio_V(C, 'u'),
               rio_V(B + 1, 'u'), rio_V(A, 'u'), rio_V(B, 'u'), rio_V(A, 'u'));
     break;
-  case rio_Op_eqv:
-    rio_print(a, "%s = !memcmp(rio_M + %s, rio_M + %s, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(C, 'u'), rio_V(A, 'u'));
+  case rio_Op_swapv:
+    rio_print(a, "{ uint8_t *x_ = rio_M + %s, *y_ = rio_M + %s, t_; uint32_t n_ = %s; while (n_--) t_ = *x_, *x_++ = *y_, *y_++ = t_; }\n",
+              rio_V(A, 'u'), rio_V(B, 'u'), rio_V(C, 'u'));
     break;
   case rio_Op_vadd: case rio_Op_vsub: case rio_Op_vmul: case rio_Op_vdiv: case rio_Op_vmod:
   case rio_Op_fvadd: case rio_Op_fvsub: case rio_Op_fvmul: case rio_Op_fvdiv: { /* a loop over the numbers; a scalar side is read once */

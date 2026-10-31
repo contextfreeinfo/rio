@@ -389,6 +389,8 @@ static void rio_member(rio_Vm *vm) {
   } else if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) {
     if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_setInt)) < 0) rio_FAIL(, "no such method");
     method = rio_exprOf(rio_ExprKind_builtin, 0, k);
+  } else if ((ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_array) && t->len == 4 && !memcmp(t->text, "swap", 4)) {
+    method = rio_exprOf(rio_ExprKind_builtin, 0, rio_Builtin_swap); /* xs.swap(i, j) */
   } else if ((ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_array) && ty->elem == rio_TypeId_byte &&
              (k = rio_builtinNamed(t->text, t->len, rio_Builtin_pack, rio_Builtin_setInt)) >= 0) {
     method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* a Blob's (or String's) b.pack(at, x) ... */
@@ -769,6 +771,14 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     m->argCount++;
     return;
   }
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount &&
+      rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->offset) { /* &place, through a proc value: as to a proc */
+    if (!(arg->access & rio_Access_ref)) rio_FAIL(, "this parameter is a reference: pass &x");
+    arg->access = 0;
+    if (arg->type != rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type) rio_FAIL(, "type mismatch");
+    m->argCount++;
+    return;
+  }
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_ffi && m->argCount < c->ffi[m->b].paramCount &&
       c->params[c->ffi[m->b].firstParam + m->argCount].refType) { /* &place, to a host proc: its address and size */
     rio_Param *p = &c->params[c->ffi[m->b].firstParam + m->argCount];
@@ -911,20 +921,24 @@ static int rio_unify(rio_Vm *vm, int p, int pattern, int actual, int *bound) {
   if (y->kind == rio_TypeKind_slice) return (a->kind == rio_TypeKind_slice || a->kind == rio_TypeKind_array) && rio_unify(vm, p, y->elem, a->elem, bound);
   if (y->kind != rio_TypeKind_proc || a->kind != rio_TypeKind_proc || a->fieldCount != y->fieldCount || a->count != y->count) return 0;
   for (i = 0; i < y->fieldCount; i++)
-    if (!rio_unify(vm, p, rio_field(vm, y->firstField + i)->type, rio_field(vm, a->firstField + i)->type, bound)) return 0;
+    if (rio_field(vm, y->firstField + i)->offset != rio_field(vm, a->firstField + i)->offset ||
+        !rio_unify(vm, p, rio_field(vm, y->firstField + i)->type, rio_field(vm, a->firstField + i)->type, bound)) return 0;
   return rio_unify(vm, p, y->elem, a->elem, bound);
 }
 
 /* a generic parameter's type with what each T was found to be */
 static int rio_bindType(rio_Vm *vm, int p, int t, const int *bound) {
   rio_Type *y = rio_type(vm, t);
-  int params[16];
+  int params[16], refs = 0;
   uint32_t i;
   if (!rio_mentions(vm, t, -1)) return t;
   if (y->kind == rio_TypeKind_param) return bound[y->count];
   if (y->kind == rio_TypeKind_slice) return rio_sliceOf(vm, rio_bindType(vm, p, y->elem, bound));
-  for (i = 0; i < y->fieldCount && i < 16; i++) params[i] = rio_bindType(vm, p, rio_field(vm, y->firstField + i)->type, bound);
-  return rio_procTypeOf(vm, params, (int)y->fieldCount, rio_bindType(vm, p, y->elem, bound), (int)y->count, 0);
+  for (i = 0; i < y->fieldCount && i < 16; i++) {
+    params[i] = rio_bindType(vm, p, rio_field(vm, y->firstField + i)->type, bound);
+    refs |= rio_field(vm, y->firstField + i)->offset << i;
+  }
+  return rio_procTypeOf(vm, params, (int)y->fieldCount, rio_bindType(vm, p, y->elem, bound), (int)y->count, refs);
 }
 
 /* A call of generic proc p (the call m): what each T is, from the arguments, and checked against what
@@ -946,14 +960,10 @@ static void rio_bindCall(rio_Vm *vm, rio_PendingOp *m, int *bound) {
     if (bound[j] < 0) rio_FAIL(, "can't tell what T is: an argument it's in was left out");
     t = rio_type(vm, bound[j]);
     if (t->kind != rio_TypeKind_param && rio_mentions(vm, bound[j], -1)) rio_FAIL(, "a T made of another generic proc's T isn't ready yet");
-    if ((p->eqTypes >> j & 1) && t->hasRefs) rio_FAIL(, "this proc compares its T with ==, by its bytes: a T holding views (a String) can't be compared so");
-    if ((p->localTypes >> j & 1) && t->kind != rio_TypeKind_param && t->size > rio_SMALL_WORDS * 4)
-      rio_FAIL(, "this proc keeps its T in a variable, so it can be at most 16 words");
-    if (t->kind == rio_TypeKind_param) { /* (this proc's own T, given on: what it does with it, its own does) */
-      rio_ProcDef *outer = &c->procDefs[t->elem];
-      outer->eqTypes |= (uint8_t)((p->eqTypes >> j & 1) << t->count);
-      outer->localTypes |= (uint8_t)((p->localTypes >> j & 1) << t->count);
-    }
+    if ((p->viewTypes >> j & 1) && t->hasRefs)
+      rio_FAIL(, "this proc copies its T into memory it was given, so a T holding views (a String) can't go there: it could keep a view past what it views");
+    if (t->kind == rio_TypeKind_param) /* (this proc's own T, given on: what it does with it, its own does) */
+      c->procDefs[t->elem].viewTypes |= (uint8_t)((p->viewTypes >> j & 1) << t->count);
   }
 }
 
@@ -991,17 +1001,6 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
       rio_Expr dst = rio_exprOf(rio_ExprKind_static, type, (int32_t)param->addr), *arg = &c->values[m->valueBase + i];
       if (i >= m->argCount) { /* (left out: zero) */
         rio_zeroSlots(vm, (int)(param->addr / 4), rio_typeWords(vm, type));
-        continue;
-      }
-      if (rio_type(vm, param->type)->kind == rio_TypeKind_param) { /* a generic's x: T: the value's address */
-        rio_coerce(vm, arg, type);
-        if (arg->kind != rio_ExprKind_static && arg->kind != rio_ExprKind_indirect) { /* (a constant: somewhere first) */
-          rio_Expr held = rio_exprOf(rio_ExprKind_static, type, rio_allocSlots(vm, rio_typeWords(vm, type)) * 4);
-          rio_store(vm, &held, arg);
-          *arg = held;
-        }
-        rio_slotMarks(vm, arg);
-        rio_emit(vm, rio_Op_mov, (int)(param->addr / 4), rio_toAddrSlot(vm, arg), 0);
         continue;
       }
       if (param->refType && p->typeParams && arg->type != rio_bindType(vm, m->b, param->refType, bound)) rio_FAIL(, "type mismatch");
@@ -1044,12 +1043,26 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     rio_Type *type = rio_type(vm, m->c);
     int words = 0, base, at = 0;
     if (!rio_argsOk(m, type->fieldCount, (int)type->count)) rio_FAIL(, "wrong number of arguments");
-    for (i = 0; i < type->fieldCount; i++) words += rio_typeWords(vm, rio_field(vm, type->firstField + i)->type);
+    for (i = 0; i < type->fieldCount; i++) {
+      rio_Field *f = rio_field(vm, type->firstField + i);
+      words += f->offset ? 1 : rio_typeWords(vm, f->type);
+    }
     base = rio_allocSlots(vm, words ? words : 1);
     int resultLocal = 0, resultFrom = 0;
     for (i = 0; i < type->fieldCount; i++) {
       int paramType = rio_field(vm, type->firstField + i)->type;
-      rio_Expr dst = rio_exprOf(rio_ExprKind_static, paramType, (base + at) * 4);
+      rio_Expr dst = rio_exprOf(rio_ExprKind_static, paramType, (base + at) * 4), *arg = &c->values[m->valueBase + i];
+      if (rio_field(vm, type->firstField + i)->offset) { /* &place: its address, as to a proc */
+        if (arg->access & rio_Access_readOnly) {
+          rio_Expr copy = rio_exprOf(rio_ExprKind_static, rio_valueType(arg->type), rio_allocSlots(vm, rio_typeWords(vm, arg->type)) * 4);
+          rio_store(vm, &copy, arg);
+          *arg = copy;
+        }
+        rio_placeMarks(vm, arg, &resultLocal, &resultFrom);
+        rio_emit(vm, rio_Op_mov, base + at, rio_toAddrSlot(vm, arg), 0);
+        at++;
+        continue;
+      }
       if (i >= m->argCount) { /* (left out: zero) */
         rio_zeroSlots(vm, base + at, rio_typeWords(vm, paramType));
         at += rio_typeWords(vm, paramType);

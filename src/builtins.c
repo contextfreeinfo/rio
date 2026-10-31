@@ -7,7 +7,7 @@
 const char *const rio_builtinNames[rio_Builtin_count] = {
   "log", "len", "min", "max", "clamp", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
-  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format", "print",
+  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "swap", "format", "print",
   "pack", "unpack", "getInt", "setInt",
   "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob", "sizeOf", "offsetOf", "bitOffsetOf",
   "len", "has",
@@ -509,9 +509,34 @@ static rio_Expr rio_pushCall(rio_Vm *vm, rio_PendingOp *call, rio_Expr *x, int b
   return rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4);
 }
 
-/* push pop clear cap remove swapRemove pushAll */
+/* xs.swap(i, j): two elements trade places, on an array, slice or builder. Both are in xs, so a view one
+   holds stays as safe in the other. */
+static void rio_swapCall(rio_Vm *vm, rio_Expr *a) {
+  int k = rio_type(vm, a->type)->kind, elem = rio_type(vm, a->type)->elem, s, i, j, size, x, y;
+  if (a->type == rio_TypeId_string || (a->access & rio_Access_readOnly)) rio_FAIL(, "can't swap in this: it's read-only");
+  if (k == rio_TypeKind_builder || k == rio_TypeKind_builderView) { /* its live elements */
+    int b = rio_toSlot3(vm, a);
+    s = rio_allocSlots(vm, 2);
+    rio_emit(vm, rio_Op_lview, s, b, 0);
+  } else if (k == rio_TypeKind_slice || k == rio_TypeKind_array) s = rio_toSlot2(vm, a);
+  else rio_FAIL(, "swap() is for arrays, slices and builders");
+  rio_coerce(vm, a + 1, rio_TypeId_int);
+  rio_coerce(vm, a + 2, rio_TypeId_int);
+  i = rio_toSlot(vm, a + 1, 1);
+  j = rio_toSlot(vm, a + 2, 1);
+  size = rio_type(vm, elem)->kind == rio_TypeKind_param ? rio_typeSizeSlot(vm, elem) : rio_constSlot(vm, rio_type(vm, elem)->size);
+  x = rio_allocSlots(vm, 1);
+  y = rio_allocSlots(vm, 1);
+  rio_emit(vm, rio_Op_mov, x, size, 0);
+  rio_emit(vm, rio_Op_idxv, x, s, i);
+  rio_emit(vm, rio_Op_mov, y, size, 0);
+  rio_emit(vm, rio_Op_idxv, y, s, j);
+  rio_emit(vm, rio_Op_swapv, x, y, size);
+}
+
+/* push pop clear cap remove swapRemove pushAll swap */
 static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
-  static const signed char args[] = {2, 1, 1, 1, 2, 2, 2}; /* counting the builder itself */
+  static const signed char args[] = {2, 1, 1, 1, 2, 2, 2, 3}; /* counting the builder itself */
   rio_Compiler *c = vm->compiler;
   int id = call->b, k, elem, builder, d, s, size;
   rio_Expr *a = &c->values[call->valueBase], r = rio_voidExpr();
@@ -529,6 +554,12 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
       r.type = rio_TypeId_int;
       r.access = rio_Access_readOnly;
     } else rio_FAIL(, "cap() is for builders, arrays and slices");
+    rio_callResult(vm, call, r);
+    return;
+  }
+  if (id == rio_Builtin_swap) {
+    rio_swapCall(vm, a);
+    c->freeSlot = call->freeAtStart;
     rio_callResult(vm, call, r);
     return;
   }

@@ -2,8 +2,7 @@
 # values, then Int keys to struct values. Open addressing with linear probing, and deletion by moving
 # later entries back (no tombstones). Views passed in are borrowed, so the map copies each key's bytes
 # into a global arena of its own. The second map's table is generic procs over arrays the caller keeps,
-# for any key compared by its bytes (an Int, an enum, a struct of numbers); String keys compare by
-# their text, so the first map is its own.
+# for any key and value holding no views, with the caller's hash and compare procs.
 fails := 0
 check :: proc(ok: Bool, what: String)
   if not ok
@@ -138,29 +137,29 @@ check(remove("the") and get("the") is nil and get("cat") is Int, "remove a word"
 # ------------------------------------------------------------------ Int -> struct
 
 # The table as generic procs: the caller keeps its keys, values and which slots are used (each a power
-# of 2 long), and gives each key's hash. One copy of the code serves every key and value type.
-slotIn :: proc[K](keys: []K, used: []Bool, key: K, hash: Int) -> Int
+# of 2 long), and gives each key's hash and how keys compare. One copy of the code serves every key and
+# value type that holds no views (a stored String key would have to be copied into an arena, as above).
+slotIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K) -> Bool) -> Int
   i := hash & (keys.len() - 1)
-  for used[i] and keys[i] != key
+  for used[i] and not eq(&keys[i], &key)
     i = (i + 1) & (keys.len() - 1)
   end
   return i
 end
 
-putIn :: proc[K, V](keys: []K, values: []V, used: []Bool, key: K, hash: Int, value: V)
-  i := slotIn(keys, used, key, hash)
+putIn :: proc[K, V](keys: []K, values: []V, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K) -> Bool, value: &V)
+  i := slotIn(keys, used, &key, hash, eq)
   used[i] = true
   keys[i] = key
   values[i] = value
 end
 
 # the slot holding key, or -1
-findIn :: proc[K](keys: []K, used: []Bool, key: K, hash: Int) -> Int
-  i := slotIn(keys, used, key, hash)
+findIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K) -> Bool) -> Int
+  i := slotIn(keys, used, &key, hash, eq)
   if not used[i] do return -1
   return i
 end
-
 Point :: struct
   x, y: Int
 end
@@ -170,10 +169,11 @@ pointKey: [PCAP]Int
 points: [PCAP]Point
 
 intHash :: proc(key: Int) -> Int do return (key * -1640531535) >> 28 # (Fibonacci hashing: the top bits)
-putPoint :: proc(key: Int, p: Point) do putIn(pointKey[], points[], pointUsed[], key, intHash(key), p)
+intEq :: proc(a, b: &Int) -> Bool do return a == b
+putPoint :: proc(key: Int, p: Point) do putIn(pointKey[], points[], pointUsed[], &key, intHash(key), intEq, &p)
 
 getPoint :: proc(key: Int) -> ?Point
-  i := findIn(pointKey[], pointUsed[], key, intHash(key))
+  i := findIn(pointKey[], pointUsed[], &key, intHash(key), intEq)
   if i < 0 do return nil
   return points[i]
 end

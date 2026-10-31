@@ -620,7 +620,7 @@ void rio_needValue(rio_Vm *vm, rio_Expr *e) {
 void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p = &c->procDefs[e->value];
-  int params[16], i;
+  int params[16], i, refs = 0;
   if (e->kind == rio_ExprKind_proc && p->typeParams) rio_FAIL(, "a generic proc can't be a proc value: there'd be no T to give it");
   if (e->kind == rio_ExprKind_ffi) { /* (a host proc: through a proc of its own) */
     rio_ffiProcValue(vm, e, type);
@@ -629,10 +629,10 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   if (p->paramCount > 16) rio_FAIL(, "too many parameters for a proc value");
   for (i = 0; i < p->paramCount; i++) {
     rio_Param *param = &c->params[p->firstParam + i];
-    if (param->refType) rio_FAIL(, "a proc with & parameters can't be a value");
-    params[i] = param->type;
+    params[i] = param->refType ? param->refType : param->type;
+    refs |= (param->refType != 0) << i;
   }
-  i = rio_procTypeOf(vm, params, p->paramCount, p->resultType, p->optional, 0);
+  i = rio_procTypeOf(vm, params, p->paramCount, p->resultType, p->optional, refs);
   if (type >= 0 && i != type) rio_FAIL(, "this proc's parameters or result don't match");
   if (p->callsValues) rio_FAIL(, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
   p->usedAsValue = 1;
@@ -916,8 +916,9 @@ void rio_store(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView || (rio_isAggregate(k) && ty->hasRefs)) rio_storeView(vm, dst, src);
   if (k == rio_TypeKind_union && rio_storeIntoUnion(vm, dst, src)) return; /* a value of one of its types: wrapped */
   rio_coerce(vm, src, dst->type);
-  if (k == rio_TypeKind_param) { /* a T: its bytes, as many as it has */
+  if (k == rio_TypeKind_param) { /* a T: its bytes, as many as it has, into memory it was given (calls check) */
     int s = rio_toAddrSlot(vm, src), d = rio_toAddrSlot(vm, dst);
+    vm->compiler->procDefs[ty->elem].viewTypes |= (uint8_t)(1u << ty->count);
     rio_emit(vm, rio_Op_copyv, d, s, rio_typeSizeSlot(vm, dst->type));
     return;
   }

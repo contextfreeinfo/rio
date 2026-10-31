@@ -565,9 +565,10 @@ log(apply(twice, 3), g(5))
 12 10
 ```
 
-A proc value can't capture variables. To keep recursion impossible, a proc that calls through a proc
-value (or calls one that does) can't itself be used as a value, and procs with `&` parameters can't
-either. Calling a proc value that was never set is a runtime error:
+A proc type's parameters can be `&T` too, as in `proc(a, b: &Point) -> Bool`, and are passed as a
+proc's are (`f(&p, &q)`). A proc value can't capture variables. To keep recursion impossible, a proc
+that calls through a proc value (or calls one that does) can't itself be used as a value. Calling a
+proc value that was never set is a runtime error:
 
 ```rio
 f: proc(Int) -> Int

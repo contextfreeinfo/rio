@@ -171,6 +171,10 @@ Every array, slice, builder, builder view, `String` and `Blob` has:
 - `xs.len()`: how many elements (for a builder or builder view, how many it has now).
 - `xs.cap()`: how many it can hold (the same as `len` for the fixed-length kinds).
 
+And every one that can change (not a `String`) has `xs.swap(i, j)`: elements `i` and `j` trade places,
+whatever they are (in a [generic proc](declarations.md#generic-procs) too). An `i` or `j` outside it is
+a runtime error.
+
 ## Builders
 
 These change a builder `[..N]T` or a builder view `[..]T` (`Blob[..N]` and `Blob[..]` too):

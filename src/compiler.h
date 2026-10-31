@@ -135,8 +135,7 @@ typedef struct {
      parameter, the address of a constant (T's size, its descriptor or 0), and T's size loaded into a slot
      of sizeSlots on at its start */
   uint8_t typeParams;
-  uint8_t eqTypes;     /* the ones it compares with == (bit j): a T holding views can't go there */
-  uint8_t localTypes;  /* the ones it keeps in variables (bit j): a T over 16 words can't go there */
+  uint8_t viewTypes;   /* the ones it copies into memory it was given (bit j): a T holding views can't go there */
   uint16_t firstTypeParam, sizeSlots;
 } rio_ProcDef;
 
@@ -600,7 +599,7 @@ typedef enum {
   rio_Builtin_assert,
   /* builder methods */
   rio_Builtin_push, rio_Builtin_pop, rio_Builtin_clear, rio_Builtin_cap, rio_Builtin_remove,
-  rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_format, rio_Builtin_print,
+  rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_swap, rio_Builtin_format, rio_Builtin_print,
   /* byte methods (Blobs, byte builders) */
   rio_Builtin_pack, rio_Builtin_unpack, rio_Builtin_getInt, rio_Builtin_setInt,
   /* conversion methods */

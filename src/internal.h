@@ -112,10 +112,10 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      fail                   a failed assert: a = its message (0: none); x 1: a runtime error, a its message
      halt                   stop
      jit                    run native loop a (rio_jit), then carry on where it says
-   Generic procs: a T's size is only known while running, in a slot (idxv and eqv find it in a, then write a).
+   A size known only while running (a generic proc's T), in a slot (idxv finds it in a, then writes a).
      idxv                   a = address of element c of slice b, each a bytes (bounds-checked)
      copyv                  c bytes from address b to address a, c a slot
-     eqv                    a = whether the a bytes at addresses b and c are the same */
+     swapv                  swap c bytes at address a with those at address b, c a slot */
 #define rio_OPS(X)                                                                                   \
   X(mov) X(add) X(sub) X(mul) X(div) X(mod) X(and) X(or) X(xor) X(shl) X(shr) X(ushr)               \
   X(neg) X(bnot) X(not) X(fadd) X(fsub) X(fmul) X(fdiv) X(fneg)                                      \
@@ -129,7 +129,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \
-  X(fail) X(halt) X(jit) X(idxv) X(copyv) X(eqv)
+  X(fail) X(halt) X(jit) X(idxv) X(copyv) X(swapv)
 
 #define rio_OP_ENUM(o) rio_Op_##o,
 typedef enum {

@@ -120,6 +120,7 @@ Blob.setInt* :: host proc(at: Int, bits: Int, value: Int)   # its low bits
 #   ([..]T).clear*[T] :: host proc()
 #   ([..]T).remove*[T] :: host proc(i: Int)
 #   ([..]T).swapRemove*[T] :: host proc(i: Int)
+#   ([]T).swap*[T] :: host proc(i, j: Int)            # also on [N]T, [..N]T and [..]T; not String
 #   (Blob[..]).print*[T: Printable] :: host proc(values: ..T) -> Bool   # as text, all or nothing
 #   (Blob[..]).format*[T: Printable] :: host proc(settings: Format, values: ..T) -> Bool
 #                                                     # as print, as settings say, inside values too

@@ -27,13 +27,12 @@ Nothing open: see Leaning yes.
 
 ## Leaning yes
 
-- **Generic procs, the rest:** the first pass is done (see Done recently). Still to come:
-  - **More on a T:** `for x in xs` and slicing over a `[]T`, `[..]T` builder views (push, pop),
-    returning a T, and a T by value in a proc type (`less: proc(a, b: T) -> Bool`).
+- **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
+  only through `&T` and `[]T`, like C's `void*` with its size, but typed. Still to come, if wanted:
+  - **More on a `[]T`:** `for x in xs` and slicing, and `[..]T` builder views (push, pop).
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
-    descriptor 0 for now. Builtins that read it would work on a T: `log` and `format` print it, `==`
-    compares Strings by their text, `pack` and `unpack` take it (a T that can't be packed is a compile
-    error at the call, where T is known), and a hash builtin would serve a generic map.
+    descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
+    it yet; it's kept for reflection (see Maybe).
   - **Generic methods:** `([..]T).push :: proc[T](value: T) -> Bool`, the receiver's T bound by the
     proc's list. The receiver comes first in the source, before T is named, so it needs reading after.
   - **No constraints and no traits:** anything type-specific, like `<`, comes in as a proc argument:
@@ -49,7 +48,10 @@ Nothing open: see Leaning yes.
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
-  both are errors, and `x is nil` is the way to test for nil.
+  both are errors, and `x is nil` is the way to test for nil. Then `is` is only for types, and `is nil`
+  goes (nil isn't a type), so this one breaks source: decide it with the others above.
+- **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings, byte by byte, a shorter prefix first.
+  UTF-8's bytes order as its code points do, so that's code point order too, with nothing decoded.
 
 ## Maybe
 
@@ -124,12 +126,14 @@ Nothing open: see Leaning yes.
 
 ## Done recently
 
-- **Generic procs, a first pass:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`,
-  each T found from the arguments at every call (no `find[Int](...)`, which would read like indexing).
+- **Generic procs, reference-only:** `sortBy :: proc[T](xs: []T, less: proc(a, b: &T) -> Bool)`, each
+  T found from the arguments at every call (no `sortBy[Int](...)`, which would read like indexing).
   One compiled copy for every T: a call passes, as a hidden argument, the address of the constant
-  (T's size, descriptor), and three instructions take a size from a slot (`idxv`, `copyv`, `eqv`; images
-  are version 14). In the body a T is copied, taken from a `[]T`, compared with `==` by its bytes, and
-  passed on; a call checks a compared T holds no views and a T kept in a variable is at most 16 words.
+  (T's size, descriptor), and instructions take a size from a slot (`idxv`, `copyv`, `swapv`; images
+  are version 14). A T is only reached through `&T` and `[]T`, never held, so every slot's size is
+  fixed: it's copied from place to place, swapped, and passed on, and comparing comes in as a proc. A
+  proc that copies a T into memory it was given can't take a T holding views (it could keep a borrowed
+  view). With it: `xs.swap(i, j)` on arrays, slices and builders, and `&T` parameters in proc types.
   `tests/map.rio`'s second map is generic procs over arrays the caller keeps.
 
 - **Literals sized and typed by their values:** `[_]T{...}` takes its size from its values, `[_]{...}`
