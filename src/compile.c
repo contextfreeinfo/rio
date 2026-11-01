@@ -285,8 +285,11 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
       if (t < 0) rio_FAIL(, "bad ffi signature");
       if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
       if (isResult) {
-        def->resultType = (uint16_t)t;
-        f->resultWords = (uint8_t)rio_typeWords(vm, t);
+        int n = 1;
+        while ((t == rio_TypeId_int || t == rio_TypeId_float) && g[1 + n] == g[1]) n++; /* (>ii: a point or size, [2]Int) */
+        if (n > 1 && (g[1 + n] || n > 8)) rio_FAIL(, "bad ffi signature");
+        def->resultType = (uint16_t)(n > 1 ? rio_arrayOf(vm, t, (uint32_t)n) : t);
+        f->resultWords = (uint8_t)rio_typeWords(vm, def->resultType);
         break;
       }
       c->params[c->paramCount].refType = 0;

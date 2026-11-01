@@ -232,20 +232,38 @@ static int rio_layoutIs(rio_Vm *vm, int type, const char *g) {
 /* name :: host proc(...) (procType, as written), for host proc i: the types must be its sig's (an enum
    or Bool may stand for an Int, and a struct's layout must be the sig's {...}), and calls then take the
    declared ones */
+/* a declared parameter that the host takes as consecutive words: a [N]Int or [N]Float (a point, a size),
+   its elements' type (else 0) and how many in *n */
+static int rio_spreadParam(rio_Vm *vm, int type, int *n) {
+  rio_Type *y = rio_type(vm, type);
+  if (y->kind != rio_TypeKind_array || y->firstField || y->count < 1 || y->count > 8 || (y->elem != rio_TypeId_int && y->elem != rio_TypeId_float))
+    return 0;
+  *n = (int)y->count;
+  return y->elem;
+}
+
 static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i, int procType, int exporting) {
   rio_Compiler *c = vm->compiler;
   rio_FfiDef *def = &c->ffi[i];
   rio_Type *ty = rio_type(vm, procType);
-  int same = ty->fieldCount == def->paramCount, j, rk = rio_type(vm, ty->elem)->kind;
+  int same = 1, j, h, cnt, rk = rio_type(vm, ty->elem)->kind, spread = 0;
+  for (j = h = 0; j < ty->fieldCount; j++, h++) /* (the host's parameters, counting a spread one's words) */
+    if (!rio_field(vm, ty->firstField + j)->offset && rio_spreadParam(vm, rio_field(vm, ty->firstField + j)->type, &cnt)) h += cnt - 1;
+  same = h == def->paramCount;
   if (def->resultLayout) { /* (a struct or union of at most 16 words, as a Rio proc may return, but with no views) */
     same = same && (rk == rio_TypeKind_struct || rk == rio_TypeKind_union) && rio_layoutIs(vm, ty->elem, vm->ffi[i].sig + def->resultLayout - 1);
     if (same && (rio_type(vm, ty->elem)->hasRefs || rio_isBig(rio_type(vm, ty->elem))))
       rio_FAIL(, "a host proc returns what a proc may: no views in it, and at most 16 words");
   } else same = same && rio_hostTypeOk(vm, ty->elem, def->resultType);
-  for (j = 0; same && j < def->paramCount; j++) {
-    rio_Param *p = &c->params[def->firstParam + j];
-    int type = rio_field(vm, ty->firstField + j)->type, ref = rio_field(vm, ty->firstField + j)->offset;
-    if (ref != (p->refType != 0)) same = 0; /* (a &T for a &T only) */
+  for (j = h = 0; same && j < ty->fieldCount; j++, h++) { /* (each declared parameter, at the host's parameter h) */
+    rio_Param *p = &c->params[def->firstParam + h];
+    int type = rio_field(vm, ty->firstField + j)->type, ref = rio_field(vm, ty->firstField + j)->offset, elem = rio_spreadParam(vm, type, &cnt), k;
+    if (h >= def->paramCount) same = 0;
+    else if (elem && !ref) { /* [2]Int: as many words as it has (i i), one after another */
+      for (k = 0; k < cnt && same; k++) same = h + k < def->paramCount && !p[k].refType && p[k].type == elem;
+      h += cnt - 1;
+      spread = 1;
+    } else if (ref != (p->refType != 0)) same = 0; /* (a &T for a &T only) */
     else if (p->type == rio_TypeId_void || p->refType == rio_REF_LAYOUT) /* (a struct's {...} or an enum's Enum{...}) */
       same = rio_layoutIs(vm, type, vm->ffi[i].sig + p->addr);
     else same = rio_hostTypeOk(vm, type, ref ? p->refType : p->type);
@@ -282,11 +300,15 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
     text[len] = 0;
     rio_FAIL(, text);
   }
-  for (j = 0; j < def->paramCount; j++) { /* (calls: as declared) */
-    rio_Param *p = &c->params[def->firstParam + j];
-    if (p->refType) p->refType = rio_field(vm, ty->firstField + j)->type; /* (and type stays the address word) */
-    else p->type = rio_field(vm, ty->firstField + j)->type;
+  for (j = h = 0; j < ty->fieldCount; j++, h++) { /* (calls: as declared; a spread one's words become one parameter) */
+    rio_Param p = c->params[def->firstParam + h];
+    int type = rio_field(vm, ty->firstField + j)->type;
+    if (!p.refType && rio_spreadParam(vm, type, &cnt)) h += cnt - 1;
+    if (p.refType) p.refType = (uint16_t)type; /* (and type stays the address word) */
+    else p.type = (uint16_t)type;
+    c->params[def->firstParam + j] = p;
   }
+  if (spread) def->paramCount = (uint16_t)ty->fieldCount;
   def->resultType = (uint16_t)ty->elem;
   def->optional = (uint16_t)ty->count; /* (its last ones, as declared: name?: T) */
   vm->ffi[i].declared = 1;

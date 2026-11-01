@@ -255,6 +255,10 @@ static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procTy
       open = 0;
       any = 1;
     } else if (k == rio_TypeKind_enum && i < ty->fieldCount && !rio_field(vm, ty->firstField + i)->offset) rio_layoutOf(vm, type, 0, o); /* (a parameter, by name) */
+    else if (k == rio_TypeKind_array) { /* (a point or size, [2]Int: its words, i i; as a result too) */
+      uint32_t w;
+      for (w = 0; w < rio_type(vm, type)->count; w++) rio_hostPut(o, rio_type(vm, type)->elem == rio_TypeId_float ? "f" : "i", 1);
+    }
     else rio_hostPut(o, k == rio_TypeKind_float ? "f" : type == rio_TypeId_string ? "s" : type == rio_TypeId_blob ? "b" : "i", 1);
   }
   rio_hostPut(o, open ? "\"" : any ? "" : "\"\"", -1);

@@ -23,9 +23,9 @@ Rinc's and Studio's apps, would change with it.
 
 In this order:
 
-- **In rinc, points and sizes:** `Point :: [2]Float` (or `[2]Int` where pixels want it) and sizes
-  across `pc` (rinc's roadmap, Decide first), kept by apps as values. Breaking for apps, so before
-  more is built on `pc`; host static procs can give it constructors.
+- **In rinc, points and sizes:** tried (notes/pc-points.md): Rio passes `[2]Int` parameters as words,
+  and `pc.rect`, `pset`, `pget` and `print` take them. Left: deciding the names, `Blit`, the pointer,
+  and a `Rect` with helpers, then the rest of `pc`.
 - **`riosys`, a host for scripting:** a `riosys` build of the CLI whose host module, `sys`, has files,
   directories, running programs, the environment and arguments, so the repo's scripts (`tools/stats.py`,
   the test runners) can be Rio. It's for dogfooding before the spec is finalized: what writing real
@@ -151,6 +151,11 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **Points and sizes for host procs:** an `[N]Int` or `[N]Float` parameter or result goes to the host
+  as its words, one after another (a result: `">ii"`) (`rect(pos, size: [2]Int, c)` is the host's `"iiiii"`), so a host's C
+  needs no change. Tried in rinc: `pc.rect`, `pset`, `pget` and `print` take `[2]Int`, with the same
+  speed per call (notes/pc-points.md).
 
 - **Callback procs:** only a proc declared `callback` (`name :: callback proc(...)`, `T.name :: static
   callback proc(...)`) can be a proc value, and its own body is checked as one: it can't call through

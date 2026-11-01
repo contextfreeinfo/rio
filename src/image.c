@@ -226,7 +226,7 @@ static int rio_ffiFits(rio_Vm *vm, int j, const char *sig, rio_Ffi *f) {
   if (*h && *h != '>' && hostWords > rio_FFI_PAD_WORDS) return 0;
   *f = vm->ffi[j];
   f->argWords = (uint8_t)hostWords;
-  f->resultWords = (uint8_t)(placed ? 0 : *result == 's' || *result == 'b' ? 2 : *result ? 1 : 0);
+  f->resultWords = (uint8_t)(placed ? 0 : *result == 's' || *result == 'b' ? 2 : strlen(result)); /* (>ii: 2) */
   f->pad = (uint8_t)(hostWords - words);
   return 1;
 }

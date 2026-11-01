@@ -23,3 +23,6 @@ where* :: host proc(i: Int, k?: Int) -> Pos   # {x = i, y = i * 2 + k}
 find* :: host proc(i: Int) -> ?Int     # i * 3, or nil for 0 or less
 paint* :: host proc(s: Shape) -> Int   # s's number, times 10
 Pos.at* :: static host proc(x, y: Int) -> Pos   # {x, y}: a static host proc, the host's Pos_at
+box* :: host proc(pos, size: [2]Int, c: Int) -> Int   # a point and a size go as words: the host's i i i i i
+mid* :: host proc(a: [2]Float, f: Float) -> Float     # (f f f)
+span* :: host proc(a, b: Int) -> [2]Int           # {a + b, a * b}: its words back, as the host's >ii

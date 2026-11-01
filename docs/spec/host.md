@@ -126,6 +126,12 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   m: pc.Mouse
   pc.mouse(&m)
   ```
+- **Points and sizes:** an `[N]Int` or `[N]Float` parameter (N up to 8) goes to the host as its words,
+  one after another, as that many `i` (or `f`) in its sig: `rect* :: host proc(pos, size: [2]Int, c:
+  Int)` is the host's `"iiiii"`. Calls take any such array, so a literal is typed by the parameter:
+  `pc.rect({x, y}, {8, 8}, 7)`.
+- **Results as points:** `pointerAt* :: host proc() -> [2]Int` is the host's `">ii"`: it writes the
+  words back in order.
 - **Results:** a host proc returns what a proc may: an `Int`, `Float`, `String` or `Blob`, or a struct,
   union or maybe of up to 16 words with no views in it (`>{...}`, `>Union{...}` in its sig). A struct
   result may gain fields at its end, as a parameter may: an older image gets the fields it holds.

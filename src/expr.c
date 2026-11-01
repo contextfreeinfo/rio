@@ -927,6 +927,19 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
       m->argCount++;
       return;
     }
+    if (rio_type(vm, type)->kind == rio_TypeKind_array) { /* a point or size, [2]Int: its words, one after another */
+      rio_Expr dst;
+      if (rio_valueType(e.type) != type) rio_FAIL(, "type mismatch");
+      words = rio_typeWords(vm, type);
+      c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
+      d = rio_allocSlots(vm, words);
+      dst = rio_exprOf(rio_ExprKind_static, type, d * 4);
+      rio_store(vm, &dst, &e);
+      m->c += words;
+      if (c->freeSlot < (uint32_t)m->punAt) c->freeSlot = (uint32_t)m->punAt;
+      m->argCount++;
+      return;
+    }
     words = rio_typeWords(vm, type);
     s = words == 2 ? rio_toSlot2(vm, &e) : rio_toSlot(vm, &e, 1);
     c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
