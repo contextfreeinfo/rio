@@ -117,6 +117,28 @@ static uint32_t makeSoup(void) {
   return n;
 }
 
+/* colors: each token's kind as a letter (rio_highlight) */
+typedef struct {
+  const char *src, *want;
+} Colors;
+static const Colors colors[] = {
+  {"x := f(1, \"s\") # note", "cpfpnpsp#"},
+  {"if done and not Ready", "kckkt"},
+  {"p :: proc(a: Int) -> Bool", "cpkpcptppt"},
+  {"log ( 2.5)", "cpnp"},          /* (a space before its "(": not a call, as rio fmt has it) */
+  {"c := 'a' + nil", "cpspk"},
+  {"s := \"open\n  \"going on\" end", "cpssk"},
+  {"Point{x = 1}.len()", "tpcpnppfpp"},
+};
+static char kindsGot[64];
+static int kindsN;
+static void colorKind(void *userData, uint32_t at, uint32_t len, int kind) {
+  (void)userData;
+  (void)at;
+  (void)len;
+  if (kindsN < 63) kindsGot[kindsN++] = "ckftnsp#"[kind == rio_Hl_comment ? 7 : kind == rio_Hl_punct ? 6 : kind == rio_Hl_string ? 5 : kind == rio_Hl_number ? 4 : kind == rio_Hl_type ? 3 : kind == rio_Hl_call ? 2 : kind == rio_Hl_keyword ? 1 : 0];
+}
+
 int main(int argc, char **argv) {
   int failed = 0, passed = 0, soups = argc > 1 ? atoi(argv[1]) : 20000, i; /* (rio_fmt_test 1000000 7: more soups, another seed) */
   if (argc > 2) seed = (uint32_t)atoi(argv[2]);
@@ -156,6 +178,15 @@ int main(int argc, char **argv) {
     }
   }
   if (i == soups) passed++;
+  for (i = 0; i < (int)(sizeof colors / sizeof colors[0]); i++) {
+    kindsN = 0;
+    rio_highlight(colors[i].src, (uint32_t)strlen(colors[i].src), colorKind, 0);
+    kindsGot[kindsN] = 0;
+    if (strcmp(kindsGot, colors[i].want)) {
+      printf("FAIL colors %d: %s\n  got  %s\n  want %s\n", i, colors[i].src, kindsGot, colors[i].want);
+      failed++;
+    } else passed++;
+  }
   if (failed) return 1;
   printf("all %d fmt tests passed\n", passed);
   return 0;

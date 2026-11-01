@@ -230,6 +230,18 @@ static void rio_report(const char *where) {
   fprintf(stderr, "%s\n", rio_error(&rio_vm));
 }
 
+/* the REPL's colors (os.h's line editor: rio_osColors): rio_highlight's kind for each byte of a line */
+static unsigned char *rio_colorKinds;
+static void rio_colorToken(void *userData, uint32_t at, uint32_t len, int kind) {
+  (void)userData;
+  memset(rio_colorKinds + at, kind, len);
+}
+static void rio_colorLine(const char *s, int n, unsigned char *kinds) {
+  memset(kinds, rio_Hl_code, (size_t)n);
+  rio_colorKinds = kinds;
+  rio_highlight(s, (uint32_t)n, rio_colorToken, 0);
+}
+
 /* the REPL's history file: ~/.rio_history (HOME, or USERPROFILE on Windows); 0 if there's no home */
 static const char *rio_historyPath(void) {
   static char path[1024];
@@ -268,6 +280,7 @@ static int rio_repl(void) {
       fclose(h);
     }
   }
+  if (!getenv("NO_COLOR") && !(getenv("TERM") && !strcmp(getenv("TERM"), "dumb"))) rio_osColors = rio_colorLine; /* (no-color.org) */
   printf("rio REPL. Ctrl-C stops a running program, or drops what's typed; Ctrl-D quits.\n");
   for (;;) {
     rio_gotInterrupt = 0;

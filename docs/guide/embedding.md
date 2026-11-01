@@ -149,3 +149,17 @@ this way.
 `rio_findProc` and `rio_findGlobal` find `main` and the main file's names marked with `*`. Each costs a
 12-byte table entry plus the name. Build with `-Drio_EXPORTS_ALL` (CMake: `-DRIO_EXPORTS_ALL=ON`) to
 make every top-level proc and global findable, say for a debugger.
+
+## Code in an editor
+
+Two calls work on Rio code as text, compiling or not, and need no VM: for a host with an editor (Rinc's
+saves through `rio_format`), or a tool. `rio_format` lays code out as `rio fmt` does, and `rio_highlight`
+gives each token's kind, for colors:
+
+```c fragment
+static void token(void *userData, uint32_t at, uint32_t len, int kind) {
+  /* src[at..at+len): rio_Hl_keyword, rio_Hl_type, rio_Hl_call, rio_Hl_number, rio_Hl_string,
+     rio_Hl_comment, rio_Hl_punct, or rio_Hl_code */
+}
+rio_highlight(src, len, token, 0);
+```

@@ -93,4 +93,5 @@ expression prints its value. An unfinished input gets a `.` prompt for more, as 
 lines line up; a blank line drops it. A compile error leaves the session as it was. Lines are edited
 as they're typed, as `os.readLine`'s are ([os](os.md)): the arrows, Home and End, Ctrl+Left and Right
 by words, Ctrl+K, Ctrl+U, Ctrl+W and Ctrl+Y, and Up and Down for the lines typed before, which are kept
-in `~/.rio_history`. Ctrl+C drops what's typed, and Ctrl+D quits.
+in `~/.rio_history`. Ctrl+C drops what's typed, and Ctrl+D quits. Code is in colors as it's typed (Rio's
+words, types, calls, numbers, strings and comments), unless `NO_COLOR` is set or `TERM` is `dumb`.

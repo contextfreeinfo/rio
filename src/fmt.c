@@ -715,3 +715,40 @@ int32_t rio_format(const char *src, uint32_t len, char *out, uint32_t cap) {
   out[o.len] = 0;
   return rio_fmtSameCode(src, end, out, out + o.len) ? (int32_t)o.len : -2;
 }
+
+/* ------------------------------------------------------------------ colors */
+
+/* Rio's words (as the lexer has them, with true and false) */
+static const char *const rio_hlWords[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue",
+  "import", "include", "enum", "union", "switch", "case", "is", "nil", "and", "or", "not", "do", "true", "false", 0};
+
+/* each token's kind, a line at a time (rio_fmtToken's tokens: a string going on to the next line too) */
+int rio_highlight(const char *src, uint32_t len, rio_HighlightFn fn, void *userData) {
+  const char *p = src, *end = src + len;
+  int count = 0;
+  for (;;) {
+    const char *eol, *e = rio_fmtLineEnd(p, end, &eol), *q = p;
+    rio_FmtTok t, next;
+    q = rio_fmtToken(q, e, &t);
+    while (t.kind) {
+      const char *after = rio_fmtToken(q, e, &next);
+      int kind = rio_Hl_code;
+      switch (t.kind) {
+      case rio_Fmt_comment: kind = rio_Hl_comment; break;
+      case rio_Fmt_string: case rio_Fmt_char: kind = rio_Hl_string; break;
+      case rio_Fmt_number: kind = rio_Hl_number; break;
+      case rio_Fmt_op: kind = rio_Hl_punct; break;
+      case rio_Fmt_name:
+        kind = rio_fmtIn(&t, rio_hlWords) ? rio_Hl_keyword : *t.s >= 'A' && *t.s <= 'Z' ? rio_Hl_type
+               : rio_fmtIs(&next, "(") && !next.gap ? rio_Hl_call : rio_Hl_code;
+        break;
+      }
+      fn(userData, (uint32_t)(t.s - src), (uint32_t)t.len, kind);
+      count++;
+      t = next;
+      q = after;
+    }
+    if (eol >= end) return count;
+    p = eol + 1;
+  }
+}

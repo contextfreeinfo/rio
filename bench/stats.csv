@@ -61,3 +61,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-11-01,bb81f14+,puddle,31892,190061,16798,375296,24.1,89928,0.562,0.004,0.517,0.004,0.337,0.008,0.59,0.115,14475,2323,"Rio+: module os in the rio program, line editing, docs.rio"
 2026-11-01,8b21bac+,puddle,31636,209968,16995,383488,27.0,89948,0.586,0.004,0.54,0.006,0.42,0.014,0.591,0.131,14485,2510,"os.run: argument lists and RunOptions; [x] slice sigs; src/os; UBSan fixes"
 2026-11-01,8b21bac+,puddle,31636,210044,17008,384000,18.8,90200,0.45,0.007,0.54,0.005,0.441,0.008,0.652,0.137,14498,2510,"asString on byte builders and Blob[N]; builders for arg lists"
+2026-11-01,8bd9ce9+,puddle,31636,211556,17088,386560,26.8,90200,0.573,0.008,0.53,0.006,0.346,0.014,0.579,0.125,14545,2543,"rio_highlight; REPL colors"

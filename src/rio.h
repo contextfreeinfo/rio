@@ -123,6 +123,16 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
    same lines, with their indents, may need more than len), or -2: it couldn't keep the tokens the same
    (a bug in rio_format: keep src as it is). */
 int32_t rio_format(const char *src, uint32_t len, char *out, uint32_t cap);
+/* The kinds of Rio's tokens, for colors (src/fmt.c): an editor's, a terminal's (the REPL's), and a
+   language server's semantic tokens (keyword, type, function, number, string, comment, operator). As
+   rinc's theme roles have them */
+enum { rio_Hl_code, rio_Hl_keyword, rio_Hl_type, rio_Hl_call, rio_Hl_number, rio_Hl_string, rio_Hl_comment, rio_Hl_punct };
+typedef void (*rio_HighlightFn)(void *userData, uint32_t at, uint32_t len, int kind);
+/* each of src's tokens (len bytes of Rio code, compiling or not), in order, through fn: where it is in
+   src, how long, and its kind (rio_Hl_*): a word of Rio's, a type (a name with a capital), a call (a name
+   right before its "("), a number, a string or character, a comment, punctuation, else code. Needs no
+   vm. Returns how many */
+int rio_highlight(const char *src, uint32_t len, rio_HighlightFn fn, void *userData);
 #endif
 int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len);
 /* The same, a part at a time, for a host without room for a whole image beside the vm (such as one

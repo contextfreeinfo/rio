@@ -325,6 +325,12 @@ static int rio_osColumns(void) {
   return 80;
 }
 
+/* a line's colors, as the REPL has them (main.c sets this: rio_highlight's kinds, a byte each, into
+   kinds); 0, as for a program's os.readLine: none. The kinds' colors, as ANSI codes: code, keyword,
+   type, call, number, string, comment, punctuation (rio.h's rio_Hl_*) */
+static void (*rio_osColors)(const char *s, int n, unsigned char *kinds);
+static const char *const rio_osSgr[] = {"0", "35", "36", "34", "33", "32", "90", "0"};
+
 static int rio_osWidth(const char *s, int n) { /* columns: a character each */
   int w = 0, i;
   for (i = 0; i < n; i++) w += !rio_osCont((unsigned char)s[i]);
@@ -334,7 +340,8 @@ static int rio_osWidth(const char *s, int n) { /* columns: a character each */
 /* the line drawn again: the prompt, then as much of the text as fits beside it, scrolled sideways so
    the cursor shows */
 static void rio_osLineDraw(const rio_OsLine *e, const char *prompt, int promptLen) {
-  static char out[rio_LINE * 2 + 64];
+  static char out[rio_LINE * 8 + 64];
+  static unsigned char kinds[rio_LINE];
   int cols = rio_osColumns(), room = cols - rio_osWidth(prompt, promptLen) - 1, from = 0, to, n = 0;
   if (room < 8) room = 8;
   while (rio_osWidth(e->buf + from, e->pos - from) > room) from = rio_osRight(e, from); /* (the cursor in view) */
@@ -344,8 +351,21 @@ static void rio_osLineDraw(const rio_OsLine *e, const char *prompt, int promptLe
   out[n++] = '\r';
   memcpy(out + n, prompt, (size_t)promptLen);
   n += promptLen;
-  memcpy(out + n, e->buf + from, (size_t)(to - from));
-  n += to - from;
+  if (rio_osColors && e->len) { /* (the text in its colors: a code where the kind changes) */
+    int i, kind = -1;
+    rio_osColors(e->buf, e->len, kinds);
+    for (i = from; i < to; i++) {
+      if (kinds[i] != kind) {
+        kind = kinds[i] < sizeof rio_osSgr / sizeof rio_osSgr[0] ? kinds[i] : 0;
+        n += sprintf(out + n, "\x1b[%sm", rio_osSgr[kind]);
+      }
+      out[n++] = e->buf[i];
+    }
+    n += sprintf(out + n, "\x1b[0m");
+  } else {
+    memcpy(out + n, e->buf + from, (size_t)(to - from));
+    n += to - from;
+  }
   n += sprintf(out + n, "\x1b[K\r");
   if (rio_osWidth(prompt, promptLen) + rio_osWidth(e->buf + from, e->pos - from) > 0)
     n += sprintf(out + n, "\x1b[%dC", rio_osWidth(prompt, promptLen) + rio_osWidth(e->buf + from, e->pos - from));

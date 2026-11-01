@@ -158,7 +158,11 @@ In this order:
   - **Signed releases:** macOS (notarized, so Gatekeeper lets it run) and Windows (so SmartScreen
     doesn't warn) binaries signed in CI: which certificates, what they cost, and how the keys stay safe.
   - **The REPL as the place to start:** Rio-aware completion (exact names, from the session's own
-    symbols and modules), and syntax colors, in its line editor first, then in the language server.
+    symbols and modules), in its line editor first, then in the language server. Colors are in:
+    `rio_highlight` (riocore, beside `rio_format`) gives each token's kind, the REPL's line editor
+    colors with it, and the language server's semantic tokens will come from it (its kinds are
+    keyword, type, function, number, string, comment, operator); VS Code's colors before the server
+    starts come from a TextMate grammar with the same kinds, which the extension ships.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:
   - **Procs:** a proc's name as an argument, `log(f)`, is "not a value", though
