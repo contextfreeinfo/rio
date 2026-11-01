@@ -41,11 +41,28 @@ static const Case cases[] = {
   {"r :: proc() -> Int do return 1\nn := 1\n", "r :: proc() -> Int do return 1\nn := 1\n"},
   {"      x := 1\n   end\nend\n", "x := 1\nend\nend\n"},
   /* lines going on keep their place from their statement, but not left of it */
-  {"    xs := [3]Int{\n      1, 2,\n      3}\n", "xs := [3]Int{\n  1, 2,\n  3}\n"},
+  {"    xs := [3]Int{\n      1, 2,\n      3}\n", "xs := [3]Int{\n  1, 2, 3\n}\n"},
   {"xs := [3]Int{\n1, 2,\n3,\n}\n", "xs := [3]Int{\n  1, 2,\n  3,\n}\n"},
   {"if a and\n      b\n  x()\nend\n", "if a and\n      b\n  x()\nend\n"},
   {"s := \"one\n  \"two\"\n", "s := \"one\n  \"two\"\n"},
   {"if a\n    s := \"one\n        \"two\"\nend\n", "if a\n  s := \"one\n      \"two\"\nend\n"},
+  /* lists over lines: a trailing comma, and a line break after the opener, say how */
+  {"f(a,\n  b)\n", "f(a, b)\n"},
+  {"p := Pos{x = 1,\n  y = 2}\n", "p := Pos{x = 1, y = 2}\n"},
+  {"f(\n  a,\n      b)\n", "f(\n  a, b\n)\n"},
+  {"f(a, b,)\n", "f(\n  a,\n  b,\n)\n"},
+  {"xs := [4]Int{\n  1, 2,\n\n  3, 4,\n}\n", "xs := [4]Int{\n  1, 2,\n\n  3, 4,\n}\n"},
+  {"v := Vec{\n  x,  # one\n  y   # two\n}\n", "v := Vec{\n  x,  # one\n  y,  # two\n}\n"},
+  {"f(a, # one\n  b)\n", "f(\n  a, # one\n  b,\n)\n"},
+  {"f(a, [1,\n  2,])\n", "f(a, [\n  1,\n  2,\n])\n"},
+  {"f([1, 2,], b)\n", "f(\n  [\n    1,\n    2,\n  ],\n  b,\n)\n"},
+  {"x := (a or\n      b)\n", "x := (a or\n      b)\n"},
+  {"if f(a,\n  b)\n  g()\nend\n", "if f(a, b)\n  g()\nend\n"},
+  {"s := f(\"one\n  \"two\", b)\n", "s := f(\n  \"one\n  \"two\",\n  b,\n)\n"},
+  /* # nofmt to # /nofmt: left as it is (but spaces at line ends), the markers indented */
+  {"if a\n# nofmt (a table)\n   x  = 1   \n   # /nofmt\ny:=2\nend\n", "if a\n  # nofmt (a table)\n   x  = 1\n  # /nofmt\n  y := 2\nend\n"},
+  {"# nofmt\nf(a,\n  b)\n", "# nofmt\nf(a,\n  b)\n"},
+  {"# nofmt:no\nx  = 1\n", "# nofmt:no\nx = 1\n"},
   /* comments: kept, lined up as they were */
   {"x := 1   # one\ny := 22  # two\n", "x := 1   # one\ny := 22  # two\n"},
   {"if a\n      x := 1        # one\n                    # more\nend\n", "if a\n  x := 1        # one\n                # more\nend\n"},
@@ -59,6 +76,7 @@ static const Case cases[] = {
   {"x   = 1\n", "x = 1\n"},
   /* line ends, blank lines, trailing spaces, no final newline */
   {"x:=1\r\n\r\ny:=2\r\n", "x := 1\r\n\r\ny := 2\r\n"},
+  {"x:=1\r\ny:=2\nz:=3\n", "x := 1\r\ny := 2\r\nz := 3\r\n"},
   {"x := 1   \n   \n\n\ny := 2", "x := 1\n\n\n\ny := 2"},
   {"", ""},
 };

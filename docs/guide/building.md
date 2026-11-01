@@ -41,13 +41,46 @@ rio fmt game.rio ...     the files laid out the one way, printed; -w rewrites th
                          -l lists them (exiting 1 if any)
 ```
 
-`rio fmt` changes only spaces: the indent at each line's start (2 for each block it's in) and the gaps
-between tokens (`x := a[i] + f(b, -c)`). It never changes a token, a line break or a comment, and
-before it gives code back it checks, line by line, that the tokens are the same, so the program means
-what it did. It keeps what lines things up: runs of spaces before `::`, `:=` or `=` that line up with
-the lines around them, comments in the column they were in, and lines going on (in brackets, or after
-an operator) where they were from their statement's start. Code needn't compile to be laid out, and
-hosts get it as `rio_format` (in `rio.h`), which needs no VM.
+`rio fmt` changes only white space: the indent at each line's start (2 for each block it's in), the
+gaps between tokens (`x := a[i] + f(b, -c)`), spaces at line ends (gone), line ends (all as the
+file's first, `\n` or `\r\n`), and line breaks inside brackets where Rio reads them as spaces. The one
+token it adds is a trailing comma, where a list stays over lines. Before it gives code back it checks
+that the tokens are the same but for those commas, so the program means what it did. It doesn't wrap
+long lines: no rule depends on a line's length.
+
+A list in `()`, `[]` or `{}` with commas is laid out by its trailing comma, and by whether a line break
+follows its opener:
+
+```
+f(a,           f(a, b, c)      no trailing comma, first item on the opener's line: one line
+  b, c)
+
+f(             f(              no trailing comma, a break after the opener: the items on a line of
+  a,             a, b, c       their own (and so back to one line by joining that line up and
+  b, c)        )               taking the comma off)
+
+f(a, b, c,)    f(              a trailing comma, first item on the opener's line: an item a line
+                 a,
+                 b,
+                 c,
+               )
+
+f(             f(              a trailing comma, a break after the opener: the lines as they are,
+  a, b,          a, b,         for tables
+  c,             c,
+)              )
+```
+
+A comment, or a string over lines, in a list keeps it over lines (with a trailing comma added). A
+list over lines that's the last item of another can sit on its line: `f(a, [` ... `])`. Parentheses
+without commas (grouping) keep their lines as written.
+
+It keeps what lines things up: runs of spaces before `::`, `:=` or `=` that line up with the lines
+around them, comments in the column they were in, and lines going on (after an operator, or in
+grouping parentheses) where they were from their statement's start. Lines from a `# nofmt` comment
+line to a `# /nofmt` one (or the file's end) are left as they are, but for spaces at their ends; the
+two comments are indented as usual, and can have a note after a space (`# nofmt (a table)`). Code
+needn't compile to be laid out, and hosts get it as `rio_format` (in `rio.h`), which needs no VM.
 
 Errors print as `game.rio:12:7: type mismatch`, which terminals and editors can turn into links.
 Ctrl-C stops a running program. The CLI's host procs are `clock() -> Float` (processor seconds) and

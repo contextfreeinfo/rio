@@ -168,7 +168,10 @@ partial := Particle{pos = Vec{x = 1, y = 1}}
 check(partial.life == 0 and partial.vel.y == 0, "partial literal zeroes")
 yx := Vec{y = 5, x = 6}
 check(yx.x == 6 and yx.y == 5, "named fields in any order")
-mid := Particle{life = 3, pos = Vec{x = 1, y = 2},}
+mid := Particle{
+  life = 3,
+  pos = Vec{x = 1, y = 2},
+}
 check(mid.vel.x == 0 and mid.vel.y == 0 and mid.life == 3 and mid.pos.y == 2, "missing middle field zeroed, trailing comma")
 check(Vec{}.x == 0 and Vec{}.y == 0, "empty literal")
 for k in 0..<2
@@ -368,8 +371,10 @@ prS = PrBox{w = 2.5, h = 3}
 check(prOut.print(prS) and prSays("PrBox{w = 2.5, h = 3.0}"), "print a union by what it holds")
 prT := PrThing{name = "say \"hi\"\n", at = prP, dir = PrDir.east, tags = {7, 8, 9}, ok = true}
 prT.label[0] = 65
-check(prOut.print(prT) and prSays("PrThing{name = \"say \\\"hi\\\"\\n\", at = PrPoint{x = 1, y = -2}, dir = east, tags = [7, 8, 9], ok = true, label = \"A\\0\"}"),
-      "print a struct of structs, enums, arrays and text (quoted inside a value)")
+check(
+  prOut.print(prT) and prSays("PrThing{name = \"say \\\"hi\\\"\\n\", at = PrPoint{x = 1, y = -2}, dir = east, tags = [7, 8, 9], ok = true, label = \"A\\0\"}"),
+  "print a struct of structs, enums, arrays and text (quoted inside a value)",
+)
 prNs: [..8]Int
 check(prNs.push(10) and prNs.push(20) and prOut.print(prNs, " ", prNs[]) and prSays("[10, 20] [10, 20]"), "print a builder, and its view")
 prBig: [50]Int
@@ -393,8 +398,10 @@ check(prOut.format({textWidth = 6}, PrDir.east) and prSays("  east"), "format: a
 check(prOut.format({digits = 2}, prP, " ", prXs[0..<2]) and prSays("PrPoint{x = 01, y = -02} [01, 02]"), "format: inside structs and slices too")
 fmtHex := Format{width = 4, digits = 4, base = 16}
 check(prOut.format(fmtHex, 48879, 10) and prSays("beef000a"), "format: settings in a variable")
-check(prOut.format(fmtHex, fmtHex) and prSays("Format{width = 0004, digits = 0004, places = 0000, base = 0010, textWidth = 0000}"),
-      "format: a Format after the first is a value")
+check(
+  prOut.format(fmtHex, fmtHex) and prSays("Format{width = 0004, digits = 0004, places = 0000, base = 0010, textWidth = 0000}"),
+  "format: a Format after the first is a value",
+)
 check(prOut.print(fmtHex) and prSays("Format{width = 4, digits = 4, places = 0, base = 16, textWidth = 0}"), "print a Format")
 check(not prTiny.format({width = 20}, 1) and prTiny.len() == 0, "format is all or nothing")
 fmtWide := 3
@@ -530,7 +537,7 @@ check(fleet[0].at().x == 9 and fleet[0].at().y == 4, "punning self fields")
 check(Vec{src.pos.y, x = 0}.y == 2, "deep path, mixed with named fields")
 pv2 := Vec{
   x,  # a comment between items
-  y   # and before the brace
+  y,  # and before the brace
 }
 check(pv2.x == 1.5 and pv2.y == 2, "punning across lines, with comments")
 
@@ -543,7 +550,9 @@ divmod :: proc(a: Int, b: Int) -> QR
 end
 {q, r} := divmod(17, 5)
 check(q == 3 and r == 2, "destructure a call result")
+# nofmt (a trailing comma on one line)
 {r as rem, q as quo,} := divmod(9, 4)
+# /nofmt
 check(rem == 1 and quo == 2, "rename with as, any order, trailing comma")
 {pos, life} := src
 check(pos.y == 2 and life == 7, "struct and Int fields")
@@ -1736,8 +1745,11 @@ gnBig :: callback proc(p: &GnP) -> Bool do return p.y > 25
 gnQs: [4]Int
 gnCopyIn(gnQs[], gnInts[])
 gnT := gnTail(gnPs[], 1)
-check(gnCountIf(gnPs[], gnBig) == 2 and gnQs[3] == gnInts[3] and gnT.len() == 2 and gnT[1].y == 99 and gnTail(gnPs[], 3).len() == 0 and
-      gnCountIf(gnPs[0..<2], gnBig) == 1, "for over a []T, and slicing one")
+check(
+  gnCountIf(gnPs[], gnBig) == 2 and gnQs[3] == gnInts[3] and gnT.len() == 2 and gnT[1].y == 99 and gnTail(gnPs[], 3).len() == 0 and
+    gnCountIf(gnPs[0..<2], gnBig) == 1,
+  "for over a []T, and slicing one",
+)
 GnUndo :: struct[T]
   done: [..]T
   undone: [..]T
@@ -1778,8 +1790,11 @@ gnA := gnU.undo(&gnLast)
 gnB2 := gnU.undo(&gnLast)
 gnAll: [..8]GnS
 gnMoved := gnMoveAll(gnAll, gnSteps)
-check(gnA and gnB2 and gnLast.x == 2 and gnRedo.len() == 2 and gnMoved and gnSteps.len() == 0 and gnAll.len() == 1 and
-      gnSumAt(gnRedo, gnX) == 8, "[..]T in generic code: push a place, pop and copy, for, index")
+check(
+  gnA and gnB2 and gnLast.x == 2 and gnRedo.len() == 2 and gnMoved and gnSteps.len() == 0 and gnAll.len() == 1 and
+    gnSumAt(gnRedo, gnX) == 8,
+  "[..]T in generic code: push a place, pop and copy, for, index",
+)
 gnPs[0].y = 50
 gnL2 := GnList.of(gnPs[], gnByY)
 gnWasSorted := gnL2.isSorted()
@@ -1901,7 +1916,7 @@ check(true, "a label can be reused after its loop ends")
 # strings over more lines: an open line ends with a line break (its trailing spaces left out, but not
 # escaped ones) and goes on at the next line's quote, after its indent; side by side, one string
 ml :=
-  "a   
+  "a
   "  b
   "c"
 check(ml == "a\n  b\nc", "a string over lines keeps what's after each quote")
@@ -1917,7 +1932,8 @@ check(
   "strings side by side over lines inside brackets are one",
 )
 
-# a trailing comma ends any list in brackets: arguments too
+# a trailing comma ends any list in brackets: arguments too (on one line: rio fmt would put it over lines)
+# nofmt
 tcAdd :: callback proc(a: Int, b: Int,) -> Int
   return a + b
 end
@@ -1926,6 +1942,7 @@ tcXs := [3]Int{1, 2, 3,}
 tcL: [..4]Int
 _ = tcL.push(5,)
 check(tcAdd(1, 2,) == 3 and tcF(3, 4,) == 7 and tcXs[2] == 3 and tcL[0] == 5, "trailing commas")
+# /nofmt
 check(
   "abc".len() == 3,
   "a trailing comma after the last argument, on its own line",

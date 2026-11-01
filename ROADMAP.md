@@ -139,8 +139,6 @@ In this order:
   later versions, so it never shifts code that was already in the standard form. Open before then:
   - **Making alignment:** today it keeps `::`, `:=` and `=` lined up where they already are (and
     comments' columns), but never lines them up itself. Decide whether it should.
-  - **Leaving code alone:** a way to mark lines it mustn't touch (such as `# nofmt` at a line's end,
-    or around a block), for tables lined up by hand.
 - **A language server:** tooling, so it can come before or after 1.0.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:
