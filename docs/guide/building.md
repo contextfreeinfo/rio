@@ -22,8 +22,9 @@ tools for Windows" component), because clang supports the faster computed-goto d
 falls back to MSVC with `switch` dispatch. `-T <toolset>` overrides this, `-DRIO_PREFER_CLANGCL=OFF`
 disables it, and an existing build directory keeps the toolset it was first configured with.
 
-The tests include `tests/docs.py`, which runs every example in these docs (with Python 3, when CMake
-finds it).
+The tests include `tests/docs.rio`, which runs every example in these docs. With zig on the PATH,
+`rio tools/zigbuild.rio` (run from the repo's folder) cross-builds the rio program for other systems
+into `build-zig`: `linux-x86_64` and `linux-arm64` (static), and `macos-arm64` (not signed).
 
 ## The CLI
 

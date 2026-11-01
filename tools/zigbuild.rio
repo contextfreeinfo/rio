@@ -1,0 +1,61 @@
+# The rio program for other systems, cross-built with zig (zig cc, on the PATH), into build-zig/<name>/rio:
+#   rio tools/zigbuild.rio                    each of these, from the repo's folder
+#   rio tools/zigbuild.rio linux-x86_64 ...   just these
+# linux-x86_64 and linux-arm64 are static (musl: they run on any Linux, WSL's too); macos-arm64 isn't
+# signed. For trying the latest anywhere: the build CMake makes is this computer's own.
+import os
+
+PATH_BYTES :: 4096
+TARGETS :: 3
+names := [TARGETS]String{"linux-x86_64", "linux-arm64", "macos-arm64"}
+zigTargets := [TARGETS]String{"x86_64-linux-musl", "aarch64-linux-musl", "aarch64-macos"}
+
+arg: Blob[PATH_BYTES]
+command: Blob[..PATH_BYTES * 4]
+listing: Blob[PATH_BYTES * 4]
+
+if os.fileKind("src/os/os.rio") != 1
+  os.writeErr("run it from the rio repo's folder: rio tools/zigbuild.rio\n")
+  os.exit(2)
+end
+_ = os.dirMake("build-zig")
+n := os.dir("src", listing[])
+fails := 0
+for t in 0..<TARGETS
+  wanted := os.argCount() == 0
+  for i in 0..<os.argCount()
+    k := os.arg(i, arg[])
+    wanted = wanted or arg[0..<k].asString() == names[t]
+  end
+  if not wanted
+    continue
+  end
+  command.clear()
+  _ = command.pushAll("build-zig/")
+  _ = command.pushAll(names[t])
+  _ = os.dirMake(command[0..<command.len()].asString())
+  command.clear()
+  _ = command.print("zig cc -target ", zigTargets[t], " -O2 -s -std=c99 -Isrc -o build-zig/", names[t], "/rio")
+  a := 0 # (every .c in src: riocore and the program, as CI's ARM job builds it)
+  s := listing[0..<listing.len()].asString()
+  for _ in 0..<n
+    e := a
+    for e < s.len() and s[e] != '\n'
+      e += 1
+    end
+    if s[a] == 'f' and e - a > 4 and s[e - 2..<e] == ".c"
+      _ = command.pushAll(" src/")
+      _ = command.pushAll(s[a + 2..<e])
+    end
+    a = e + 1
+  end
+  _ = command.pushAll(" -lm")
+  code := os.run(command[0..<command.len()].asString())
+  log(names[t], code == 0)
+  if code != 0
+    fails += 1
+  end
+end
+if fails > 0
+  os.exit(1)
+end

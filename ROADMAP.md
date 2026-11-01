@@ -31,7 +31,9 @@ In this order:
   and arguments, text in and out (with a line editor, the REPL's too), and time; riocore, Rio as a
   library, stays without it. Next: more of the repo's scripts in Rio, for dogfooding before the spec is
   finalized (`tests/docs.rio` is the first; `tools/stats.py` and the other test runners after), and
-  what they turn up. So far:
+  what they turn up. Later in `os`: serial ports (open, read with a timeout, write, close: its first
+  handles, over Windows' COM ports and POSIX termios), so rinc's tools (`send.py`, `install.py`) can
+  be Rio too. Found so far:
   - **Text:** no `+` for strings, so a path is built in a `Blob` builder, a few lines each time: worth
     a helper (in `os`, or for builders), or not.
   - **Views of builders:** a `String` a proc returns from a builder it keeps shows what the builder
@@ -151,6 +153,8 @@ In this order:
 - **Tooling, soon:** before too many weeks:
   - **A language server,** and an extension for VS Code (and Codium) that uses it.
   - **A web playground:** riocore in the browser (the core alone: no `os`).
+  - **Signed releases:** macOS (notarized, so Gatekeeper lets it run) and Windows (so SmartScreen
+    doesn't warn) binaries signed in CI: which certificates, what they cost, and how the keys stay safe.
   - **The REPL as the place to start:** Rio-aware completion (exact names, from the session's own
     symbols and modules), and syntax colors, in its line editor first, then in the language server.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
