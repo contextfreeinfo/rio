@@ -139,6 +139,10 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
 - **Builtin types:** `Int* :: host struct`.
 - **Methods:** on a named type, `Int.toFloat* :: host proc() -> Float`; on any other type, in
   parentheses: `(Blob[..]).push* :: host proc(byte: Int) -> Bool`.
+- **Static host procs:** a host proc called on a type, as a [static proc](declarations.md#methods) is:
+  `at* :: host proc(...)` belongs to the module, `Pos.at* :: static host proc(x, y: Int) -> Pos` to its
+  type, called `pc.Pos.at(3, 4)`. The host registers it as `Type_name` (`pc.Pos_at`), and `rio -H`
+  writes it so (`pc_Pos_at_SIG`, `X(Pos_at, ...)`).
 
 `host` declarations go at the top level; `*` exports them, as for other declarations. A name that's
 neither a host proc nor a builtin is an error:

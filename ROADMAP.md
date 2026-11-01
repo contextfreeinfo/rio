@@ -29,9 +29,6 @@ Rinc's and Studio's apps, would change with it.
 
 In this order:
 
-- **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a host
-  proc named inside its type (C name `module_Color_rgb`), with `rio -H` writing it. Static only at
-  first; host methods with `self` only if wanted.
 - **Procs marked to be values:** as above, under Decide first, before the rinc pass below, so apps
   change once for both.
 - **In rinc, points and sizes:** `Point :: [2]Float` (or `[2]Int` where pixels want it) and sizes
@@ -162,6 +159,11 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **Static host procs:** `Pos.at* :: static host proc(x, y: Int) -> Pos` in a host module, called
+  `pc.Pos.at(3, 4)` (and a proc value, as host procs are). The host registers it as `Type_name`
+  (`pc.Pos_at`), so the X macro `rio -H` writes (`X(Pos_at, ...)`, `pc_Pos_at_SIG`) needs no change.
+  Inside, it's declared as `Pos.at`, a name no source can write. Host methods with `self` only if wanted.
 
 - **`_` for what's left out:** `_` is never a name. `_ = f()` drops a value on purpose, and a value
   left unused by a statement is an error (the REPL still prints one); `for _ in 0..<n` and `for _, i in

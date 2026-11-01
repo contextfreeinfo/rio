@@ -337,6 +337,25 @@ static void rio_member(rio_Vm *vm) {
     e->tempStart = tempStart;
     return;
   }
+  if (e->kind == rio_ExprKind_type) { /* Color.rgb(...): a static host proc, declared as Color.rgb in its type's module */
+    for (i = c->symCount - 1; i >= 0; i--) {
+      rio_Symbol *y = &c->syms[i];
+      int dot, ts;
+      if (y->kind != rio_SymKind_ffi || y->value < 0 || (y->module != c->curModule && !y->exported)) continue;
+      for (dot = 0; dot < y->nameLen && c->names[y->name + dot] != '.'; dot++) {}
+      if (dot == y->nameLen || y->nameLen - dot - 1 != t->len || memcmp(c->names + y->name + dot + 1, t->text, (size_t)t->len)) continue;
+      for (ts = 0; ts < c->symCount; ts++) /* (its type: the name before the dot, in its module) */
+        if (c->syms[ts].kind == rio_SymKind_type && c->syms[ts].module == y->module && c->syms[ts].nameLen == dot &&
+            !memcmp(c->names + c->syms[ts].name, c->names + y->name, (size_t)dot))
+          break;
+      if (ts < c->symCount && c->syms[ts].type == e->type) {
+        uint16_t tempStart = e->tempStart;
+        *e = rio_exprOf(rio_ExprKind_ffi, 0, y->value);
+        e->tempStart = tempStart;
+        return;
+      }
+    }
+  }
   if (e->kind == rio_ExprKind_type && rio_type(vm, e->type)->kind == rio_TypeKind_enum) { /* Enum.value, Enum.fromInt, Enum.has */
     int32_t v;
     uint16_t tempStart = e->tempStart;

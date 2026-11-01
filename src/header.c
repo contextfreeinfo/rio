@@ -185,6 +185,12 @@ static void rio_cStruct(rio_Vm *vm, rio_HostText *o, const char *prefix, int typ
   rio_hostPut(o, "\"\n\n", -1);
 }
 
+/* a host proc's name in C: a static one's Color.rgb as Color_rgb, as the host registers it */
+static void rio_hostPutName(rio_HostText *o, const char *s, int n) {
+  int i;
+  for (i = 0; i < n; i++) rio_hostPut(o, s[i] == '.' ? "_" : s + i, 1);
+}
+
 /* a union or maybe result's C, prefix_proc_Result: a maybe's has (1: there, 0: nil) and value; another
    union's tag (which of its types, as listed) and words */
 static void rio_cResult(rio_Vm *vm, rio_HostText *o, const char *prefix, const rio_Symbol *y, int type) {
@@ -202,12 +208,12 @@ static void rio_cResult(rio_Vm *vm, rio_HostText *o, const char *prefix, const r
   for (k = 0; k < 2; k++) {
     rio_hostPut(o, prefix, -1);
     rio_hostPut(o, "_", 1);
-    rio_hostPut(o, c->names + y->name, y->nameLen);
+    rio_hostPutName(o, c->names + y->name, y->nameLen);
     rio_hostPut(o, k ? "_Result_size[sizeof(" : "_Result;\ntypedef char ", -1);
   }
   rio_hostPut(o, prefix, -1);
   rio_hostPut(o, "_", 1);
-  rio_hostPut(o, c->names + y->name, y->nameLen);
+  rio_hostPutName(o, c->names + y->name, y->nameLen);
   rio_hostPut(o, "_Result) == ", -1);
   rio_hostPutInt(o, (int32_t)ty->size);
   rio_hostPut(o, " ? 1 : -1]; /* (Rio's size) */\n\n", -1);
@@ -288,7 +294,7 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
     rio_hostPut(&o, "#define ", -1);
     rio_hostPut(&o, prefix, -1);
     rio_hostPut(&o, "_", 1);
-    rio_hostPut(&o, c->names + y->name, y->nameLen);
+    rio_hostPutName(&o, c->names + y->name, y->nameLen);
     rio_hostPut(&o, "_SIG ", -1);
     rio_cSig(vm, &o, prefix, y->type);
     rio_hostPut(&o, "\n", 1);
@@ -300,11 +306,11 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
     rio_Symbol *y = &c->syms[i];
     if (y->kind != rio_SymKind_ffi || !y->type) continue;
     rio_hostPut(&o, " \\\n  X(", -1);
-    rio_hostPut(&o, c->names + y->name, y->nameLen);
+    rio_hostPutName(&o, c->names + y->name, y->nameLen);
     rio_hostPut(&o, ", ", 2);
     rio_hostPut(&o, prefix, -1);
     rio_hostPut(&o, "_", 1);
-    rio_hostPut(&o, c->names + y->name, y->nameLen);
+    rio_hostPutName(&o, c->names + y->name, y->nameLen);
     rio_hostPut(&o, "_SIG)", -1);
   }
   { /* the module's source, for rio_addSource(vm, "pc", pc_SOURCE, sizeof pc_SOURCE - 1) (written without \r),

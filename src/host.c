@@ -480,10 +480,42 @@ static void rio_declareBuiltin(rio_Vm *vm, const char *name, int nameLen, int re
 
 /* at the host of `name :: host ...` (receiver: a method's type, or -1); the name's * was seen if
    c->exporting is set. line and col: the name's */
+/* Color.rgb :: static host proc(...): the host's Color_rgb (in the module, or a global one), declared
+   under the name Color.rgb, which no name in source can be: it's called on its type, Color.rgb(...) */
+static void rio_declareStaticHost(rio_Vm *vm, const char *name, int nameLen, int receiver, int procType, int exporting, int line, int col) {
+  rio_Compiler *c = vm->compiler;
+  char key[256], prefix[256];
+  int i, n, k, tn = 0;
+  const char *t = "";
+  for (k = c->symCount - 1; k >= 0; k--)
+    if (c->syms[k].kind == rio_SymKind_type && c->syms[k].type == receiver) {
+      t = c->names + c->syms[k].name;
+      tn = c->syms[k].nameLen;
+      break;
+    }
+  if (!tn || tn + 1 + nameLen > 255) {
+    rio_failAt(vm, line, col, nameLen, "a static host proc goes on a type with a name");
+    return;
+  }
+  memcpy(key, t, (size_t)tn);
+  key[tn] = '_';
+  memcpy(key + tn + 1, name, (size_t)nameLen);
+  n = rio_modulePrefix(vm, c->curModule, prefix);
+  i = n ? rio_findFfi(vm, prefix, n, key, tn + 1 + nameLen) : -1;
+  if (i < 0) i = rio_findFfi(vm, 0, 0, key, tn + 1 + nameLen);
+  key[tn] = '.';
+  if (i >= 0) rio_declareHostProc(vm, key, tn + 1 + nameLen, i, procType, exporting);
+  else if (vm->hostHeader) { /* (rio_hostHeader: recorded, for its header) */
+    c->exporting = exporting;
+    rio_addSymbol(vm, key, tn + 1 + nameLen, rio_SymKind_ffi, procType, -1);
+  } else rio_failAt(vm, line, col, nameLen, "the host has no proc for this: a static host proc Type.name is the host's Type_name");
+}
+
 void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int line, int col) {
   rio_Compiler *c = vm->compiler;
-  int exporting = c->exporting, i = -1, procType;
+  int exporting = c->exporting, i = -1, procType, isStatic = c->hostStatic;
   c->exporting = 0;
+  c->hostStatic = 0;
   rio_next(vm);
   if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "host declarations go at the top level");
   if (c->tok.kind == rio_Tok_struct) { /* a builtin type (the host can't add types yet) */
@@ -501,6 +533,11 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after host");
   procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int (and &T parameters) */
   if (rio_failed(vm)) return;
+  if (isStatic) {
+    if (receiver < 0) rio_FAIL(, "static is for a proc on a type");
+    rio_declareStaticHost(vm, name, nameLen, receiver, procType, exporting, line, col);
+    return;
+  }
   if (receiver < 0) { /* this module's host proc, a global one, or a builtin */
     char prefix[256];
     int n = rio_modulePrefix(vm, c->curModule, prefix);

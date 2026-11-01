@@ -494,9 +494,11 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
     rio_next(vm);
   }
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
-  isStatic = rio_tokIs(vm, "static", 6) && c->peek.kind == rio_Tok_proc; /* (static: a word only there) */
+  isStatic = rio_tokIs(vm, "static", 6) && (c->peek.kind == rio_Tok_proc || (c->peek.kind == rio_Tok_id && c->peek.len == 4 &&
+                                                                         !memcmp(c->peek.text, "host", 4))); /* (static: a word only there) */
   if (isStatic) rio_next(vm);
-  if (rio_atHost(vm)) { /* Int.toFloat :: host proc() -> Float: a builtin method, declared */
+  if (rio_atHost(vm)) { /* Int.toFloat :: host proc() -> Float: a builtin method, declared (or a static host proc) */
+    c->hostStatic = isStatic;
     rio_hostDecl(vm, name, nameLen, receiver, line, col);
     return;
   }

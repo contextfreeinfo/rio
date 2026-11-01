@@ -79,6 +79,12 @@ static void where(rio_Vm *v, rio_Val *a) { /* (-> hst.Pos: where it goes in a[0]
   p.y = a[2].i * 2 + a[3].i;
   rio_putStruct(v, a, &p, sizeof p);
 }
+static void Pos_at(rio_Vm *v, rio_Val *a) { /* (hst.Pos.at, a static host proc: x, y -> hst.Pos) */
+  hst_Pos p;
+  p.x = a[2].i;
+  p.y = a[3].i;
+  rio_putStruct(v, a, &p, sizeof p);
+}
 static void find(rio_Vm *v, rio_Val *a) { /* (i -> ?Int) */
   hst_find_Result r;
   r.has = a[2].i > 0;
@@ -336,6 +342,8 @@ int main(int argc, char **argv) {
   BAD("import hse\n", "hse.rio", 4, "doesn't match the host's hse.f: proc(Enum{a,b})");
   /* results that are structs or maybes: written where the call says, before its arguments */
   OK("import hst\nlog(hst.where(3), hst.where(3, 1).y, hst.find(2), hst.find(0))\n", "Pos{x = 3, y = 6} 7 6 nil\n");
+  OK("import hst\nat := hst.Pos.at\nlog(hst.Pos.at(3, 4), at(5, 6).y)\n", "Pos{x = 3, y = 4} 6\n"); /* (a static host proc: the host's Pos_at) */
+  BAD("P :: struct\n  x: Int\nend\nP.make :: static host proc() -> P\n", 0, 4, "the host has no proc for this: a static host proc Type.name is the host's Type_name");
   OK("import hst\nf :: proc(n: Int) -> Int\n  s := 0\n  for i in 0..<n\n    p := hst.where(i, hst.where(1).y)\n    s += p.y\n    v := hst.find(i)\n    if v is Int\n      s += v * 100\n    end\n  end\n  return s\nend\nlog(f(3))\n",
      "912\n");
   BAD("import hsq\n", "hsq.rio", 4, "doesn't match the host's hsq.f: proc(Int) -> {a:Int}");
