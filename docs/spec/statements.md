@@ -203,7 +203,7 @@ for n in Countdown{at = 3}
   log(n)
 end
 c := Countdown{at = 5}
-for n, i in c
+for _, i in c
   if i == 1 do break
 end
 log("left:", c.at)

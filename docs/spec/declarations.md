@@ -264,7 +264,7 @@ g: [4]Int
 f :: proc()
   xs: [4]Int
   v := g[]
-  for i in 0..<2
+  for _ in 0..<2
     kept = v
     v = xs[]  # error: in a loop, into a variable from before it that held none
   end

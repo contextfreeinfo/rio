@@ -25,7 +25,7 @@ end
 
 drop(1)
 drop(2)
-for i in 0..<4
+for _ in 0..<4
   update(0.5)
 end
 log("fell", balls[0].y, "with", balls.len(), "balls")

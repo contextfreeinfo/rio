@@ -595,7 +595,7 @@ end
 check(hsum == 9 and hits[0] == 1 and hits[1] == 1 and hits.len() == 4, "a builder: the elements there when the loop starts")
 empty: [..2]Int
 ran := false
-for x in empty
+for _ in empty
   ran = true
 end
 check(not ran, "an empty builder runs no iterations")
@@ -662,7 +662,7 @@ for n in upto
   itSum += n
 end
 check(itSum == 5 + 7 + 9 and upto.at == 10, "for over next: carrying on, with continue")
-for n in Upto{at = 3, last = 1}
+for _ in Upto{at = 3, last = 1}
   check(false, "for over next: nothing, when the first is nil")
 end
 Cell :: struct
@@ -1181,7 +1181,7 @@ Pose :: union
 end
 pose: Pose
 ulog := 0
-for i in 0..<3
+for _ in 0..<3
   switch pose
   case UIdle
     if pose.t == 0
@@ -2080,15 +2080,15 @@ rangeOut = 0
 for i in rangeA
   rangeOut += i
 end
-for i in rangeE by 2
+for _ in rangeE by 2
   rangeOut += 100
 end
 check(rangeOut == 9, "a range value counts, an empty one doesn't")
 rangeCount := 0
-for i in 2147483640..=2147483647 by 4
+for _ in 2147483640..=2147483647 by 4
   rangeCount += 1
 end
-for i in -2147483648..<-2147483640 by -5
+for _ in -2147483648..<-2147483640 by -5
   rangeCount += 10
 end
 check(rangeCount == 22, "steps stop at the ends of Int, never wrapping")

@@ -32,6 +32,8 @@ In this order:
 - **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a host
   proc named inside its type (C name `module_Color_rgb`), with `rio -H` writing it. Static only at
   first; host methods with `self` only if wanted.
+- **Procs marked to be values:** as above, under Decide first, before the rinc pass below, so apps
+  change once for both.
 - **In rinc, points and sizes:** `Point :: [2]Float` (or `[2]Int` where pixels want it) and sizes
   across `pc` (rinc's roadmap, Decide first), kept by apps as values. Breaking for apps, so before
   more is built on `pc`; host static procs can give it constructors.
@@ -119,8 +121,12 @@ In this order:
   covers only a change of size.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
-- **Host procs calling back into Rio while they run:** a sort with a comparison, a parser handing back
-  each element, a physics step calling back on each collision. Today a host proc is a leaf: it can't
+- **Host procs calling back into Rio while they run, leaning no:** a sort with a comparison, a parser
+  handing back each element, a physics step calling back on each collision. Leaning no, since Rio's
+  own idioms cover most of it: pull (a `next()` struct, or `for p.next(&ev)`), batch (the host fills a
+  slice the caller gives, and Rio loops over it), and generic Rio code (sort and find with a
+  comparator); and the host already calls Rio at the top level (`update*`, `draw*`). `riosys` is the
+  test: if wrapping a real C API needs callbacks, decide again before the spec is final. Today a host proc is a leaf: it can't
   call into the program while it runs. What allowing it would take:
   - **No recursion still:** a host proc marked as calling back counts as calling through a proc value
     for its callers, so they can't be proc values, and no callback can come back around to them (each

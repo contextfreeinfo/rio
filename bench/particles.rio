@@ -8,7 +8,7 @@ main :: proc()
     ps[i] = P{x = i.toFloat(), y = 0, vx = 1, vy = (i % 7).toFloat()}
   end
   t := clock()
-  for step in 0..<1000
+  for _ in 0..<1000
     for i in 0..<N
       ps[i].vy -= 0.01
       ps[i].x += ps[i].vx * 0.016

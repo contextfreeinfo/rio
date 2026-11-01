@@ -31,7 +31,7 @@ for i in -20..<21
 end
 w := 0
 z := 1
-for i in 0..<3
+for _ in 0..<3
   w = lo / m1
   z = lo % m1
 end
@@ -93,7 +93,7 @@ check(n == 5000 and cnt == 4999 * 3, "nested loops with labels")
 
 # big constants need two halves
 big := 0
-for i in 0..<10
+for _ in 0..<10
   big += 123456789
 end
 check(big == 1234567890, "32-bit constants")
@@ -196,7 +196,7 @@ for p, i in pts
   p.x = i.toFloat() * 0.5
   p.y = 1.5
 end
-for step in 0..<20
+for _ in 0..<20
   for p in pts
     p.x += p.y * 0.25
   end

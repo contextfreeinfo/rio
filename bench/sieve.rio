@@ -3,7 +3,7 @@ flags: Blob[M]
 main :: proc()
   t := clock()
   count := 0
-  for rep in 0..<10
+  for _ in 0..<10
     for i in 0..<M
       flags[i] = 1
     end

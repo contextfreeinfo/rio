@@ -323,7 +323,7 @@ log(out[])
 
 ```rio
 step := 0
-for i in 0..<3 by step  # runtime error: a loop's step is 0
+for _ in 0..<3 by step  # runtime error: a loop's step is 0
 end
 ```
 
