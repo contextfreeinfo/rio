@@ -152,6 +152,12 @@ In this order:
 
 ## Done recently
 
+- **Compiling in a nearly full memory:** with the compiler in the program's memory (as Rinc compiles)
+  and big globals filling most of it, moving the code into place could land on the compiler's own
+  state and crash; now the moves go in a safe order, or it's "out of memory". And the compiler's
+  parameter table has an entry per symbol, not half (host procs take many: Rinc's `pc` has more
+  parameters than symbols), so small sessions, such as Rinc's console, have room for procs.
+
 - **Points and sizes for host procs:** an `[N]Int` or `[N]Float` parameter or result goes to the host
   as its words, one after another (a result: `">ii"`) (`rect(pos, size: [2]Int, c)` is the host's `"iiiii"`), so a host's C
   needs no change. Tried in rinc: `pc.rect`, `pset`, `pget` and `print` take `[2]Int`, with the same

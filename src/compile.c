@@ -25,7 +25,7 @@ rio_Limits rio_limitsFor(uint32_t bytes) {
   /* per symbol: its entry, ~12 bytes of name, a share of fields, types, procs and params, and two
      constant words (programs use about two constants per symbol) */
   perSymbol = (uint32_t)(sizeof(rio_Symbol) + 12 + sizeof(rio_Field) / 2 + sizeof(rio_Type) / 4 + sizeof(rio_ProcDef) / 4 +
-                         sizeof(rio_Param) / 2 + 8);
+                         sizeof(rio_Param) + 8);
   l.symbols = rio_clamp(budget > fixed ? (budget - fixed) / perSymbol : 0, 64, 65535);
   l.consts = rio_clamp(l.symbols * 2, 128, 16384);
   if (l.slots < l.consts + 1024) l.slots = rio_clamp(l.consts + 1024, 2048, 65536);
@@ -33,7 +33,7 @@ rio_Limits rio_limitsFor(uint32_t bytes) {
   l.fields = rio_clamp(l.symbols / 2, 16, 65535);
   l.types = rio_clamp(l.symbols / 4, 16, 65535); /* (a host module of enums and structs, as Rinc's pc, takes a good share in a small session) */
   l.procs = rio_clamp(l.symbols / 4, 8, 65535);
-  l.params = rio_clamp(l.symbols / 2, 16, 65535);
+  l.params = rio_clamp(l.symbols, 16, 65535); /* (host procs take many: Rinc's pc has more params than symbols) */
   l.modules = rio_clamp(l.symbols / 32, 8, 1024);
   l.code = rio_clamp(bytes / 32, 256, 65535); /* a quarter of the bytes, when the code lives in mem */
   return l;
@@ -697,16 +697,19 @@ static void rio_finish(rio_Vm *vm) {
     u->free = (codeAt ? codeAt : base) - c->slotHigh * 4;
     u->data = vm->memSize - u->consts - u->code - u->tables - u->free;
   }
-  /* Nothing in c is read after this: the moves and the zeroing may overwrite it. Both regions move within
-     mem when scratch is overlaid on it: the one moving up goes first if the code moves up. */
+  /* Nothing in c is read after this: the moves and the zeroing may overwrite it (so what's needed of it is
+     read first). Both regions move within mem when scratch is overlaid on it, maybe onto c or each
+     other's source: the one that wouldn't write over the other's source goes first. */
   if (codeAt) {
-    uint8_t *from = (uint8_t *)c->scratchCode, *to = vm->mem + codeAt;
-    if (to >= from) {
-      memmove(vm->mem + base, c->pool, size);
+    uint8_t *from = (uint8_t *)c->scratchCode, *to = vm->mem + codeAt, *pool = c->pool, *block = vm->mem + base;
+    int codeOverPool = to < pool + size && pool < to + codeSize, blockOverCode = block < from + codeSize && from < block + size;
+    if (codeOverPool && blockOverCode) rio_FAIL(, "out of memory"); /* (neither can go first) */
+    if (codeOverPool) {
+      memmove(block, pool, size);
       memmove(to, from, codeSize);
     } else {
       memmove(to, from, codeSize);
-      memmove(vm->mem + base, c->pool, size);
+      memmove(block, pool, size);
     }
     vm->code = (rio_Instr *)(void *)to;
     vm->codeCap = vm->codeLen;

@@ -15,7 +15,14 @@ typedef struct {
   const char *msg;                /* substring of the message */
 } Case;
 
+/* 200 lines of code: with a big global in a small memory, its code moves into place over the compiler's
+   own state (rio_finish), which must be read first */
+#define X10 "  x += 1\n  x += 1\n  x += 1\n  x += 1\n  x += 1\n  x += 1\n  x += 1\n  x += 1\n  x += 1\n  x += 1\n"
+#define X200 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10
+#define FINISH_OVER(n) {"a: Blob[" #n "]\nf :: proc(x: Int) -> Int\n" X200 "  return x\nend\nassert(f(0) == 200)\n", 0, 0, 65536, rio_ErrorKind_none, 0, 0, 0, ""}
+
 static const Case cases[] = {
+  FINISH_OVER(56000), FINISH_OVER(57000), FINISH_OVER(58000), FINISH_OVER(59000),
   /* compile errors point at the token at fault */
   {"x := 1\ny := x + nope\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, 4, "undefined name"},
   {"x: Nope = 1\n", 0, 0, 0, rio_ErrorKind_compile, 1, 4, 4, "type expected"},
