@@ -129,7 +129,7 @@ typedef struct {
   uint8_t shared;
   uint8_t callsValues; /* it calls through a proc value, itself or through procs it calls (so it can't
                           be a value: that could recurse) */
-  uint8_t usedAsValue;
+  uint8_t usedAsValue; /* bit 1: used as a proc value; bit 2: declared a callback (name :: callback proc), so it may be */
   uint16_t optional;   /* how many of its last parameters are optional (name?: T): left out, they're zero */
   /* a generic proc, proc[T, U](...): its type parameters, types firstTypeParam on; each a hidden last
      parameter, the address of a constant (T's size, its descriptor or 0), and T's size loaded into a slot
@@ -532,6 +532,7 @@ int rio_retarget(rio_Vm *vm, int from, int to);
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
 extern const char rio_msgOpaque[];
 int rio_typeSizeSlot(rio_Vm *vm, int t);
+void rio_callsValues(rio_Vm *vm);
 void rio_emitElemSize(rio_Vm *vm, int elem);
 int rio_mentions(rio_Vm *vm, int t, int type);
 int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);

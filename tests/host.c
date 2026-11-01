@@ -385,7 +385,7 @@ int main(int argc, char **argv) {
   BAD("x := 1 + host proc()\n", 0, 1, "undefined name");
   BAD("(Int).f :: proc()\nend\n", 0, 1, "a method on a type without a name is a builtin");
   /* proc types name their parameters, grouped as in proc definitions (names are for reading) */
-  OK("sum :: proc(a, b: Int, c: Float) -> Int\n  return a + b + c.toInt()\nend\nf: proc(x, y: Int, z: Float) -> Int = sum\nlog(f(1, 2, 3.5))\n", "6\n");
+  OK("sum :: callback proc(a, b: Int, c: Float) -> Int\n  return a + b + c.toInt()\nend\nf: proc(x, y: Int, z: Float) -> Int = sum\nlog(f(1, 2, 3.5))\n", "6\n");
   repl();
   replSource();
   if (argc > 1) core(argv[1]);

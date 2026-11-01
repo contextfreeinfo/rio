@@ -148,7 +148,7 @@ as a 0 by mistake.
 A proc can be passed around and called later:
 
 ```rio
-twice :: proc(n: Int) -> Int
+twice :: callback proc(n: Int) -> Int
   return n * 2
 end
 each :: proc(xs: []Int, f: proc(Int) -> Int)

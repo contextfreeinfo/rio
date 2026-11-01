@@ -410,10 +410,12 @@ static void rio_loadTypeSizes(rio_Vm *vm, int proc) {
 
 /* name :: proc(params) -> result, after the name and ::; receiver: a method's type, or -1 (isStatic: one
    with no self). The body follows as statements, until its end (in rio_statement). */
-void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int isStatic) {
+/* name :: proc(...), and how (bit 1: static, on a type with no self; bit 2: a callback, which can be a
+   proc value) */
+void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int how) {
   rio_Compiler *c = vm->compiler;
   const char *typeNames[8];
-  int index, typeLens[8], typeCount = 0, k, selfSym;
+  int index, typeLens[8], typeCount = 0, k, selfSym, isStatic = how & 1;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
   if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
   rio_next(vm);
@@ -445,6 +447,10 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int is
     rio_addSymbol(vm, typeNames[k], typeLens[k], rio_SymKind_type, t, 0);
   }
   c->procDefs[index].typeParams = (uint8_t)typeCount;
+  if (how & 2) { /* (bit 2 of usedAsValue: it may be one, so its own code is checked as one) */
+    if (typeCount) rio_FAIL(, "a generic proc can't be a callback: there'd be no T to give it");
+    c->procDefs[index].usedAsValue = 2;
+  }
   if (receiver >= 0 && !isStatic && rio_type(vm, receiver)->kind == rio_TypeKind_generic) { /* self: a Table[K, V] */
     int ts[8];
     for (k = 0; k < typeCount; k++) ts[k] = c->procDefs[index].firstTypeParam + k;
@@ -494,11 +500,15 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
     rio_next(vm);
   }
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
-  isStatic = rio_tokIs(vm, "static", 6) && (c->peek.kind == rio_Tok_proc || (c->peek.kind == rio_Tok_id && c->peek.len == 4 &&
-                                                                         !memcmp(c->peek.text, "host", 4))); /* (static: a word only there) */
+  isStatic = rio_tokIs(vm, "static", 6) && (c->peek.kind == rio_Tok_proc || (c->peek.kind == rio_Tok_id && ((c->peek.len == 4 &&
+              !memcmp(c->peek.text, "host", 4)) || (c->peek.len == 8 && !memcmp(c->peek.text, "callback", 8))))); /* (static: a word only there) */
   if (isStatic) rio_next(vm);
+  if (rio_tokIs(vm, "callback", 8) && c->peek.kind == rio_Tok_proc) { /* (callback: a word only there) */
+    isStatic |= 2;
+    rio_next(vm);
+  }
   if (rio_atHost(vm)) { /* Int.toFloat :: host proc() -> Float: a builtin method, declared (or a static host proc) */
-    c->hostStatic = isStatic;
+    c->hostStatic = isStatic & 1;
     rio_hostDecl(vm, name, nameLen, receiver, line, col);
     return;
   }

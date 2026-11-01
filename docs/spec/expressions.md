@@ -549,11 +549,12 @@ outlive what they refer to. A `String`'s bytes, constants and call results aren'
 
 ## Proc values
 
-A proc's name is a value where a proc type is expected, and a proc value is called like a proc. Their
-parameter and result types must match exactly:
+A proc declared `callback` (`name :: callback proc(...)`, or `T.name :: static callback proc(...)`) is a
+value where a proc type is expected, and a proc value is called like a proc. Their parameter and
+result types must match exactly. Host procs are values as they are. `callback` is a word only there:
 
 ```rio
-twice :: proc(n: Int) -> Int
+twice :: callback proc(n: Int) -> Int
   return n * 2
 end
 apply :: proc(f: proc(Int) -> Int, n: Int) -> Int
@@ -568,9 +569,26 @@ log(apply(twice, 3), g(5))
 ```
 
 A proc type's parameters can be `&T` too, as in `proc(a, b: &Point) -> Bool`, and are passed as a
-proc's are (`f(&p, &q)`). A proc value can't capture variables. To keep recursion impossible, a proc
-that calls through a proc value (or calls one that does) can't itself be used as a value. Calling a
-proc value that was never set is a runtime error:
+proc's are (`f(&p, &q)`). A proc value can't capture variables. To keep recursion impossible, a
+callback can't call through a proc value, or call a proc that does, whether or not anything uses it
+as a value yet: it's checked in its own code, so changing another proc's body never changes what
+can be a value. Calling a proc value that was never set is a runtime error:
+
+```rio
+plain :: proc(n: Int) -> Int
+  return n + 1
+end
+f := plain  # error: only a callback proc can be a proc value: name :: callback proc(...)
+```
+
+```rio
+apply :: proc(f: proc(Int) -> Int) -> Int
+  return f(1)
+end
+run :: callback proc(n: Int) -> Int
+  return apply(run)  # error: recursion is not allowed
+end
+```
 
 ```rio
 f: proc(Int) -> Int

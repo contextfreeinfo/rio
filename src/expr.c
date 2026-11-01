@@ -1119,7 +1119,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
       rio_emit(vm, rio_Op_mov, (int)(c->params[p->firstParam + visible + i].addr / 4), rio_typeArg(vm, bound[i]), 0);
     c->valueCount = m->valueBase;
     rio_emit(vm, rio_Op_call, 0, 0, p->entry);
-    if (p->callsValues && c->curProc >= 0) c->procDefs[c->curProc].callsValues = 1;
+    if (p->callsValues) rio_callsValues(vm);
     c->freeSlot = m->freeAtStart;
     if (p->resultType == rio_TypeId_void) {
       rio_pushResult(vm, rio_voidExpr(), m->freeAtStart);
@@ -1172,7 +1172,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     }
     c->valueCount = m->valueBase;
     rio_emit(vm, rio_Op_calli, m->b, base, words);
-    if (c->curProc >= 0) c->procDefs[c->curProc].callsValues = 1;
+    rio_callsValues(vm);
     c->freeSlot = m->freeAtStart;
     if (type->elem == rio_TypeId_void) {
       rio_pushResult(vm, rio_voidExpr(), m->freeAtStart);

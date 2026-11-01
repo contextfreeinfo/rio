@@ -614,6 +614,16 @@ void rio_needValue(rio_Vm *vm, rio_Expr *e) {
   if (e->access & rio_Access_ref) rio_FAIL(, "&x only goes to a & parameter or name := &x");
 }
 
+/* the proc being compiled calls through a proc value, itself or through a proc it calls: a callback can't,
+   since calls through values could then come around to it */
+void rio_callsValues(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  if (c->curProc < 0) return;
+  if (c->procDefs[c->curProc].usedAsValue & 2)
+    rio_FAIL(, "a callback proc can't call through proc values, or call procs that do (that could recurse)");
+  c->procDefs[c->curProc].callsValues = 1;
+}
+
 /* Proc e, used where a proc value goes (of type `type`, or its own signature when type < 0), becomes the
    value. Only a proc that never calls through a proc value can be one, so calls through values can't
    recurse. */
@@ -634,8 +644,8 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   }
   i = rio_procTypeOf(vm, params, p->paramCount, p->resultType, p->optional, refs);
   if (type >= 0 && i != type) rio_FAIL(, "this proc's parameters or result don't match");
-  if (p->callsValues) rio_FAIL(, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
-  p->usedAsValue = 1;
+  if (!(p->usedAsValue & 2)) rio_FAIL(, "only a callback proc can be a proc value: name :: callback proc(...)");
+  p->usedAsValue |= 1;
   *e = rio_exprOf(rio_ExprKind_const, i, e->value + 1);
 }
 

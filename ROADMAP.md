@@ -12,12 +12,6 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
-- **Procs marked to be values:** only a proc declared for it, `f :: callback proc(...)` (the word open,
-  contextual as `static` is), can be used as a proc value, and its own body is checked as one: it can't
-  call through proc values, whether or not anything uses it as a value yet. Today that's checked
-  where a proc is used as a value, so adding such a call to `f`'s body can break a distant `x := f`;
-  the mark keeps each proc's checks to its own code, and says the intent. Host procs are marked
-  already (they can't call back). Breaks existing source: rinc's proc values would need the mark.
 
 Each other change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
 `a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
@@ -29,8 +23,6 @@ Rinc's and Studio's apps, would change with it.
 
 In this order:
 
-- **Procs marked to be values:** as above, under Decide first, before the rinc pass below, so apps
-  change once for both.
 - **In rinc, points and sizes:** `Point :: [2]Float` (or `[2]Int` where pixels want it) and sizes
   across `pc` (rinc's roadmap, Decide first), kept by apps as values. Breaking for apps, so before
   more is built on `pc`; host static procs can give it constructors.
@@ -159,6 +151,11 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **Callback procs:** only a proc declared `callback` (`name :: callback proc(...)`, `T.name :: static
+  callback proc(...)`) can be a proc value, and its own body is checked as one: it can't call through
+  proc values, or call procs that do. So changing a proc's body never changes what can be a value
+  elsewhere. Host procs are values as before. Rinc and Studio needed no change (they pass host procs).
 
 - **Static host procs:** `Pos.at* :: static host proc(x, y: Int) -> Pos` in a host module, called
   `pc.Pos.at(3, 4)` (and a proc value, as host procs are). The host registers it as `Type_name`

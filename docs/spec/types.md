@@ -369,10 +369,10 @@ Proc values can be elements too, of arrays, slices, builders and `[E]T`, with th
 brackets (but not a maybe: a proc value is unset until given a proc):
 
 ```rio
-sine :: proc(t: Float) -> Float
+sine :: callback proc(t: Float) -> Float
   return sin(t * 6.2831853)
 end
-square :: proc(t: Float) -> Float
+square :: callback proc(t: Float) -> Float
   if t < 0.5
     return 1.0
   end

@@ -177,8 +177,8 @@ PCAP :: 16
 pointUsed: [PCAP]Bool
 pointKey: [PCAP]Int
 points: [PCAP]Point
-intHash :: proc(key: &Int) -> Int do return (key * -1640531535) >> 28 # (Fibonacci hashing: the top bits)
-intEq :: proc(a, b: &Int) -> Bool do return a == b
+intHash :: callback proc(key: &Int) -> Int do return (key * -1640531535) >> 28 # (Fibonacci hashing: the top bits)
+intEq :: callback proc(a, b: &Int) -> Bool do return a == b
 pointTable := Table{keys = pointKey[], values = points[], used = pointUsed[], eq = intEq, hash = intHash}
 
 putPoint :: proc(key: Int, p: Point) do pointTable.put(&key, &p)

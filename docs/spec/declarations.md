@@ -315,7 +315,7 @@ travels with the type as its methods do, but a value can't call it, and the type
 Rect :: struct
   pos, size: [2]Float
 end
-Rect.of :: static proc(x, y, w, h: Float) -> Rect
+Rect.of :: static callback proc(x, y, w, h: Float) -> Rect
   return Rect{pos = {x, y}, size = {w, h}}
 end
 Rect.area :: proc() -> Float
@@ -370,7 +370,7 @@ that name:
 
 ```rio
 Less :: (proc(a, b: Int) -> Bool)
-lt :: proc(a, b: Int) -> Bool
+lt :: callback proc(a, b: Int) -> Bool
   return a < b
 end
 sorted :: proc(xs: []Int, less: Less) -> Bool
@@ -442,8 +442,8 @@ Player :: struct
   name: String
   score: Int
 end
-byScore :: proc(a, b: &Player) -> Bool do return a.score < b.score
-intEq :: proc(a, b: &Int) -> Bool do return a == b
+byScore :: callback proc(a, b: &Player) -> Bool do return a.score < b.score
+intEq :: callback proc(a, b: &Int) -> Bool do return a == b
 players := [_]{Player{name = "ann", score = 30}, Player{name = "bo", score = 10}}
 sortBy(players[], byScore)
 nums := [_]{4, 8, 15}
@@ -486,7 +486,7 @@ find :: proc[K, V](t: &Table[K, V], key: &K) -> Int
   end
   return -1
 end
-intEq :: proc(a, b: &Int) -> Bool do return a == b
+intEq :: callback proc(a, b: &Int) -> Bool do return a == b
 ks := [_]{7, 3}
 names := [_]{"seven", "three"}
 t := Table{keys = ks[], values = names[], eq = intEq}  # a Table[Int, String]

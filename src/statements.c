@@ -249,7 +249,7 @@ static void rio_forNext(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
     for (w = 0; w < words; w++) rio_emit(vm, rio_Op_mov, (int)(param->addr / 4) + w, rio_constSlot(vm, 0), 0);
   }
   rio_emit(vm, rio_Op_call, 0, 0, p->entry);
-  if (p->callsValues && c->curProc >= 0) c->procDefs[c->curProc].callsValues = 1;
+  if (p->callsValues) rio_callsValues(vm);
   { /* its result, copied out (the next call would overwrite it): nil ends the loop */
     rio_Expr src = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), dst = rio_exprOf(rio_ExprKind_static, p->resultType, res * 4);
     rio_store(vm, &dst, &src);
@@ -1017,6 +1017,11 @@ static void rio_constantDecl(rio_Vm *vm) {
     return;
   }
   if (rio_tokIs(vm, "static", 6) && c->peek.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(, "static is for a proc on a type: T.name :: static proc");
+  if (rio_tokIs(vm, "callback", 8) && c->peek.kind == rio_Tok_proc) { /* (callback: a word only there) */
+    rio_next(vm);
+    rio_procDef(vm, name, nameLen, -1, 2);
+    return;
+  }
   switch (c->tok.kind) {
   case rio_Tok_proc: rio_procDef(vm, name, nameLen, -1, 0); return;
   case rio_Tok_struct: rio_structDef(vm, name, nameLen); return;

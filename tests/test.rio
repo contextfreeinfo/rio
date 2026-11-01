@@ -1452,7 +1452,7 @@ check(nfTwo(1, 2) == 3 and nfTwo(nil, 2) == 0 and nfTwo(1, nil) == 0, "two, or-e
 SpR :: struct
   pos, size: [2]Float
 end
-SpR.of :: static proc(x, y, w, h: Float) -> SpR
+SpR.of :: static callback proc(x, y, w, h: Float) -> SpR
   return SpR{pos = {x, y}, size = {w, h}}
 end
 SpR.area :: proc() -> Float
@@ -1480,7 +1480,7 @@ RvPair :: struct
   key: String
   n: Int
 end
-rvPairOf :: proc(k: String, n: Int) -> RvPair
+rvPairOf :: callback proc(k: String, n: Int) -> RvPair
   return RvPair{key = k, n = n}
 end
 rvFirstWord :: proc(s: String) -> ?String
@@ -1646,11 +1646,11 @@ end
 gnFill :: proc[T](xs: []T, x: &T)
   for i in 0..<xs.len() do xs[i] = x
 end
-gnByY :: proc(a, b: &GnP) -> Bool do return a.y < b.y
+gnByY :: callback proc(a, b: &GnP) -> Bool do return a.y < b.y
 gnLessP: GnLess[GnP] = gnByY
-gnIntEq :: proc(a, b: &Int) -> Bool do return a == b
-gnFloatEq :: proc(a, b: &Float) -> Bool do return a == b
-gnStrLess :: proc(a, b: &String) -> Bool do return a[0] < b[0]
+gnIntEq :: callback proc(a, b: &Int) -> Bool do return a == b
+gnFloatEq :: callback proc(a, b: &Float) -> Bool do return a == b
+gnStrLess :: callback proc(a, b: &String) -> Bool do return a[0] < b[0]
 gnInts := [_]{5, 3, 9, 1}
 gnReverse(gnInts[])
 gn9 := 9
@@ -1701,7 +1701,7 @@ gnCopyIn :: proc[T](to: []T, from: []T)
   for x, i in from do to[i] = x
 end
 gnTail :: proc[T](xs: []T, from: Int) -> []T do return xs[from..]
-gnBig :: proc(p: &GnP) -> Bool do return p.y > 25
+gnBig :: callback proc(p: &GnP) -> Bool do return p.y > 25
 gnQs: [4]Int
 gnCopyIn(gnQs[], gnInts[])
 gnT := gnTail(gnPs[], 1)
@@ -1734,7 +1734,7 @@ end
 GnS :: struct
   x: Int
 end
-gnX :: proc(s: &GnS) -> Int do return s.x
+gnX :: callback proc(s: &GnS) -> Int do return s.x
 gnSteps: [..4]GnS
 gnRedo: [..4]GnS
 gnU := GnUndo{done = gnSteps, undone = gnRedo}
@@ -1771,10 +1771,10 @@ check(1e99999999999 > 1e30 and 1e-99999999999 == 0.0, "huge exponents (found by 
 PMob :: struct
   name, score: Int
 end
-pByScore :: proc(a: PMob, b: PMob) -> Bool
+pByScore :: callback proc(a: PMob, b: PMob) -> Bool
   return a.score < b.score
 end
-pByName :: proc(a: PMob, b: PMob) -> Bool
+pByName :: callback proc(a: PMob, b: PMob) -> Bool
   return a.name < b.name
 end
 psort :: proc(xs: []PMob, less: proc(PMob, PMob) -> Bool) # stable insertion sort, any order
@@ -1796,10 +1796,10 @@ psort(pmobs[], pByScore)
 check(pmobs[0].name == 5 and pmobs[1].name == 2 and pmobs[2].name == 4 and pmobs[4].score == 2, "sorted by a proc value, stably")
 psort(pmobs[], pByName)
 check(pmobs[0].name == 1 and pmobs[4].name == 5, "another order")
-ptwice :: proc(n: Int) -> Int
+ptwice :: callback proc(n: Int) -> Int
   return n * 2
 end
-pinc :: proc(n: Int) -> Int
+pinc :: callback proc(n: Int) -> Int
   return n + 1
 end
 papply :: proc(f: proc(Int) -> Int, n: Int) -> Int
@@ -1887,7 +1887,7 @@ check(
 )
 
 # a trailing comma ends any list in brackets: arguments too
-tcAdd :: proc(a: Int, b: Int,) -> Int
+tcAdd :: callback proc(a: Int, b: Int,) -> Int
   return a + b
 end
 tcF: proc(Int, Int,) -> Int = tcAdd
@@ -1928,7 +1928,7 @@ rename :: proc(s: String)
   keptName.clear()
   ok := keptName.pushAll(s)
 end
-viewLen :: proc(s: String) -> Int
+viewLen :: callback proc(s: String) -> Int
   return s.len()
 end
 viewRest :: proc(s: String) -> String
@@ -2108,10 +2108,10 @@ _ = rangeText.print(rangeA, " ", rangeE)
 check(rangeText[].asString() == "2..=4 7..=6", "ranges printed")
 
 # ---- proc values as elements: arrays, slices, builders, [Enum]T, fields
-procDouble :: proc(n: Int) -> Int
+procDouble :: callback proc(n: Int) -> Int
   return n * 2
 end
-procInc :: proc(n: Int) -> Int
+procInc :: callback proc(n: Int) -> Int
   return n + 1
 end
 procSum :: proc(fs: []proc(Int) -> Int, n: Int) -> Int
