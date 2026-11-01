@@ -196,7 +196,7 @@ typedef struct {
 } rio_Expr;
 
 /* a type before a literal that sizes it by its values (rio_ExprKind_type's value): [_]T{...}, []T{...} */
-enum { rio_Infer_count = 1, rio_Infer_slice };
+enum { rio_Infer_count = 1, rio_Infer_slice, rio_Infer_type }; /* [_]T{...}, []T{...}, and [N]{...} (its type from its first value, its N in the type's offset) */
 
 /* the operator stack: operators waiting for their right side, and open brackets */
 typedef enum {

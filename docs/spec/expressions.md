@@ -427,7 +427,10 @@ a: [2]Int = {1, 2, 3}  # error: more values than the array holds
 ```
 
 `[_]T{a, b, ...}` is sized by its values, and `[_]{a, b, ...}` takes its element type from the first
-value too (a whole number then a fraction is an error: write `[_]Float`). `[]T{...}` and `[]{...}`
+value too (a whole number then a fraction is an error: write `[_]Float`). `[N]{a, b}` is N long, typed
+by its first value, with zeros after the values given. And a `{a, b, ...}` where no struct, array or
+slice is expected is `[_]{a, b, ...}`: `{p.y, p.x} * 2`, `x := {1, 2}`. Field names, `{x = 1}`, still
+need a struct to go to. `[]T{...}` and `[]{...}`
 are slice literals: the array is kept where a variable would be, and the literal is a slice of it, so
 a `{...}` can go where a slice is wanted. In a proc that's the proc's own memory, built again each
 time the literal runs, so it can't be returned or kept past the call:

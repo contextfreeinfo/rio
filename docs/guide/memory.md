@@ -28,6 +28,24 @@ running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][ar
 `rio_compileScratch` keeps the compiler state in a separate buffer instead, which stays readable after
 compiling. The C backend needs that.
 
+**Arrays overlap the compiler while it works.** A big global (an array or struct over 16 words, such
+as a `Blob[65536]`) takes its room from the top of `mem` when it's declared, down over the compiler's
+state, which is fine because nothing writes it until the program runs. The only check while compiling
+is that arrays stay above the program's frames and globals. So in a program whose arrays take most of
+`mem`, nearly all of the compiler's room is the arrays' room too.
+
+**The final moves can land on the compiler.** When compiling ends, the code and the block of strings
+and tables move to just below the arrays. With big arrays, "just below" can be low in `mem`, on top
+of the compiler's own state, or of where the code or the block still is. So the compiler reads what
+it needs first, and moves whichever of the two won't write over the other's source first. When
+neither order is safe, it's "out of memory", like any other way of not fitting. (Rinc's console, with
+232 KB of its 256 in blobs, is such a program: its code lands at about 13 KB, inside the compiler's
+state.)
+
+**`free` in the usage report is room while running.** It's what's left between the program's frames
+and its code, and says nothing about how near compiling came to the limits. That's the tables'
+percentages, which can be near 100% with plenty `free`.
+
 **The source can be in `mem` too.** A host with no room to spare, like a microcontroller reading a file,
 can put the source at the top of `mem` and call `rio_compile` on it there. That memory is the program's
 globals and arrays, still zero, so the compiler keeps its state below the source, and the program's final
@@ -103,12 +121,18 @@ uint32_t need = rio_limitsSize(&lim);       // bytes those tables take (strings 
 Running out of anything is a clean compile error ("too many symbols", "scratch too small for these
 limits", "not enough memory for the compiler").
 
-| budget | symbols | procs | constants | tables |
+The tables are fixed shares of the room, scaled from how many symbols fit: as many params as symbols
+(host procs take many: a host module of declarations can have more params than names), half as many
+fields, a quarter as many types and procs, twice as many constants. A program unlike that runs out of
+one table with room left in the others. The compiler's fixed state comes first, and some tables have
+floors, so small budgets get the floors:
+
+| budget | symbols | procs | params | constants |
 |---|---|---|---|---|
-| 8 KB | 64 | 16 | 128 | 5.6 KB |
-| 16 KB | 144 | 36 | 288 | 8.7 KB |
-| 64 KB | 698 | 174 | 1,396 | 33.9 KB |
-| 512 KB | 6,044 | 1,511 | 12,088 | 261 KB |
+| 8 KB | 64 | 16 | 64 | 128 |
+| 16 KB | 64 | 16 | 64 | 128 |
+| 64 KB | 424 | 106 | 424 | 848 |
+| 512 KB | 4,345 | 1,086 | 4,345 | 8,690 |
 
 The only build-time caps are for what the host registers: `rio_MAX_FFI`, `rio_MAX_DEFINES`,
 `rio_MAX_AUTO_IMPORTS`, and the log and error buffers. `-Drio_SMALL` shrinks those.

@@ -54,3 +54,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-31,6de67fe+,puddle,31888,187565,15079,308736,31.2,87632,0.595,0.005,0.555,0.004,0.444,0.009,0.619,0.128,"Pass arrays to host procs as words"
 2026-10-31,6de67fe+,puddle,31892,187613,15082,309248,31.3,87632,0.581,0.008,0.552,0.004,0.437,0.013,0.613,0.112,"Return arrays from host procs"
 2026-10-31,db9d720+,puddle,31892,187637,15085,309248,31.6,87632,0.579,0.009,0.527,0.006,0.345,0.013,0.629,0.13,"Fix finish overlap; params per symbol"
+2026-10-31,44474b5+,puddle,31892,188097,15126,309760,35.4,88032,0.575,0.005,0.535,0.005,0.354,0.011,0.605,0.127,"Type bare and [N] literals by their values"

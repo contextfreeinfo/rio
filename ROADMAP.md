@@ -129,6 +129,11 @@ In this order:
 
 ## Before 1.0
 
+- **Compiler tables that share room:** the tables are fixed shares of the compiler's room, so a
+  program unlike the guess runs out of one with room left in others (Rinc's console ran out of params
+  with most of everything else free). Pairs of tables growing toward each other in one region (params
+  up and fields down, types up and procs down) would split their room as each program needs, with no
+  moving and nothing pointing into a moved table. Limits in the memory spec would then be pairs' counts.
 - **Memory spec:** what a program can see of memory, so that two implementations agree. Cached images
   needn't be portable between implementations. Source is the portable form.
 - **The full spec:** every rule written as an example that the tests run.
@@ -151,6 +156,11 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **More literals typed by their values:** a `{a, b}` where no struct, array or slice is expected is
+  `[_]{a, b}` (`{p.y, p.x} * 2`, `x := {1, 2}`); field names still need a struct. And `[N]{a, b}`: N
+  long, typed by its first value, zeros after. `[_]T{...}` stays, for a type with the length from the
+  values.
 
 - **Compiling in a nearly full memory:** with the compiler in the program's memory (as Rinc compiles)
   and big globals filling most of it, moving the code into place could land on the compiler's own

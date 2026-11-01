@@ -662,10 +662,24 @@ static void rio_finishGrown(rio_Vm *vm, rio_PendingOp *lit) {
   uint32_t v[2], size;
   int type, elem = lit->b;
   if (elem < 0) { /* no values: an empty slice, if it has an element type */
+    if (lit->op == 1 + rio_Infer_type) rio_FAIL(, "[N]{} has no values to type it: write [N]T{}");
     if (lit->op == 2) rio_FAIL(, "[_]{} has no values to size it: write [0]T{}");
     rio_FAIL(, "[]{} has no values to type it: write []T{}");
   }
   if (!lit->argCount && lit->op == 2) rio_FAIL(, "[_]T{} has no values to size it: write [0]T{}");
+  if (lit->op == 1 + rio_Infer_type) { /* [N]{...}: N of them, zeros after the values given */
+    int words = rio_typeWords(vm, elem), w, from = lit->c / 4 + lit->argCount * words, to = lit->c / 4 + (int)lit->fieldsSet * words;
+    if (to > 0xFFFF) rio_FAIL(, "more values than a literal holds");
+    if ((uint32_t)to > c->slotHigh) {
+      c->slotHigh = (uint32_t)to;
+      if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL(, "out of slots");
+    }
+    for (w = from; w < to; w++) rio_emit(vm, rio_Op_mov, w, rio_constSlot(vm, 0), 0);
+    lit->b = rio_arrayOf(vm, elem, (uint32_t)lit->fieldsSet);
+    lit->op = 2;
+    rio_literalDone(vm, lit);
+    return;
+  }
   type = lit->argCount ? rio_arrayOf(vm, lit->b, (uint32_t)lit->argCount) : -1;
   if (lit->op == 2) {
     lit->b = type;
@@ -861,6 +875,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
       rio_FAIL(, "the elements take the first value's type, and this isn't it: write [_]T{...} to give their type");
     words = rio_typeWords(vm, m->b);
     at = m->c / 4 + m->argCount * words;
+    if (m->op == 1 + rio_Infer_type && (uint64_t)m->argCount >= m->fieldsSet) rio_FAIL(, "more values than the array holds");
     if (at + words > 0xFFFF) rio_FAIL(, "more values than a literal holds");
     dst = rio_exprOf(rio_ExprKind_static, m->b, at * 4);
     rio_store(vm, &dst, &e);
@@ -1414,6 +1429,12 @@ static rio_Expr rio_endIndex(rio_Vm *vm, const rio_ExprState *x) {
   return rio_exprOf(rio_ExprKind_static, rio_TypeId_int, d * 4);
 }
 
+/* is t the name of an Int constant (an array's length, [N]{...}) */
+static int rio_isIntConst(rio_Vm *vm, const rio_Token *t) {
+  int i = rio_lookup(vm, t->text, t->len);
+  return i >= 0 && vm->compiler->syms[i].kind == rio_SymKind_const && vm->compiler->syms[i].type == rio_TypeId_int;
+}
+
 /* where an operand goes: a value, a prefix operator, an opening bracket, or an empty call's ')' */
 static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   rio_Compiler *c = vm->compiler;
@@ -1483,8 +1504,13 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
       x->bareBrace = 1;
       return rio_Expect_operator;
     }
-    if (k != rio_TypeKind_struct && k != rio_TypeKind_array && k != rio_TypeKind_builder)
-      rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct or array this is; write Type{...} or [N]T{...}");
+    if (k != rio_TypeKind_struct && k != rio_TypeKind_array && k != rio_TypeKind_builder) { /* anywhere else, an array of its values: [_]{...} */
+      if (c->peek.kind == '}' || (c->peek.kind == rio_Tok_id && rio_peekAfterNext(vm) == '='))
+        rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct or array this is; write Type{...} or [N]T{...}");
+      rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, rio_TypeId_void, rio_Infer_count), tempStart);
+      x->bareBrace = 1;
+      return rio_Expect_operator;
+    }
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
     x->bareBrace = 1;
     return rio_Expect_operator; /* the '{' is next: the literal itself */
@@ -1503,6 +1529,20 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
       }
       if (infer == rio_Infer_count) rio_FAIL_AT_TOKEN(rio_Expect_failed, "[_] is for a literal, sized by its values: [_]T{a, b}");
       type = rio_sliceOf(vm, type); /* (a slice type, after is: x is []Int) */
+    } else if ((c->peek.kind == rio_Tok_int || (c->peek.kind == rio_Tok_id && rio_isIntConst(vm, &c->peek))) && rio_peekAfterNext(vm) == ']') {
+      int32_t n; /* [N]: then {...}, typed by its first value, or a type, [N]T{...} */
+      rio_next(vm);
+      n = c->tok.kind == rio_Tok_int ? c->tok.val.i : c->syms[rio_lookup(vm, c->tok.text, c->tok.len)].value;
+      if (n <= 0) rio_FAIL_AT_TOKEN(rio_Expect_failed, "an array's length is more than 0");
+      rio_next(vm);
+      rio_next(vm);
+      if (c->tok.kind == '{') {
+        e = rio_exprOf(rio_ExprKind_type, rio_TypeId_void, rio_Infer_type);
+        e.offset = n;
+        rio_pushResult(vm, e, tempStart);
+        return rio_Expect_operator;
+      }
+      type = rio_arrayOf(vm, rio_parseType(vm), (uint32_t)n);
     } else type = rio_parseType(vm);
     if (rio_failed(vm)) return rio_Expect_failed;
     k = rio_type(vm, type)->kind;
@@ -1709,6 +1749,7 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
     rio_openLiteral(vm);
     o = rio_pushOp(vm, rio_Pending_literal, 0, 1 + type.value);
     o->b = type.type == rio_TypeId_void ? -1 : type.type;
+    if (type.value == rio_Infer_type) o->fieldsSet = (uint64_t)type.offset; /* ([N]{...}: its N) */
     o->a = o->b < 0; /* (its first value gives the element type) */
     o->c = (int32_t)c->freeSlot * 4;
     x->depth++;
