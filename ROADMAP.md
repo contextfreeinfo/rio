@@ -41,6 +41,8 @@ In this order:
   - **Views from parameters:** a proc can't keep a view it was given past the call, so it copies into
     a builder of its own (safe, and it said so clearly).
   - **No recursion:** walking folders takes a stack of paths, by hand.
+  - **Big local arrays of views:** an array of over 16 words holding strings (`[20]String`, an
+    argument list) must be global, so a proc building one keeps it outside itself.
   - **Declared before used:** a proc called before its declaration, further down the file, is an
     error, which comes up often in a script of many procs. Whether procs at the top level could be
     used before they're declared (a pass to collect them first) is worth deciding.

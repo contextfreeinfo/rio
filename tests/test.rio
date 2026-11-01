@@ -328,10 +328,14 @@ label :: proc(b: Blob[..], score: Int) -> Bool
   b.clear()
   return b.print("score: ", score, " ", 1.5, " ", true) and b.push('!')
 end
-check(label(title, 42) and title[].asString() == "score: 42 1.5 true!", "print appends text; push adds one byte")
+check(label(title, 42) and title.asString() == "score: 42 1.5 true!", "print appends text; push adds one byte")
 tiny: Blob[..6]
 check(tiny.pushAll("abc") and not tiny.print("de", 12345) and tiny.len() == 3, "print is all or nothing")
-check(tiny.print(12) and tiny.push(65) and tiny[].asString() == "abc12A" and not tiny.push(66), "push on a Blob builder is a byte")
+check(tiny.print(12) and tiny.push(65) and tiny.asString() == "abc12A" and not tiny.push(66), "push on a Blob builder is a byte")
+asNow := tiny.asString() # a byte builder's text, as it is now (as tiny.asString())
+fixedB: Blob[3]
+fixedB[1] = 'z'
+check(asNow == "abc12A" and asNow.len() == 6 and fixedB.asString().len() == 3 and fixedB.asString()[1] == 'z', "asString on a builder and a Blob[N]")
 check(tiny.print(), "print with nothing to add")
 
 # printing any value: structs, arrays, slices, builders and unions, by their types' descriptors
@@ -358,7 +362,7 @@ PrThing :: struct
 end
 prOut: Blob[..400]
 prSays :: proc(want: String) -> Bool
-  got := prOut[].asString() == want
+  got := prOut.asString() == want
   prOut.clear()
   return got
 end
@@ -967,7 +971,7 @@ check(bb.len() == 4, "copies share the length")
 bscr: Blob[16]
 btxt: Blob[..] = bscr[4..<12]
 _ = btxt.print("hi ", 42)
-check(btxt[].asString() == "hi 42" and bscr[4] == 'h', "a byte builder view over part of a Blob")
+check(btxt.asString() == "hi 42" and bscr[4] == 'h', "a byte builder view over part of a Blob")
 blocal :: proc() -> Int
   loc: [4]Float
   lb: [..]Float = loc
@@ -1054,7 +1058,7 @@ enames: Blob[..64]
 for d, i in Dir                         # an enum's values, in the order listed
   _ = enames.print(d, i, " ")
 end
-check(enames[].asString() == "north0 east1 south2 west3 ", "for d in Dir, and print prints names")
+check(enames.asString() == "north0 east1 south2 west3 ", "for d in Dir, and print prints names")
 ecounts: [Dir]Int                       # one element per value, indexed by the enum
 ecounts[.east] = 3
 ecounts[Dir.west] += 2
@@ -1522,7 +1526,7 @@ check(rvP.key == "ann" and rvP.n == 3 and rvPairOf("bo", 1).key.len() == 2, "a s
 check((rvFirstWord("hello there") or "-") == "hello" and (rvFirstWord("") or "-") == "-", "a ?String, returned")
 rvSeen: Blob[..32]
 for w in RvWords{text = "one two three"} do _ = rvSeen.print(w, ";")
-check(rvSeen[].asString() == "one;two;three;" and (rvLong(RvWords{text = "a bc d"}) or "") == "bc", "a loop's next returning a ?String")
+check(rvSeen.asString() == "one;two;three;" and (rvLong(RvWords{text = "a bc d"}) or "") == "bc", "a loop's next returning a ?String")
 rvMake := rvPairOf
 check(rvMake("cy", 2).key == "cy", "through a proc value")
 
@@ -1989,14 +1993,14 @@ viewsPassed :: proc()
   b[0] = 'h'
   b[1] = 'i'
   rename(b[0..<2].asString())
-  check(keptName[].asString() == "hi", "a view passed in, copied to be kept")
-  check(viewLen(b[].asString()) == 8, "a view of a local, passed in")
-  rest := viewRest(b[].asString())
+  check(keptName.asString() == "hi", "a view passed in, copied to be kept")
+  check(viewLen(b.asString()) == 8, "a view of a local, passed in")
+  rest := viewRest(b.asString())
   check(rest.len() == 7, "a view returned of a local's view, kept locally")
   keptRest = viewRest("literal")
   check(keptRest == "iteral", "a view returned of a constant, kept")
   lenOf := viewLen
-  check(lenOf(b[].asString()) == 8, "through a proc value")
+  check(lenOf(b.asString()) == 8, "through a proc value")
 end
 viewsPassed()
 
@@ -2154,7 +2158,7 @@ end
 check(rangeOut == 16, "continue and break in a stepped loop")
 rangeText: Blob[..20]
 _ = rangeText.print(rangeA, " ", rangeE)
-check(rangeText[].asString() == "2..=4 7..=6", "ranges printed")
+check(rangeText.asString() == "2..=4 7..=6", "ranges printed")
 
 # ---- proc values as elements: arrays, slices, builders, [Enum]T, fields
 procDouble :: callback proc(n: Int) -> Int
@@ -2258,7 +2262,7 @@ end
 check(bitsOf(bitHead) == 4464, "a struct with bitfields passed")
 bitText: Blob[..200]
 _ = bitText.print(bitLit)
-check(bitText[].asString() == "BitHead{kind = 15, level = 0, flags = 0, size = 1, count = 0, a = 0, b = 2, wide = 0, low = 0}", "bitfields printed")
+check(bitText.asString() == "BitHead{kind = 15, level = 0, flags = 0, size = 1, count = 0, a = 0, b = 2, wide = 0, low = 0}", "bitfields printed")
 bitText.clear()
 bitLit.level = -1
 _ = bitText.format({base = 16}, bitLit.level, " ", bitLit)

@@ -74,7 +74,8 @@ typedef void (*rio_LogFn)(void *userData, const char *text, int len);
 int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t codeCap);
 void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
 
-/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob, a struct
+/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob, [x] a slice of
+   x (one of those four: [s] is a []String, 2 words, where its elements start and how many), a struct
    parameter as its layout in braces, {x:Int,y:Int} (rio_hostHeader writes them), and & before i, f or
    a struct for a place the host may change; e.g. "ff>f".
    name and sig must stay valid until rio_compile (or rio_loadImage) returns.

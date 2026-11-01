@@ -211,7 +211,7 @@ f :: proc()
   rename(typed[0..<1].asString())
 end
 f()
-log(name[].asString())
+log(name.asString())
 ```
 
 ```output

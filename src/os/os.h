@@ -23,6 +23,7 @@
 #include <io.h>
 #else
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -596,52 +597,232 @@ void rio_ffi_os_cwdSet(rio_Val *a) {
 
 /* ------------------------------------------------------------------ other programs */
 
-static char rio_osCommand[1 << 15];
+#define rio_OS_ARGS 256
+static char rio_osCommand[1 << 15]; /* (the arguments' text, or a command line) */
+static char *rio_osArgList[rio_OS_ARGS + 1];
 
-static int rio_osExitCode(int status) { /* system's and pclose's status, as an exit code (-1: none) */
+static int rio_osExitCode(int status) { /* system's, pclose's and waitpid's status, as an exit code (-1: none) */
 #ifdef _WIN32
   return status;
 #else
   return status != -1 && WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 #endif
 }
-void rio_ffi_os_run(rio_Val *a) {
-  const char *command = rio_osText(a, rio_osCommand, sizeof rio_osCommand);
-  fflush(stdout);
-  fflush(stderr);
-  a[0].i = command ? rio_osExitCode(system(command)) : -1;
+
+/* bytes at [at, at + n) of memory, or 0 */
+static uint8_t *rio_osAt(uint32_t at, uint32_t n) {
+  uint32_t size = (uint32_t)(rio_OS_MEM_SIZE);
+  return at <= size && n <= size - at ? (uint8_t *)(rio_OS_MEM) + at : 0;
 }
-void rio_ffi_os_runOut(rio_Val *a) {
+static uint32_t rio_osWord(const uint8_t *p) {
+  uint32_t w;
+  memcpy(&w, p, 4);
+  return w;
+}
+
+/* a []String argument (where its elements start, how many: each a String's two words) into
+   rio_osArgList, 0-terminated (their text in rio_osCommand): how many, or 0 if they don't fit */
+static int rio_osArgs(const rio_Val *a) {
+  uint32_t n = a[1].u, used = 0, i;
+  const uint8_t *els = n <= rio_OS_ARGS ? rio_osAt(a[0].u, n * 8) : 0;
+  if (!els || !n) return 0;
+  for (i = 0; i < n; i++) {
+    uint32_t len = rio_osWord(els + i * 8 + 4);
+    const uint8_t *s = rio_osAt(rio_osWord(els + i * 8), len);
+    if (!s || used + len + 1 > sizeof rio_osCommand) return 0;
+    memcpy(rio_osCommand + used, s, len);
+    rio_osCommand[used + len] = 0;
+    rio_osArgList[i] = rio_osCommand + used;
+    used += len + 1;
+  }
+  rio_osArgList[n] = 0;
+  return (int)n;
+}
+
+#ifdef _WIN32
+/* the arguments as a Windows command line, each quoted as the C runtime reads them back (backslashes
+   doubled before a quote, and at the end of a quoted one): 0 if it doesn't fit */
+static int rio_osCommandLine(char *out, size_t cap, char **args) {
+  size_t n = 0;
+  int i;
+  for (i = 0; args[i]; i++) {
+    const char *s = args[i];
+    int plain = *s && !strpbrk(s, " \t\n\v\"");
+    if (i && n < cap) out[n++] = ' ';
+    if (plain) {
+      size_t k = strlen(s);
+      if (n + k >= cap) return 0;
+      memcpy(out + n, s, k);
+      n += k;
+      continue;
+    }
+    if (n < cap) out[n++] = '"';
+    for (;; s++) {
+      size_t slashes = 0, k;
+      while (*s == '\\') s++, slashes++;
+      k = !*s ? slashes * 2 : *s == '"' ? slashes * 2 + 1 : slashes;
+      if (n + k + 2 >= cap) return 0;
+      while (k--) out[n++] = '\\';
+      if (!*s) break;
+      out[n++] = *s;
+    }
+    if (n < cap) out[n++] = '"';
+  }
+  if (n >= cap) return 0;
+  out[n] = 0;
+  return 1;
+}
+#endif
+
+/* args run (args[0] the program, found on the PATH), waited for, its standard output into out when
+   capture (and its standard error, when errorsToo): its exit code, or -1 if it couldn't run; *wrote how
+   much it wrote */
+static int rio_osSpawn(char **args, uint8_t *out, uint32_t cap, int capture, int errorsToo, int32_t *wrote) {
   static char chunk[1 << 14];
-  const char *command = rio_osText(a, rio_osCommand, sizeof rio_osCommand);
-  uint8_t *out = rio_osBytes(a + 2);
-  uint32_t cap = a[3].u;
-  size_t n = 0, got;
-  FILE *p;
+  size_t n = 0;
+  *wrote = 0;
   fflush(stdout);
   fflush(stderr);
 #ifdef _WIN32
-  p = command ? _popen(command, "rb") : 0;
+  {
+    static char line[1 << 15];
+    SECURITY_ATTRIBUTES sa;
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    HANDLE r = 0, w = 0;
+    DWORD got, code = 0;
+    BOOL ok;
+    if (!rio_osCommandLine(line, sizeof line, args)) return -1;
+    memset(&sa, 0, sizeof sa);
+    sa.nLength = sizeof sa;
+    sa.bInheritHandle = TRUE;
+    memset(&si, 0, sizeof si);
+    si.cb = sizeof si;
+    if (capture) {
+      if (!CreatePipe(&r, &w, &sa, 0)) return -1;
+      SetHandleInformation(r, HANDLE_FLAG_INHERIT, 0);
+      si.dwFlags = STARTF_USESTDHANDLES;
+      si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+      si.hStdOutput = w;
+      si.hStdError = errorsToo ? w : GetStdHandle(STD_ERROR_HANDLE);
+    }
+    ok = CreateProcessA(0, line, 0, 0, TRUE, 0, 0, 0, &si, &pi);
+    if (capture) CloseHandle(w);
+    if (!ok) {
+      if (capture) CloseHandle(r);
+      return -1;
+    }
+    while (capture && ReadFile(r, chunk, sizeof chunk, &got, 0) && got) {
+      if (out && n < cap) memcpy(out + n, chunk, got < cap - n ? got : cap - n);
+      n += got;
+    }
+    if (capture) CloseHandle(r);
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    *wrote = (int32_t)n;
+    return (int)code;
+  }
 #else
-  p = command ? popen(command, "r") : 0;
+  {
+    int pipeOut[2] = {-1, -1}, failed[2], status = 0, err = 0;
+    ssize_t got;
+    pid_t pid;
+    if (capture && pipe(pipeOut)) return -1;
+    if (pipe(failed)) { /* (written to only if exec fails: closed on exec) */
+      if (capture) close(pipeOut[0]), close(pipeOut[1]);
+      return -1;
+    }
+    fcntl(failed[1], F_SETFD, FD_CLOEXEC);
+    if (!(pid = fork())) {
+      if (capture) {
+        dup2(pipeOut[1], 1);
+        if (errorsToo) dup2(pipeOut[1], 2);
+        close(pipeOut[0]);
+        close(pipeOut[1]);
+      }
+      close(failed[0]);
+      execvp(args[0], args);
+      err = errno;
+      if (write(failed[1], &err, sizeof err)) {}
+      _exit(127);
+    }
+    close(failed[1]);
+    if (capture) close(pipeOut[1]);
+    if (pid < 0) {
+      close(failed[0]);
+      if (capture) close(pipeOut[0]);
+      return -1;
+    }
+    while (capture && ((got = read(pipeOut[0], chunk, sizeof chunk)) > 0 || (got < 0 && errno == EINTR))) {
+      if (got < 0) continue;
+      if (out && n < cap) memcpy(out + n, chunk, (size_t)got < cap - n ? (size_t)got : cap - n);
+      n += (size_t)got;
+    }
+    if (capture) close(pipeOut[0]);
+    got = read(failed[0], &err, sizeof err);
+    close(failed[0]);
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+    *wrote = (int32_t)n;
+    return got == (ssize_t)sizeof err ? -1 : rio_osExitCode(status);
+  }
 #endif
-  if (!p) {
+}
+
+/* run(args, options?): options, a RunOptions (two words: where, its size), else zeros: out (a Blob: 2
+   words), errorsToo, shell */
+void rio_ffi_os_run(rio_Val *a) {
+  static char chunk[1 << 14];
+  const uint8_t *o = a[3].u >= 16 ? rio_osAt(a[2].u, 16) : 0;
+  uint32_t outAt = o ? rio_osWord(o) : 0, cap = o ? rio_osWord(o + 4) : 0;
+  int errorsToo = o && rio_osWord(o + 8), shell = o && rio_osWord(o + 12), n = rio_osArgs(a);
+  uint8_t *out = cap ? rio_osAt(outAt, cap) : 0;
+  int32_t wrote = 0;
+  if (!n) {
     a[0].i = -1;
     a[1].i = 0;
     return;
   }
-  while ((got = fread(chunk, 1, sizeof chunk, p)) > 0) {
-    if (out && n < cap) memcpy(out + n, chunk, got < cap - n ? got : cap - n);
-    n += got;
+  if (!shell) {
+    a[0].i = rio_osSpawn(rio_osArgList, out, out ? cap : 0, out != 0, errorsToo, &wrote);
+    a[1].i = wrote;
+    return;
   }
+  fflush(stdout); /* (a command line, for the shell: args[0]) */
+  fflush(stderr);
+  if (!out) {
+    a[0].i = rio_osExitCode(system(rio_osArgList[0]));
+    a[1].i = 0;
+    return;
+  }
+  {
+    static char line[sizeof rio_osCommand + 8];
+    size_t got, total = 0;
+    FILE *p;
+    snprintf(line, sizeof line, "%s%s", rio_osArgList[0], errorsToo ? " 2>&1" : "");
 #ifdef _WIN32
-  a[0].i = rio_osExitCode(_pclose(p));
+    p = _popen(line, "rb");
 #else
-  a[0].i = rio_osExitCode(pclose(p));
+    p = popen(line, "r");
 #endif
-  a[1].i = (int32_t)n;
+    if (!p) {
+      a[0].i = -1;
+      a[1].i = 0;
+      return;
+    }
+    while ((got = fread(chunk, 1, sizeof chunk, p)) > 0) {
+      if (total < cap) memcpy(out + total, chunk, got < cap - total ? got : cap - total);
+      total += got;
+    }
+#ifdef _WIN32
+    a[0].i = rio_osExitCode(_pclose(p));
+#else
+    a[0].i = rio_osExitCode(pclose(p));
+#endif
+    a[1].i = (int32_t)total;
+  }
 }
-
 /* ------------------------------------------------------------------ time */
 
 void rio_ffi_os_clock(rio_Val *a) { a[0].f = (float)clock() / CLOCKS_PER_SEC; }

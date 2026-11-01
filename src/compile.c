@@ -282,6 +282,12 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
         continue;
       }
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;
+      if (ch == '[' && !isResult) { /* [x]: a slice of x (i, f, s or b), 2 words: where its elements start, how many */
+        int e = g[1] == 'i' ? rio_TypeId_int : g[1] == 'f' ? rio_TypeId_float : g[1] == 's' ? rio_TypeId_string : g[1] == 'b' ? rio_TypeId_blob : -1;
+        if (e < 0 || g[2] != ']') rio_FAIL(, "bad ffi signature: [ takes i, f, s or b, then ]");
+        t = rio_sliceOf(vm, e);
+        g += 2;
+      }
       if (t < 0) rio_FAIL(, "bad ffi signature");
       if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
       if (isResult) {

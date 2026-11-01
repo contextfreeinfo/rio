@@ -124,7 +124,7 @@ Conversions are methods. `to` makes a new value; `as` views the same bytes:
 | `n.toBool()` | `n != 0` |
 | `b.toInt()` | 1 or 0 |
 | `e.toInt()`, `E.fromInt(n)` | an enum's value; `fromInt` is a runtime error if `n` isn't one |
-| `blob.asString()` | the same bytes, read-only |
+| `blob.asString()` | the same bytes, read-only: a `Blob`'s, a `Blob[N]`'s, or a `Blob[..]` builder's text as it is now (as `b.asString()`) |
 | `s.toInt()`, `s.toInt(base)` | text as an `Int`, a `?Int`: nil if it isn't one |
 | `s.toFloat()` | text as a `Float`, a `?Float`: nil if it isn't one |
 

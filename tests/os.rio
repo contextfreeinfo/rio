@@ -21,7 +21,7 @@ named :: proc(p: Blob[..], name: String) -> String
   _ = p.pushAll(buf[0..<n])
   _ = p.push('/')
   _ = p.pushAll(name)
-  return p[0..<p.len()].asString()
+  return p.asString()
 end
 at :: proc(name: String) -> String
   return named(path, name)
@@ -66,24 +66,36 @@ n = os.cwd(buf[])
 check(n > 0 and os.cwdSet(dir) == 0 and os.fileKind("os-cwd-test") == 0, "the current folder, set")
 check(os.fileWrite("os-cwd-test", "x") == 0 and os.fileKind(at("os-cwd-test")) == 1 and os.fileDelete("os-cwd-test") == 0, "relative to it")
 
-# other programs
-check(os.run("exit 3") == 3, "a command's exit code")
-r := os.runOut("echo hello", buf[])
-check(r[0] == 0 and r[1] >= 5 and buf[0..<5].asString() == "hello", "what a command writes")
+# other programs: rio itself, running a program that says what it was given
 rio: Blob[..512]
 k := os.arg(0, buf[])
 _ = rio.pushAll(buf[0..<k])
+riov := rio.asString()
+child := "import os\na: Blob[64]\nfor i in 0..<os.argCount()\n  n := os.arg(i, a[])\n  os.write(\"[\")\n  os.write(a[0..<n].asString())\n  os.write(\"]\")\nend\nif os.argCount() == 0\n  os.writeErr(\"to stderr\")\nend\nos.exit(os.argCount())\n"
+check(os.fileWrite(at("child.rio"), child) == 0, "a program to run")
+script := at2("child.rio")
+r := os.run({riov, script, "two words", "a\"quote", "back\\slash\\", ""}, {out = buf[]})
+check(r[0] == 4 and buf[0..<r[1]].asString() == "[two words][a\"quote][back\\slash\\][]", "its arguments, just as they were, and its exit code")
+r = os.run({riov, script}, {out = buf[], errorsToo = true})
+check(r[0] == 0 and buf[0..<r[1]].asString() == "to stderr", "what it writes to stderr, too")
+small2: Blob[4]
+r = os.run({riov, script, "abcdef"}, {out = small2[]})
+check(r[1] == 8 and small2[0..<4].asString() == "[abc", "as much as fits, and how long it was")
+check(os.run({"rio-no-such-program"})[0] == -1, "a program that isn't there")
+r = os.run({"echo hello"}, {out = buf[], shell = true})
+check(r[0] == 0 and r[1] >= 5 and buf[0..<5].asString() == "hello", "a command line, through the shell")
+check(os.run({"exit 3"}, {shell = true})[0] == 3, "and its exit code")
 check(os.fileWrite(at("line.rio"), "import os\nl: Blob[64]\nn := os.readLine(\"> \", l[])\nos.write(l[0..<n].asString())\nn = os.readLine(\"\", l[])\nlog(\"|\", n)\n") == 0, "a program that reads")
 command: Blob[..1024]
 _ = command.pushAll("echo typed| \"")
-_ = command.pushAll(rio[0..<rio.len()])
+_ = command.pushAll(riov)
 _ = command.pushAll("\" \"")
 _ = command.pushAll(at("line.rio"))
 _ = command.push('"')
-r = os.runOut(command[0..<command.len()].asString(), buf[])
+r = os.run({command.asString()}, {out = buf[], shell = true})
 check(r[0] == 0 and r[1] >= 10 and buf[0..<10].asString() == "> typed| -", "a line read from a pipe (and the end of it)")
 _ = os.fileDelete(at("line.rio"))
-
+_ = os.fileDelete(at("child.rio"))
 # time
 t := os.time()
 os.sleep(0.05)

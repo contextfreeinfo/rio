@@ -33,8 +33,23 @@ the system takes them; on Windows, `/` works as `\` does.
 | `write`, `writeErr`, `readLine`, `readAll` | text out (as it is: `log` adds spaces and a line break) and in |
 | `fileRead`, `fileWrite`, `fileAppend`, `fileSize`, `fileKind`, `fileDelete`, `fileRename` | files (and empty folders, deleted) |
 | `dir`, `dirMake`, `cwd`, `cwdSet` | folders: a folder's entries (`d name` and `f name` lines, folders first, by name), a new one, the current one |
-| `run`, `runOut` | another program, as the system's shell runs a command: its exit code, and (`runOut`) what it writes |
+| `run` | another program, with its arguments as they are (no shell, unless asked for), waited for: its exit code, and what it writes (`RunOptions`) |
 | `clock`, `time`, `date`, `sleep` | the processor's time used, seconds since the start, the date and time here, and a pause |
+
+`os.run` runs a program with a list of arguments, each passed just as it is: there's no shell
+between, so nothing needs quoting, and nothing in an argument can run another command. `RunOptions`,
+left out by default, keeps what it writes (`out`), standard error too (`errorsToo`), or hands
+`args[0]` to the system's shell as a command line (`shell`: then its pipes and redirects work, and
+its quoting is the command line's to get right):
+
+```rio fragment
+import os
+
+log(os.run({"git", "status"})[0])           # its exit code (-1: it couldn't run)
+buf: Blob[4096]
+r := os.run({"git", "log", "-1"}, {out = buf[]})
+log(buf[0..<min(r[1], buf.len())].asString())
+```
 
 `os.readLine` reads a line typed after a prompt. At a terminal it's edited as it's typed, as the
 REPL's lines are: the arrows, Home and End, Ctrl+Left and Right (or Alt+B and F) by words, Backspace,

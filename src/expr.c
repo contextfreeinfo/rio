@@ -403,8 +403,8 @@ static void rio_member(rio_Vm *vm) {
              (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_asString)) >= 0) {
     method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* conversions */
   } else if ((ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) && ty->elem == rio_TypeId_byte &&
-             (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_toFloat)) >= 0) {
-    method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* a byte builder's text as a number */
+             (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_asString)) >= 0 && k != rio_Builtin_toBool) {
+    method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* a byte builder's text as a number, or as a String */
   } else if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) {
     if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_setInt)) < 0) rio_FAIL(, "no such method");
     method = rio_exprOf(rio_ExprKind_builtin, 0, k);
@@ -554,6 +554,12 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi, int i
   o->localView = (uint8_t)localView;
   o->fromParam = (uint8_t)fromParam;
   if (ty->kind == rio_TypeKind_array) o->type = (uint16_t)rio_sliceOf(vm, ty->elem);
+}
+
+/* o[]: o becomes the whole of it, a slice (a builder's live elements) */
+void rio_sliceWhole(rio_Vm *vm, rio_Expr *o) {
+  rio_Expr lo = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, 0), hi = rio_exprOf(rio_ExprKind_sliceEnd, rio_TypeId_int, 0);
+  rio_slice(vm, o, &lo, &hi, 0);
 }
 
 /* ------------------------------------------------------------------ struct and array literals */

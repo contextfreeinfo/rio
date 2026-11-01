@@ -124,6 +124,9 @@ static const Case cases[] = {
   {"g :: proc[T](a: []T, x: &T) -> Bool do return a[0] == x\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a T can't be compared: pass in a proc that compares"},
   {"g :: proc[T](a: []T, x: &T) do a[0] = x\nn := [_]{\"a\"}\ns := \"b\"\ng(n[], &s)\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this proc copies its T into memory it was given"},
   {"g :: proc[T](a: []T, x: &T) do a[0] = x\nh :: proc[U](a: []U, x: &U) do g(a, &x)\nn := [_]{\"a\"}\ns := \"b\"\nh(n[], &s)\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this proc copies its T into memory it was given"},
+  /* b.asString() of a local Blob[N] or builder: a view of the proc's memory, kept no longer than b[] is */
+  {"keep: String\nf :: proc()\n  b: Blob[4]\n  keep = b.asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "own memory"},
+  {"keep: String\nf :: proc()\n  b: Blob[..16]\n  keep = b.asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "own memory"},
   /* (found by fuzzing, under UBSan: a constant run past 32 words, and 32 or more parameter names in a group) */
   {"x := [55]Float{0}\nassert(x[54] == 0.0)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"f: proc(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39, a40?: Int)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "too many parameters"},

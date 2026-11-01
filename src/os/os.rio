@@ -43,13 +43,17 @@ cwdSet* :: host proc(path: String) -> Int                   # another one: 0, or
 
 # ---------------------------------------------------------------- other programs
 
-# a command, as the system's shell runs it (sh, or cmd on Windows), waited for: its exit code, or -1
-# if it couldn't run
-run* :: host proc(command: String) -> Int
-# the same, with what it writes to standard output kept in out (as much as fits): {its exit code (or
-# -1), how long what it wrote was}
-runOut* :: host proc(command: String, out: Blob) -> [2]Int
-
+# how os.run runs a program; left out, as all zeros: its output goes on to the program's own
+RunOptions* :: struct
+  out: Blob        # what it writes to standard output, kept here (as much as fits)
+  errorsToo: Bool  # and what it writes to standard error, in out too
+  shell: Bool      # args[0] a command line, for the system's shell (sh, or cmd on Windows): its pipes,
+                   # redirects and wildcards, and its quoting, the command's to get right
+end
+# a program, run with these arguments, just as they are (no shell between: nothing to quote; it's found
+# as the system finds commands, by its path, else on the PATH), and waited for: {its exit code (-1 if
+# it couldn't run), how long what it wrote to out was}. os.run({"git", "status"})[0]
+run* :: host proc(args: []String, options?: RunOptions) -> [2]Int
 # ---------------------------------------------------------------- time
 
 clock* :: host proc() -> Float           # the processor's time the program has used, in seconds

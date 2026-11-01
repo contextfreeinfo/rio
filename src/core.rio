@@ -69,7 +69,7 @@ Int.toFloat* :: host proc() -> Float
 Int.toBool* :: host proc() -> Bool       # n != 0
 Float.toInt* :: host proc() -> Int       # toward zero; saturates; NaN is 0
 Bool.toInt* :: host proc() -> Int        # 0 or 1
-Blob.asString* :: host proc() -> String  # the same bytes, read-only
+Blob.asString* :: host proc() -> String  # the same bytes, read-only (a Blob[..]'s, or a Blob[N]'s, too)
 
 # text as a number: nil if it isn't one (docs/spec/expressions.md#text-as-numbers); base 2 to 36, left
 # out or 0 for 10

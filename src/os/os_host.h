@@ -5,6 +5,14 @@
 #include <stdint.h>
 #include "rio.h"
 
+typedef struct {
+  rio_View out;
+  int32_t errorsToo;
+  int32_t shell;
+} os_RunOptions;
+typedef char os_RunOptions_size[sizeof(os_RunOptions) == 16 ? 1 : -1]; /* (Rio's size) */
+#define os_RunOptions_LAYOUT "{out:Blob,errorsToo:Int,shell:Int}"
+
 #define os_argCount_SIG ">i"
 #define os_arg_SIG "ib>i"
 #define os_env_SIG "sb>i"
@@ -25,8 +33,7 @@
 #define os_dirMake_SIG "s>i"
 #define os_cwd_SIG "b>i"
 #define os_cwdSet_SIG "s>i"
-#define os_run_SIG "s>i"
-#define os_runOut_SIG "sb>ii"
+#define os_run_SIG "[s]" os_RunOptions_LAYOUT ">ii"
 #define os_clock_SIG ">f"
 #define os_time_SIG ">f"
 #define os_date_SIG "b>i"
@@ -54,13 +61,12 @@
   X(cwd, os_cwd_SIG) \
   X(cwdSet, os_cwdSet_SIG) \
   X(run, os_run_SIG) \
-  X(runOut, os_runOut_SIG) \
   X(clock, os_clock_SIG) \
   X(time, os_time_SIG) \
   X(date, os_date_SIG) \
   X(sleep, os_sleep_SIG)
 
-#define os_HASH 0x534de652u /* (rio_hashText of the source) */
+#define os_HASH 0x0c1296ebu /* (rio_hashText of the source) */
 #define os_SOURCE \
   "# os.rio: module os, the rio command's: the program's arguments and environment, text in and out, files\n" \
   "# and folders, running other programs, and time. A program imports it (import os), and it's in rio as\n" \
@@ -107,13 +113,17 @@
   "\n" \
   "# ---------------------------------------------------------------- other programs\n" \
   "\n" \
-  "# a command, as the system's shell runs it (sh, or cmd on Windows), waited for: its exit code, or -1\n" \
-  "# if it couldn't run\n" \
-  "run* :: host proc(command: String) -> Int\n" \
-  "# the same, with what it writes to standard output kept in out (as much as fits): {its exit code (or\n" \
-  "# -1), how long what it wrote was}\n" \
-  "runOut* :: host proc(command: String, out: Blob) -> [2]Int\n" \
-  "\n" \
+  "# how os.run runs a program; left out, as all zeros: its output goes on to the program's own\n" \
+  "RunOptions* :: struct\n" \
+  "  out: Blob        # what it writes to standard output, kept here (as much as fits)\n" \
+  "  errorsToo: Bool  # and what it writes to standard error, in out too\n" \
+  "  shell: Bool      # args[0] a command line, for the system's shell (sh, or cmd on Windows): its pipes,\n" \
+  "                   # redirects and wildcards, and its quoting, the command's to get right\n" \
+  "end\n" \
+  "# a program, run with these arguments, just as they are (no shell between: nothing to quote; it's found\n" \
+  "# as the system finds commands, by its path, else on the PATH), and waited for: {its exit code (-1 if\n" \
+  "# it couldn't run), how long what it wrote to out was}. os.run({\"git\", \"status\"})[0]\n" \
+  "run* :: host proc(args: []String, options?: RunOptions) -> [2]Int\n" \
   "# ---------------------------------------------------------------- time\n" \
   "\n" \
   "clock* :: host proc() -> Float           # the processor's time the program has used, in seconds\n" \

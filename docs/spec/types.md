@@ -446,7 +446,7 @@ kept: Named
 f :: proc()
   typed: Blob[4]
   kept = Named{name = "ada", id = 1}  # fine: it views a constant
-  kept = Named{name = typed[].asString(), id = 2}  # error: holds a view of the proc's own memory
+  kept = Named{name = typed.asString(), id = 2}  # error: holds a view of the proc's own memory
 end
 ```
 

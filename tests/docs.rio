@@ -72,7 +72,11 @@ end
 arg: Blob[PATH_BYTES]
 rio: Blob[..PATH_BYTES]
 work: Blob[..PATH_BYTES]
-extra: Blob[..PATH_BYTES] # (after --: rio's, for each example, with spaces between)
+EXTRAS :: 16
+extra: Blob[..PATH_BYTES] # (after --: rio's, for each example: their text, end to end)
+extraAt: [EXTRAS]Int
+extraLen: [EXTRAS]Int
+extras := 0
 
 argText :: proc(i: Int) -> String
   n := os.arg(i, arg[])
@@ -90,8 +94,12 @@ for i in 2..<os.argCount()
   if argText(i) == "--" and roots == os.argCount()
     roots = i
   case roots < i
-    _ = extra.push(' ')
-    _ = extra.pushAll(argText(i))
+    if extras < EXTRAS
+      extraAt[extras] = extra.len()
+      _ = extra.pushAll(argText(i))
+      extraLen[extras] = extra.len() - extraAt[extras]
+      extras += 1
+    end
   end
 end
 
@@ -216,7 +224,6 @@ end
 fileBlock: [FILES]Int # the files the next example has (file=...): their blocks
 files := 0
 path: Blob[..PATH_BYTES]
-command: Blob[..PATH_BYTES * 2]
 out: Blob[OUT_BYTES]
 fails := 0
 total := 0
@@ -226,13 +233,13 @@ exampleCount := 0
 # the example's folder, then name: into path
 place :: proc(name: String) -> String
   path.clear()
-  _ = path.pushAll(work[0..<work.len()])
+  _ = path.pushAll(work[])
   _ = path.print("/example", exampleCount)
   if name.len() > 0
     _ = path.push('/')
     _ = path.pushAll(name)
   end
-  return path[0..<path.len()].asString()
+  return path.asString()
 end
 
 # a file of the example's (its folders made first)
@@ -246,7 +253,7 @@ put :: proc(name: String, text: String) -> Bool
 end
 
 fail :: proc(b: Int, why: String, got: String)
-  log("FAIL", where[0..<where.len()].asString(), startLine[b], why, trim(got))
+  log("FAIL", where.asString(), startLine[b], why, trim(got))
   fails += 1
 end
 
@@ -301,6 +308,8 @@ blank :: proc(a, b: Int) -> Bool
   return true
 end
 
+args: [..EXTRAS + 4]String # (an example's: rio, -L lib, rio's own, main.rio: each as it is, nothing to
+                           # quote; global, as big arrays holding views are)
 example :: proc(b: Int)
   total += 1
   exampleCount += 1
@@ -319,20 +328,19 @@ example :: proc(b: Int)
     fail(b, "couldn't write its files", "")
     return
   end
-  command.clear()
-  _ = command.push('"')
-  _ = command.pushAll(rio[0..<rio.len()])
-  _ = command.push('"')
+  args.clear()
+  _ = args.push(rio.asString())
   if os.fileKind(place("lib")) == 2
-    _ = command.pushAll(" -L lib")
+    _ = args.pushAll({"-L", "lib"})
   end
-  _ = command.pushAll(extra[0..<extra.len()])
-  _ = command.pushAll(" main.rio")
-  _ = command.pushAll(" 2>&1")
-  back: Blob[PATH_BYTES]
+  for i in 0..<extras
+    _ = args.push(extra[extraAt[i]..<extraAt[i] + extraLen[i]].asString())
+  end
+  _ = args.push("main.rio")
+  back: Blob[PATH_BYTES] # (run from the example's folder: its messages name its files as they are)
   n := os.cwd(back[])
   _ = os.cwdSet(place(""))
-  r := os.runOut(command[0..<command.len()].asString(), out[])
+  r := os.run(args[], {out = out[], errorsToo = true})
   _ = os.cwdSet(back[0..<n].asString())
   # what it wrote, its \r taken out (lines may end \r\n, or \r\r\n through Windows' text mode)
   got: Blob[..OUT_BYTES]
@@ -341,16 +349,16 @@ example :: proc(b: Int)
       _ = got.push(c)
     end
   end
-  g := got[0..<got.len()].asString()
+  g := got.asString()
   if wantKind > 0
-    message := wantMessage[0..<wantMessage.len()].asString()
-    name := wantName[0..<wantName.len()].asString()
+    message := wantMessage.asString()
+    name := wantName.asString()
     at: Blob[..PATH_BYTES]
     _ = at.print(name, ":", wantLine, ":")
     if wantKind == 2
       _ = at.pushAll(" runtime error: ")
     end
-    good := r[0] != 0 and find(g, message, 0) >= 0 and hasLine(g, at[0..<at.len()].asString())
+    good := r[0] != 0 and find(g, message, 0) >= 0 and hasLine(g, at.asString())
     if wantKind == 1
       good = good and find(g, "runtime error", 0) < 0
     end
@@ -361,7 +369,7 @@ example :: proc(b: Int)
       end
       why: Blob[..PATH_BYTES]
       _ = why.print("expected ", kind, " at ", name, ":", wantLine, " (", message, "), got:")
-      fail(b, why[0..<why.len()].asString(), g)
+      fail(b, why.asString(), g)
     end
   case r[0] != 0
     fail(b, "failed:", g)
@@ -421,7 +429,7 @@ walk :: proc(root: String)
     for stack.len() > stackAt[stackCount] # (popped)
       _ = stack.pop()
     end
-    p := here[0..<here.len()].asString()
+    p := here.asString()
     if os.fileKind(p) == 1
       if p.len() > 3 and p[p.len() - 3..<p.len()] == ".md"
         runFile(p)
@@ -432,7 +440,7 @@ walk :: proc(root: String)
     if n < 0
       continue
     end
-    s := listing[0..<listing.len()].asString()
+    s := listing.asString()
     # its folders, last first, onto the stack (so the first comes off first), then its files, run now
     ends: [FOLDERS]Int
     count := 0
@@ -458,7 +466,7 @@ walk :: proc(root: String)
         _ = child.pushAll(p)
         _ = child.push('/')
         _ = child.pushAll(s[from + 2..<ends[j]])
-        pushPath(child[0..<child.len()].asString())
+        pushPath(child.asString())
       end
     end
     for k in 0..<count
@@ -472,7 +480,7 @@ walk :: proc(root: String)
         _ = child.pushAll(p)
         _ = child.push('/')
         _ = child.pushAll(s[from + 2..<ends[k]])
-        runFile(child[0..<child.len()].asString())
+        runFile(child.asString())
       end
     end
   end

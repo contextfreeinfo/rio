@@ -11,7 +11,9 @@ names := [TARGETS]String{"linux-x86_64", "linux-arm64", "macos-arm64"}
 zigTargets := [TARGETS]String{"x86_64-linux-musl", "aarch64-linux-musl", "aarch64-macos"}
 
 arg: Blob[PATH_BYTES]
-command: Blob[..PATH_BYTES * 4]
+outPath: Blob[..PATH_BYTES]
+ARGS :: 128
+args: [..ARGS]String # (zig's: each as it is)
 listing: Blob[PATH_BYTES * 4]
 
 if os.fileKind("src/os/os.rio") != 1
@@ -30,27 +32,29 @@ for t in 0..<TARGETS
   if not wanted
     continue
   end
-  command.clear()
-  _ = command.pushAll("build-zig/")
-  _ = command.pushAll(names[t])
-  _ = os.dirMake(command[0..<command.len()].asString())
-  command.clear()
-  _ = command.print("zig cc -target ", zigTargets[t], " -O2 -s -std=c99 -Isrc -o build-zig/", names[t], "/rio")
+  outPath.clear()
+  _ = outPath.print("build-zig/", names[t])
+  _ = os.dirMake(outPath.asString())
+  outPath.clear()
+  _ = outPath.print("../build-zig/", names[t], "/rio") # (from src, where zig runs)
+  args.clear()
+  _ = args.pushAll({"zig", "cc", "-target", zigTargets[t], "-O2", "-s", "-std=c99", "-I.", "-o", outPath.asString()})
   a := 0 # (every .c in src: riocore and the program, as CI's ARM job builds it)
-  s := listing[0..<listing.len()].asString()
+  s := listing.asString()
   for _ in 0..<n
     e := a
     for e < s.len() and s[e] != '\n'
       e += 1
     end
     if s[a] == 'f' and e - a > 4 and s[e - 2..<e] == ".c"
-      _ = command.pushAll(" src/")
-      _ = command.pushAll(s[a + 2..<e])
+      _ = args.push(s[a + 2..<e])
     end
     a = e + 1
   end
-  _ = command.pushAll(" -lm")
-  code := os.run(command[0..<command.len()].asString())
+  _ = args.push("-lm")
+  _ = os.cwdSet("src") # (the files by name, in src)
+  code := os.run(args[])[0]
+  _ = os.cwdSet("..")
   log(names[t], code == 0)
   if code != 0
     fails += 1

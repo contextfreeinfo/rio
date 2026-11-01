@@ -100,7 +100,7 @@ for c in text
     _ = word.push(c)
     continue
   end
-  check(put(word[].asString(), getOr(word[].asString(), 0) + 1), "put a word")
+  check(put(word.asString(), getOr(word.asString(), 0) + 1), "put a word")
   word.clear()
 end
 check(getOr("the", 0) == 4 and getOr("cat", 0) == 2, "the: 4, cat: 2")
@@ -112,19 +112,19 @@ key: Blob[..8]
 for i in 0..<40
   key.clear()
   ok := key.print("k", i)
-  check(put(key[].asString(), i * 10), "put k")
+  check(put(key.asString(), i * 10), "put k")
 end
 check(count == 46 and put("k40", 400) and put("k41", 410) and not put("one too many", 1), "full at 3/4: 48")
 for i in 0..<40 by 2
   key.clear()
   ok := key.print("k", i)
-  check(remove(key[].asString()), "remove k")
+  check(remove(key.asString()), "remove k")
 end
 found := 0
 for i in 0..<40
   key.clear()
   ok := key.print("k", i)
-  v := getOr(key[].asString(), -1)
+  v := getOr(key.asString(), -1)
   if v >= 0
     check(i % 2 == 1 and v == i * 10, "the odd ones, with their values")
     found += 1

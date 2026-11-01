@@ -561,6 +561,7 @@ int rio_toSlot(rio_Vm *vm, rio_Expr *e, int reuse);
 int rio_toSlot2(rio_Vm *vm, rio_Expr *e);
 int rio_toSlot3(rio_Vm *vm, rio_Expr *e);
 int rio_toViewSlots(rio_Vm *vm, rio_Expr *e);
+void rio_sliceWhole(rio_Vm *vm, rio_Expr *o);
 int rio_toAddrSlot(rio_Vm *vm, rio_Expr *e);
 void rio_store(rio_Vm *vm, rio_Expr *dst, rio_Expr *src);
 int rio_invertJump(rio_Instr *in);

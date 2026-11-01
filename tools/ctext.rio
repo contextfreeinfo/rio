@@ -21,7 +21,7 @@ n = os.arg(2, arg[])
 _ = name.pushAll(arg[0..<n])
 
 text: Blob[IN_BYTES]
-size := os.fileRead(inPath[0..<inPath.len()].asString(), text[])
+size := os.fileRead(inPath.asString(), text[])
 if size < 0 or size > text.len()
   os.writeErr("can't read it (or it's over IN_BYTES)\n")
   os.exit(1)
@@ -37,8 +37,8 @@ end
 base := inPath[from..<inPath.len()].asString()
 
 c: Blob[..IN_BYTES * 4]
-ok := c.print("/* ", base, " as text, as ", name[0..<name.len()], ": made from it by tools/ctext.rio. Don't edit */\n")
-ok = ok and c.print("static const char ", name[0..<name.len()], "[] =")
+ok := c.print("/* ", base, " as text, as ", name[], ": made from it by tools/ctext.rio. Don't edit */\n")
+ok = ok and c.print("static const char ", name[], "[] =")
 p := 0
 for p < size
   e := p
@@ -59,7 +59,7 @@ for p < size
   p = e + 1
 end
 ok = ok and c.pushAll(";\n")
-if not ok or os.fileWrite(outPath[0..<outPath.len()].asString(), c[0..<c.len()].asString()) != 0
+if not ok or os.fileWrite(outPath.asString(), c.asString()) != 0
   os.writeErr("can't write it\n")
   os.exit(1)
 end

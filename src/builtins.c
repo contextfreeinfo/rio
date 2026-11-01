@@ -933,6 +933,12 @@ static void rio_convertCall(rio_Vm *vm, rio_PendingOp *call) {
   } else if (to == rio_TypeId_string && from == rio_TypeId_blob) { /* the same bytes, read-only */
     r.type = rio_TypeId_string;
     r.access = rio_Access_readOnly;
+  } else if (to == rio_TypeId_string && ft->elem == rio_TypeId_byte &&
+             (ft->kind == rio_TypeKind_builder || ft->kind == rio_TypeKind_builderView || ft->kind == rio_TypeKind_array)) {
+    rio_sliceWhole(vm, &r); /* a byte builder's text, b[] (or a Blob[N]'s bytes): read-only */
+    if (rio_failed(vm)) return;
+    r.type = rio_TypeId_string;
+    r.access = rio_Access_readOnly;
   } else if (to == rio_TypeId_int && from == rio_TypeId_bool) r.type = rio_TypeId_int;
   else if (to == rio_TypeId_bool && from == rio_TypeId_int) {
     if (a->kind == rio_ExprKind_const) r = rio_exprOf(rio_ExprKind_const, rio_TypeId_bool, a->value != 0);

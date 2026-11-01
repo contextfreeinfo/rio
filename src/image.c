@@ -176,9 +176,10 @@ static int rio_headerChecks(rio_Vm *vm, const uint32_t *h) {
   if (!rio_headerOk(h)) return rio_imageError(vm, "bad header");
   return 0;
 }
-/* past the sig's part at s: a letter, or a struct's {...} */
+/* past the sig's part at s: a letter, a slice's [x], or a struct's {...} */
 static const char *rio_sigPart(const char *s) {
   int depth = 0;
+  if (*s == '[') return s[1] && s[2] ? s + 3 : s + 1;
   if (*s == '&') s++; /* (&i, &f, &{...}) */
   if (*s == 'E') /* (Enum{...}) */
     while (*s && *s != '{') s++;
@@ -194,7 +195,7 @@ static const char *rio_sigPart(const char *s) {
 /* the words a sig's parameters take, and its result ("" if none) */
 static int rio_sigWords(const char *sig, const char **result) {
   int n = 0;
-  for (; *sig && *sig != '>'; sig = rio_sigPart(sig)) n += *sig == 's' || *sig == 'b' || *sig == '{' || *sig == '&' ? 2 : 1;
+  for (; *sig && *sig != '>'; sig = rio_sigPart(sig)) n += *sig == 's' || *sig == 'b' || *sig == '{' || *sig == '&' || *sig == '[' ? 2 : 1;
   *result = *sig ? sig + 1 : sig;
   return n;
 }
