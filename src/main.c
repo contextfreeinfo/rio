@@ -15,7 +15,7 @@
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
    -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio
    -help, -license         this, and rio's license (a release is the one program, so it carries them)
-   Ctrl-C stops a running program. Programs here have module os (import os: os.rio, os.h): files,
+   Ctrl-C stops a running program. Programs here have module os (import os: src/os, apart from Rio itself): files,
    folders, running programs, the environment and arguments, text in and out, time. */
 #define _CRT_SECURE_NO_WARNINGS
 #define _DEFAULT_SOURCE /* (POSIX's clock_gettime, setenv and the like, under -std=c99: os.h's) */
@@ -57,9 +57,9 @@ static void rio_printLine(void *userData, const char *s, int n) {
 
 #define rio_OS_MEM rio_vm.mem
 #define rio_OS_MEM_SIZE rio_vm.memSize
-#include "os.h"      /* (its procs, in C: rio_ffi_os_<name>) */
-#include "os_host.h" /* (os.rio: its source and sigs: rio -H src/os_host.h src/os.rio) */
-#include "os_text.h" /* (os.h as text, for C output: rio tools/ctext.rio src/os.h src/os_text.h rio_osCode) */
+#include "os/os.h"      /* (its procs, in C: rio_ffi_os_<name>) */
+#include "os/os_host.h" /* (os.rio: its source and sigs: rio -H src/os/os_host.h src/os/os.rio) */
+#include "os/os_text.h" /* (os.h as text, for C output: rio tools/ctext.rio src/os/os.h src/os/os_text.h rio_osCode) */
 
 #define rio_OS_VM(name, sig) static void rio_osVm_##name(rio_Vm *vm, rio_Val *a) { (void)vm; rio_ffi_os_##name(a); }
 os_HOST_PROCS(rio_OS_VM)

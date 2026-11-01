@@ -4,8 +4,8 @@ The `rio` command has a module of its own, `os`, for programs it runs: the progr
 environment, text in and out, files and folders, running other programs, and time. A program imports it
 (it isn't there unless it does), and it's in the REPL, and in a program's C (`rio -c`), too. It's the
 command's, not Rio's: Rio as a library, riocore, has no `os`, and a host that embeds Rio has modules of
-its own (Rinc's `pc`). `src/os.rio` declares it, and each proc says what it does there; `src/os.h` has
-them in C.
+its own (Rinc's `pc`). `src/os/os.rio` declares it, and each proc says what it does there; `src/os/os.h` has
+them in C. All of it is in `src/os`, apart from Rio itself.
 
 ```rio
 import os

@@ -11,6 +11,17 @@
 #   ```rio fragment         shown, not run (a piece of a program)
 import os
 
+# sizes, each a top-level constant: rio -D MD_BYTES=1048576 tests/docs.rio ..., for more
+MD_BYTES :: 1 << 18      # a Markdown file
+MD_LINES :: 8192         # its lines
+BLOCK_BYTES :: 1 << 19   # its blocks' text
+BLOCKS :: 1024           # its blocks
+OUT_BYTES :: 1 << 16     # what an example writes
+FILES :: 16              # the files one example has (file=...)
+PATH_BYTES :: 2048       # a path
+FOLDERS :: 512           # folders waiting to be walked, and entries in one
+LISTING_BYTES :: 1 << 16 # a folder's entries (and the paths waiting)
+
 # ---------------------------------------------------------------- text
 
 # where t is in s, from at on, or -1
@@ -58,10 +69,10 @@ end
 
 # ---------------------------------------------------------------- the arguments
 
-arg: Blob[1024]
-rio: Blob[..1024]
-work: Blob[..1024]
-extra: Blob[..1024] # (after --: rio's, for each example, with spaces between)
+arg: Blob[PATH_BYTES]
+rio: Blob[..PATH_BYTES]
+work: Blob[..PATH_BYTES]
+extra: Blob[..PATH_BYTES] # (after --: rio's, for each example, with spaces between)
 
 argText :: proc(i: Int) -> String
   n := os.arg(i, arg[])
@@ -86,12 +97,11 @@ end
 
 # ---------------------------------------------------------------- a Markdown file's blocks
 
-md: Blob[1 << 18]   # the file
+md: Blob[MD_BYTES] # the file
 mdLen := 0
-lineAt: [8192]Int   # where each of its lines starts (and its end, after the last)
+lineAt: [MD_LINES]Int # where each of its lines starts (and its end, after the last)
 lines := 0
-pool: Blob[..1 << 19] # each block's text, its indent left off
-BLOCKS :: 1024
+pool: Blob[..BLOCK_BYTES] # each block's text, its indent left off
 infoAt: [BLOCKS]Int # each block: its info (after ```), in md
 infoLen: [BLOCKS]Int
 startLine: [BLOCKS]Int # the first line of its text (from 1)
@@ -124,7 +134,7 @@ readBlocks :: proc() -> Bool
   lines = 0
   lineAt[0] = 0
   for p in 0..<mdLen
-    if md[p] == '\n' and lines < 8190
+    if md[p] == '\n' and lines < MD_LINES - 2
       lines += 1
       lineAt[lines] = p + 1
     end
@@ -203,15 +213,14 @@ end
 
 # ---------------------------------------------------------------- running an example
 
-FILES :: 16
 fileBlock: [FILES]Int # the files the next example has (file=...): their blocks
 files := 0
-path: Blob[..2048]
-command: Blob[..4096]
-out: Blob[1 << 16]
+path: Blob[..PATH_BYTES]
+command: Blob[..PATH_BYTES * 2]
+out: Blob[OUT_BYTES]
 fails := 0
 total := 0
-where: Blob[..2048] # the Markdown file's path, for messages
+where: Blob[..PATH_BYTES] # the Markdown file's path, for messages
 exampleCount := 0
 
 # the example's folder, then name: into path
@@ -245,8 +254,8 @@ end
 # comment: its line (from 1), kind (1 error, 2 runtime error) and message, into these
 wantLine := 0
 wantKind := 0
-wantMessage: Blob[..512]
-wantName: Blob[..512]
+wantMessage: Blob[..PATH_BYTES]
+wantName: Blob[..PATH_BYTES]
 marks :: proc(name: String, text: String)
   n := 1
   a := 0
@@ -320,13 +329,13 @@ example :: proc(b: Int)
   _ = command.pushAll(extra[0..<extra.len()])
   _ = command.pushAll(" main.rio")
   _ = command.pushAll(" 2>&1")
-  back: Blob[1024]
+  back: Blob[PATH_BYTES]
   n := os.cwd(back[])
   _ = os.cwdSet(place(""))
   r := os.runOut(command[0..<command.len()].asString(), out[])
   _ = os.cwdSet(back[0..<n].asString())
   # what it wrote, its \r taken out (lines may end \r\n, or \r\r\n through Windows' text mode)
-  got: Blob[..1 << 16]
+  got: Blob[..OUT_BYTES]
   for c in out[0..<min(r[1], out.len())]
     if c != '\r'
       _ = got.push(c)
@@ -336,7 +345,7 @@ example :: proc(b: Int)
   if wantKind > 0
     message := wantMessage[0..<wantMessage.len()].asString()
     name := wantName[0..<wantName.len()].asString()
-    at: Blob[..256]
+    at: Blob[..PATH_BYTES]
     _ = at.print(name, ":", wantLine, ":")
     if wantKind == 2
       _ = at.pushAll(" runtime error: ")
@@ -350,7 +359,7 @@ example :: proc(b: Int)
       if wantKind == 2
         kind = "runtime error"
       end
-      why: Blob[..512]
+      why: Blob[..PATH_BYTES]
       _ = why.print("expected ", kind, " at ", name, ":", wantLine, " (", message, "), got:")
       fail(b, why[0..<why.len()].asString(), g)
     end
@@ -391,12 +400,12 @@ end
 
 # Markdown files, and folders of them, in order: a folder's files by name, then its folders, each in
 # turn (as tests/docs.py walks them). Rio has no recursion: the folders still to see wait on a stack
-listing: Blob[1 << 16]
-stack: Blob[..1 << 16] # their paths, end to end
-stackAt: [512]Int      # where each one starts
+listing: Blob[LISTING_BYTES]
+stack: Blob[..LISTING_BYTES] # their paths, end to end
+stackAt: [FOLDERS]Int  # where each one starts
 stackCount := 0
 pushPath :: proc(p: String)
-  if stackCount < 512 and stack.len() + p.len() <= stack.cap()
+  if stackCount < FOLDERS and stack.len() + p.len() <= stack.cap()
     stackAt[stackCount] = stack.len()
     _ = stack.pushAll(p)
     stackCount += 1
@@ -406,7 +415,7 @@ walk :: proc(root: String)
   pushPath(root)
   for stackCount > 0
     stackCount -= 1
-    here: Blob[..2048]
+    here: Blob[..PATH_BYTES]
     here.clear()
     _ = here.pushAll(stack[stackAt[stackCount]..<stack.len()])
     for stack.len() > stackAt[stackCount] # (popped)
@@ -425,10 +434,10 @@ walk :: proc(root: String)
     end
     s := listing[0..<listing.len()].asString()
     # its folders, last first, onto the stack (so the first comes off first), then its files, run now
-    ends: [512]Int
+    ends: [FOLDERS]Int
     count := 0
     a := 0
-    for count < min(n, 512)
+    for count < min(n, FOLDERS)
       e := a
       for e < s.len() and s[e] != '\n'
         e += 1
@@ -444,7 +453,7 @@ walk :: proc(root: String)
         from = ends[j - 1] + 1
       end
       if s[from] == 'd'
-        child: Blob[..2048]
+        child: Blob[..PATH_BYTES]
         child.clear()
         _ = child.pushAll(p)
         _ = child.push('/')
@@ -458,7 +467,7 @@ walk :: proc(root: String)
         from = ends[k - 1] + 1
       end
       if s[from] == 'f' and ends[k] - from > 5 and s[ends[k] - 3..<ends[k]] == ".md"
-        child: Blob[..2048]
+        child: Blob[..PATH_BYTES]
         child.clear()
         _ = child.pushAll(p)
         _ = child.push('/')

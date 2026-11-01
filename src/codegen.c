@@ -114,7 +114,9 @@ uint32_t rio_allocHigh(rio_Vm *vm, uint32_t bytes) {
 }
 
 /* n consecutive constants with these values, reusing ones already there; bit j of addrBits: word j is a
-   slot address (those are renumbered later, so they never match plain numbers). Returns the first. */
+   slot address (those are renumbered later, so they never match plain numbers; words past the 32nd
+   never are). Returns the first. */
+#define rio_ADDR_BIT(bits, j) ((j) < 32 && ((bits) >> (j) & 1))
 int rio_findConsts(rio_Vm *vm, const uint32_t *values, int n, int addrBits) {
   rio_Compiler *c = vm->compiler;
   rio_Val *R = (rio_Val *)vm->mem;
@@ -123,7 +125,7 @@ int rio_findConsts(rio_Vm *vm, const uint32_t *values, int n, int addrBits) {
   for (i = 1; i + (uint32_t)n <= vm->constCount; i++) {
     for (j = 0; j < n; j++) {
       uint32_t k = i + (uint32_t)j;
-      if (R[k].u != values[j] || rio_bitGet(c->constIsString, k) || rio_bitGet(c->constIsAddr, k) != (addrBits >> j & 1))
+      if (R[k].u != values[j] || rio_bitGet(c->constIsString, k) || rio_bitGet(c->constIsAddr, k) != rio_ADDR_BIT(addrBits, j))
         break;
     }
     if (j == n) return (int)i;
@@ -131,7 +133,7 @@ int rio_findConsts(rio_Vm *vm, const uint32_t *values, int n, int addrBits) {
   if (vm->constCount + (uint32_t)n > vm->constCap) rio_FAIL(0, "too many constants");
   for (j = 0; j < n; j++, vm->constCount++) {
     R[vm->constCount].u = values[j];
-    if (addrBits >> j & 1) rio_bitSet(c->constIsAddr, vm->constCount);
+    if (rio_ADDR_BIT(addrBits, j)) rio_bitSet(c->constIsAddr, vm->constCount);
   }
   return (int)vm->constCount - n;
 }

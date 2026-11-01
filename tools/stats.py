@@ -30,8 +30,8 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATS = os.path.join(HERE, "bench", "stats.csv")
 SVG = os.path.join(HERE, "bench", "stats.svg")
 VM = ["common", "image", "runtime", "vm"]
-COMPILER = ["builtins", "codegen", "compile", "decls", "expr", "host", "lexer", "modules", "operators", "repl",
-            "statements", "tables", "jit"]
+COMPILER = ["builtins", "codegen", "compile", "decls", "expr", "fmt", "host", "lexer", "modules", "operators", "repl",
+            "statements", "tables", "jit"]  # (fmt: rio_format, riocore's since e89ad00, counted from the rows after bb81f14: a step up there)
 ARM_FLAGS = ["-mcpu=cortex-m33", "-mthumb", "-march=armv8-m.main+fp+dsp", "-mfloat-abi=softfp", "-O3", "-DNDEBUG",
              "-Drio_SMALL", "-Drio_MAX_FFI=256"]
 
@@ -82,7 +82,7 @@ def tried(f):
     return ""
 
 MADE = {"os_host.h", "os_text.h"}  # (made from os.rio and os.h: not counted twice)
-CLI = {"main.c", "aot.c", "aot.h", "header.c", "os.h"}  # (the rio command's own; the rest is riocore)
+CLI = {"main.c", "aot.c", "aot.h", "header.c", "os/os.h"}  # (the rio command's own, module os in src/os; the rest is riocore)
 
 def defaultRio(root):
   return os.path.join(root, "build-win", "Release", "rio.exe") if os.name == "nt" else os.path.join(root, "build", "rio")
@@ -91,8 +91,9 @@ def measure(root, rio, cc, commit, date, note):
   row = {"date": date, "commit": commit, "machine": platform.node()}
   with tempfile.TemporaryDirectory() as d:
     row["arm_vm"], row["arm_compiler"] = tried(lambda: armSizes(root, d)) or ("", "")
-    lines = {os.path.basename(p): len(open(p, encoding="utf-8", errors="replace").readlines())
-             for p in glob.glob(os.path.join(root, "src", "*.[ch]")) if os.path.basename(p) not in MADE}
+    lines = {os.path.relpath(p, os.path.join(root, "src")).replace("\\", "/"): len(open(p, encoding="utf-8", errors="replace").readlines())
+             for p in glob.glob(os.path.join(root, "src", "*.[ch]")) + glob.glob(os.path.join(root, "src", "os", "*.[ch]"))
+             if os.path.basename(p) not in MADE}
     row["src_lines"] = sum(lines.values())
     row["core_lines"] = sum(n for name, n in lines.items() if name not in CLI)
     row["cli_lines"] = sum(n for name, n in lines.items() if name in CLI)

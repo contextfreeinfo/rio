@@ -148,7 +148,11 @@ In this order:
   later versions, so it never shifts code that was already in the standard form. Open before then:
   - **Making alignment:** today it keeps `::`, `:=` and `=` lined up where they already are (and
     comments' columns), but never lines them up itself. Decide whether it should.
-- **A language server:** tooling, so it can come before or after 1.0.
+- **Tooling, soon:** before too many weeks:
+  - **A language server,** and an extension for VS Code (and Codium) that uses it.
+  - **A web playground:** riocore in the browser (the core alone: no `os`).
+  - **The REPL as the place to start:** Rio-aware completion (exact names, from the session's own
+    symbols and modules), and syntax colors, in its line editor first, then in the language server.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:
   - **Procs:** a proc's name as an argument, `log(f)`, is "not a value", though

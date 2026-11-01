@@ -60,13 +60,14 @@
   X(date, os_date_SIG) \
   X(sleep, os_sleep_SIG)
 
-#define os_HASH 0x7cf1bcdfu /* (rio_hashText of the source) */
+#define os_HASH 0x534de652u /* (rio_hashText of the source) */
 #define os_SOURCE \
   "# os.rio: module os, the rio command's: the program's arguments and environment, text in and out, files\n" \
   "# and folders, running other programs, and time. A program imports it (import os), and it's in rio as\n" \
   "# it runs a program, in its REPL, and in a program's C (rio -c); not in riocore, Rio as a library, whose\n" \
   "# hosts have modules of their own (Rinc's pc). os.h has the procs, in C, and os_host.h, made from this\n" \
-  "# (rio -H src/os_host.h src/os.rio), their sigs.\n" \
+  "# (rio -H src/os/os_host.h src/os/os.rio), their sigs. All of module os is here, in src/os: Rio itself,\n" \
+  "# riocore, is the rest of src, and has nothing of it.\n" \
   "#\n" \
   "# As in rinc's pc: what a proc reads goes into a Blob it's given, as much as fits, and it says the whole\n" \
   "# length (or -1: there's none); what a proc does says 0, or -1 when it can't. Paths are as the system\n" \

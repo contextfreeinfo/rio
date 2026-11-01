@@ -77,7 +77,7 @@ int rio_parseType(rio_Vm *vm) {
     for (j = 0; j < names; j++) { /* (each name, a ? if it's optional, and the , or : after it) */
       rio_next(vm);
       if (c->tok.kind == '?') {
-        opt |= 1 << j;
+        if (j < 16) opt |= 1 << j; /* (past 16: too many parameters, below) */
         rio_next(vm);
       }
       rio_next(vm);

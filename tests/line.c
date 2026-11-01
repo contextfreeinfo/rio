@@ -9,7 +9,7 @@
 static uint8_t mem[64];
 #define rio_OS_MEM mem
 #define rio_OS_MEM_SIZE sizeof mem
-#include "os.h"
+#include "os/os.h"
 
 typedef struct {
   const char *keys, *want; /* want: the line, | where the cursor is */

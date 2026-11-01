@@ -26,7 +26,8 @@ src/jit.c          native loops on ARM Thumb-2 (elsewhere, rio_jit does nothing)
 src/core.rio       the builtins, declared with host (compiled by the tests, not by programs)
 src/aot.c          bytecode to C (CLI only; not needed for embedding)
 src/main.c         the CLI host (loads modules from files and -L paths; the REPL)
-src/os.rio, os.h   the CLI's module os: declared, and in C (os_host.h, os_text.h: made from them)
+src/os/           the CLI's module os, apart from Rio: os.rio declares it, os.h has it in C (os_host.h,
+                   os_text.h: made from them)
 tests/             ctest runs these, in the VM and through C:
   test.rio         the main suite
   errors.c         compile and runtime errors: kind, line, column, width and message
