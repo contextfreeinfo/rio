@@ -1,0 +1,97 @@
+# module os's tests: rio tests/os.rio <rio> <a folder for files> (ctest runs it so, and as C, rio -c).
+# Prints "FAIL" for a check that fails, and "all os tests passed" at the end.
+import os
+
+fails := 0
+check :: proc(ok: Bool, what: String)
+  if not ok
+    log("FAIL", what)
+    fails += 1
+  end
+end
+
+buf: Blob[4096]
+path: Blob[..512]
+path2: Blob[..512]
+
+# the folder's path, then name, in p (a view of it: the next in the same p replaces it)
+named :: proc(p: Blob[..], name: String) -> String
+  p.clear()
+  n := os.arg(1, buf[])
+  _ = p.pushAll(buf[0..<n])
+  _ = p.push('/')
+  _ = p.pushAll(name)
+  return p[0..<p.len()].asString()
+end
+at :: proc(name: String) -> String
+  return named(path, name)
+end
+at2 :: proc(name: String) -> String # (a second, beside one from at)
+  return named(path2, name)
+end
+
+# the program's arguments
+check(os.argCount() == 2, "two arguments")
+check(os.arg(2, buf[]) == -1 and os.arg(-1, buf[]) == -1, "no argument past them")
+
+# the environment
+check(os.env("RIO_NO_SUCH_VARIABLE", buf[]) == -1, "an unset variable")
+check(os.envSet("RIO_OS_TEST", "yes, it is") == 0, "set one")
+n := os.env("RIO_OS_TEST", buf[])
+check(buf[0..<n].asString() == "yes, it is", "and read it back")
+
+# files and folders
+dir := at("")
+check(os.fileKind(dir) == 2, "the folder is there")
+_ = os.fileDelete(at("t/a.txt"))
+_ = os.fileDelete(at("t/b.txt"))
+_ = os.fileDelete(at("t/sub"))
+_ = os.fileDelete(at("t"))
+check(os.fileKind(at("t")) == 0 and os.dirMake(at("t")) == 0 and os.fileKind(at("t")) == 2, "a folder made")
+check(os.fileWrite(at("t/a.txt"), "hello") == 0 and os.fileAppend(at("t/a.txt"), ", there") == 0, "written, added to")
+check(os.fileSize(at("t/a.txt")) == 12 and os.fileKind(at("t/a.txt")) == 1, "its size")
+n = os.fileRead(at("t/a.txt"), buf[])
+check(n == 12 and buf[0..<n].asString() == "hello, there", "read back")
+small: Blob[4]
+check(os.fileRead(at("t/a.txt"), small[]) == 12 and small[0..<4].asString() == "hell", "as much as fits, and its length")
+check(os.fileRead(at("t/none.txt"), buf[]) == -1 and os.fileSize(at("t/none.txt")) == -1, "no such file")
+check(os.dirMake(at("t/sub")) == 0, "a folder in it")
+n = os.dir(at("t"), buf[])
+check(n == 2 and buf[0..<14].asString() == "d sub\nf a.txt\n", "its entries, folders first")
+check(os.fileRename(at("t/a.txt"), at2("t/b.txt")) == 0 and os.fileKind(at("t/a.txt")) == 0 and os.fileKind(at("t/b.txt")) == 1, "renamed")
+check(os.fileDelete(at("t")) == -1, "a folder with things in it stays")
+check(os.fileDelete(at("t/b.txt")) == 0 and os.fileDelete(at("t/sub")) == 0 and os.fileDelete(at("t")) == 0, "deleted")
+check(os.fileKind(at("t")) == 0, "and gone")
+n = os.cwd(buf[])
+check(n > 0 and os.cwdSet(dir) == 0 and os.fileKind("os-cwd-test") == 0, "the current folder, set")
+check(os.fileWrite("os-cwd-test", "x") == 0 and os.fileKind(at("os-cwd-test")) == 1 and os.fileDelete("os-cwd-test") == 0, "relative to it")
+
+# other programs
+check(os.run("exit 3") == 3, "a command's exit code")
+r := os.runOut("echo hello", buf[])
+check(r[0] == 0 and r[1] >= 5 and buf[0..<5].asString() == "hello", "what a command writes")
+rio: Blob[..512]
+k := os.arg(0, buf[])
+_ = rio.pushAll(buf[0..<k])
+check(os.fileWrite(at("line.rio"), "import os\nl: Blob[64]\nn := os.readLine(\"> \", l[])\nos.write(l[0..<n].asString())\nn = os.readLine(\"\", l[])\nlog(\"|\", n)\n") == 0, "a program that reads")
+command: Blob[..1024]
+_ = command.pushAll("echo typed| \"")
+_ = command.pushAll(rio[0..<rio.len()])
+_ = command.pushAll("\" \"")
+_ = command.pushAll(at("line.rio"))
+_ = command.push('"')
+r = os.runOut(command[0..<command.len()].asString(), buf[])
+check(r[0] == 0 and r[1] >= 10 and buf[0..<10].asString() == "> typed| -", "a line read from a pipe (and the end of it)")
+_ = os.fileDelete(at("line.rio"))
+
+# time
+t := os.time()
+os.sleep(0.05)
+check(os.time() - t >= 0.04 and os.time() - t < 5.0, "slept")
+check(os.clock() >= 0.0, "the processor's time")
+n = os.date(buf[])
+check(n == 19 and buf[4] == '-' and buf[13] == ':', "the date")
+
+if fails == 0
+  log("all os tests passed")
+end

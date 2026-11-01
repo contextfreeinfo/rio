@@ -1,4 +1,5 @@
 # rio test suite: prints "FAIL" on any failed check (ctest watches for it)
+import os
 
 fails := 0
 check :: proc(ok: Bool, what: String)
@@ -1866,7 +1867,7 @@ assert(1 + 1 == 2)
 assert(eds.len() == 4, "four directions")
 
 # ---- ffi
-t0 := clock()
+t0 := os.clock()
 check(t0 >= 0, "ffi clock")
 
 # ---- labeled loops: break and continue the loop named
@@ -2318,8 +2319,8 @@ check(ush == 15, ">>>=")
 
 # a host proc as a proc value (through a proc of its own: the VM, an image and the C output alike)
 clocks: [2]proc() -> Float
-clocks[0] = clock
-tick := clock
+clocks[0] = os.clock
+tick := os.clock
 check(tick() >= 0.0 and clocks[0]() >= 0.0, "a host proc as a proc value")
 
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)

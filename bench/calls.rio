@@ -1,11 +1,13 @@
+import os
+
 add3 :: proc(a: Int, b: Int, c: Int) -> Int
   return a + b + c
 end
 main :: proc()
-  t := clock()
+  t := os.clock()
   s := 0
   for i in 0..<30000000
     s = add3(s, i, 1) & 0xffffff
   end
-  log("calls", s, clock() - t)
+  log("calls", s, os.clock() - t)
 end

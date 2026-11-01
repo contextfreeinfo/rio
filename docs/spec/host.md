@@ -44,29 +44,26 @@ import pc                   # a module of host procs (a host that has one)
 pc.cls(0)
 ```
 
-The CLI has two global host procs: `clock() -> Float`, seconds of processor time, and `putc(c: Int)`,
-one byte to its output.
+The CLI's host procs are in its module `os` ([the guide's page](../guide/os.md)): files and
+folders, running programs, the environment and arguments, text in and out, and time, for a program
+that imports it (`import os`).
 
 A host proc can't call back into the program while it runs. It can stop the program with a runtime
 error. Since it can't call back, a host proc can always be a [proc value](expressions.md#proc-values),
-as a proc that calls through no values can: `tick := clock`, or `each("ok", putc)`.
+as a proc that calls through no values can: `tick := os.clock`.
 
 ## Declaring host procs
 
 `host` declares what the host provides, and the compiler checks the declaration against it. Such
-declarations document a host's API in Rio, and since they're checked, they can't drift:
+declarations document a host's API in Rio, and since they're checked, they can't drift. For a host
+with a global host proc `clock` (the CLI's are in its module `os`, whose source declares them so):
 
-```rio
-clock* :: host proc() -> Float     # the CLI's clock: checked against it
+```rio fragment
+clock* :: host proc() -> Float     # the host's clock: checked against it
 start := clock()
-log(start >= 0)
 ```
 
-```output
-true
-```
-
-```rio
+```rio fragment
 clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> Float
 ```
 

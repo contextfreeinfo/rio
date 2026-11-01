@@ -29,6 +29,7 @@
 # Guide to Rio in C
 
 - [Building and the CLI](guide/building.md)
+- [The CLI's module os](guide/os.md)
 - [The C API](guide/embedding.md)
 - [Memory and limits](guide/memory.md)
 - [Images](guide/images.md)

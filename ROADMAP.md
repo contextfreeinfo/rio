@@ -3,8 +3,8 @@
 The goal is a Rio 1.0 that's robust, nearly complete, and specified well enough that anyone could
 implement it from the [spec](docs/spec/language.md). The language itself isn't meant to change after
 1.0: there's no 1.1, so each language item below is decided as now or never. Everything around it
-can keep growing: bug fixes, the implementation, tools, hosts and their modules (`riosys`'s `sys`
-included). Releases may stay 0.x, or a 1.0 beta, until Rio has more users.
+can keep growing: bug fixes, the implementation, tools, hosts and their modules (the `rio` program's
+`os` included). Releases may stay 0.x, or a 1.0 beta, until Rio has more users.
 
 This is the list of everything still being considered. Each item says where it stands and which way
 it leans. Rio means to stay small, so some of these will end up as no. Ideas already turned down,
@@ -26,13 +26,22 @@ In this order:
 - **In rinc, points and sizes:** tried (notes/pc-points.md): Rio passes `[2]Int` parameters as words,
   and `pc.rect`, `pset`, `pget` and `print` take them. Left: deciding the names, `Blit`, the pointer,
   and a `Rect` with helpers, then the rest of `pc`.
-- **`riosys`, a host for scripting:** a `riosys` build of the CLI whose host module, `sys`, has files,
-  directories, running programs, the environment and arguments, so the repo's scripts (`tools/stats.py`,
-  the test runners) can be Rio. It's for dogfooding before the spec is finalized: what writing real
-  tools in Rio turns up. In the Rio repo but not standard Rio, and not in rinc, though `sys` and rinc's
-  modules can share procs and types where that makes lots of sense. Whether the default `rio` build
-  is `riosys` is open: leaning to keep `rio` minimal (it's the reference embedding, and boards have no
-  files or processes), with `riosys` beside it.
+- **Rio+, scripting with the `rio` program:** in: the `rio` program has module `os` ([the guide's
+  page](docs/guide/os.md)), imported by hand, for files, folders, running programs, the environment
+  and arguments, text in and out (with a line editor, the REPL's too), and time; riocore, Rio as a
+  library, stays without it. Next: more of the repo's scripts in Rio, for dogfooding before the spec is
+  finalized (`tests/docs.rio` is the first; `tools/stats.py` and the other test runners after), and
+  what they turn up. So far:
+  - **Text:** no `+` for strings, so a path is built in a `Blob` builder, a few lines each time: worth
+    a helper (in `os`, or for builders), or not.
+  - **Views of builders:** a `String` a proc returns from a builder it keeps shows what the builder
+    has when it's read, so two from the same builder in one call alias (the guide's os page says so).
+  - **Views from parameters:** a proc can't keep a view it was given past the call, so it copies into
+    a builder of its own (safe, and it said so clearly).
+  - **No recursion:** walking folders takes a stack of paths, by hand.
+  - **Declared before used:** a proc called before its declaration, further down the file, is an
+    error, which comes up often in a script of many procs. Whether procs at the top level could be
+    used before they're declared (a pass to collect them first) is worth deciding.
 - **Then the memory spec and the full spec** (Before 1.0, below), with tests drawn from them.
 
 ## Leaning yes

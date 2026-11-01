@@ -1,6 +1,6 @@
 /* rio command line host.
    rio                     interactive REPL
-   rio file.rio            run top-level code, then main() if present
+   rio file.rio [args...]  run top-level code, then main() if present (args: the program's, os.arg)
    rio -c out.c file.rio   compile to a standalone C program instead
    rio -m file.rio         report where the program's memory goes, instead of running it
    rio -i out.img file.rio compile to an image (see rio_loadImage) instead of running it
@@ -15,8 +15,10 @@
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
    -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio
    -help, -license         this, and rio's license (a release is the one program, so it carries them)
-   Ctrl-C stops a running program. */
+   Ctrl-C stops a running program. Programs here have module os (import os: os.rio, os.h): files,
+   folders, running programs, the environment and arguments, text in and out, time. */
 #define _CRT_SECURE_NO_WARNINGS
+#define _DEFAULT_SOURCE /* (POSIX's clock_gettime, setenv and the like, under -std=c99: os.h's) */
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,18 +52,34 @@ static void rio_printLine(void *userData, const char *s, int n) {
   fwrite(s, 1, (size_t)n, stdout);
   fputc('\n', stdout);
 }
-static void rio_ffiClock(rio_Vm *vm, rio_Val *a) {
-  (void)vm;
-  a[0].f = (float)clock() / CLOCKS_PER_SEC;
+
+/* ------------------------------------------------------------------ module os */
+
+#define rio_OS_MEM rio_vm.mem
+#define rio_OS_MEM_SIZE rio_vm.memSize
+#include "os.h"      /* (its procs, in C: rio_ffi_os_<name>) */
+#include "os_host.h" /* (os.rio: its source and sigs: rio -H src/os_host.h src/os.rio) */
+#include "os_text.h" /* (os.h as text, for C output: rio tools/ctext.rio src/os.h src/os_text.h rio_osCode) */
+
+#define rio_OS_VM(name, sig) static void rio_osVm_##name(rio_Vm *vm, rio_Val *a) { (void)vm; rio_ffi_os_##name(a); }
+os_HOST_PROCS(rio_OS_VM)
+#undef rio_OS_VM
+
+/* module os, for import os: its source and its procs */
+static int rio_addOs(void) {
+#define rio_OS_ADD(name, sig) || rio_addFfi(&rio_vm, "os." #name, sig, rio_osVm_##name)
+  return rio_addSource(&rio_vm, "os", os_SOURCE, sizeof os_SOURCE - 1) os_HOST_PROCS(rio_OS_ADD);
+#undef rio_OS_ADD
 }
-static void rio_ffiPutc(rio_Vm *vm, rio_Val *a) {
-  (void)vm;
-  fputc(a[0].i, stdout);
+
+/* the host procs as C, for C output: os's, when the program imports os (else none) */
+static const char *rio_hostFfi(void) {
+  static char text[sizeof rio_osCode + 256];
+  if (!(rio_vm.sourcesUsed & 1)) return 0; /* (os: the first source added) */
+  snprintf(text, sizeof text, "#define rio_OS_MEM rio_M\n#define rio_OS_MEM_SIZE rio_MEM_SIZE\n"
+           "#define rio_HOST_START(argc, argv) rio_osStart((argc) - 1, (argv) + 1)\n%s", rio_osCode);
+  return text;
 }
-/* the same host functions, as C source for AOT output */
-static const char *rio_ffiSource =
-  "void rio_ffi_clock(rio_Val *a) { a[0].f = (float)clock() / CLOCKS_PER_SEC; }\n"
-  "void rio_ffi_putc(rio_Val *a) { fputc(a[0].i, stdout); }\n";
 
 /* ------------------------------------------------------------------ files and modules */
 
@@ -212,33 +230,62 @@ static void rio_report(const char *where) {
   fprintf(stderr, "%s\n", rio_error(&rio_vm));
 }
 
+/* the REPL's history file: ~/.rio_history (HOME, or USERPROFILE on Windows); 0 if there's no home */
+static const char *rio_historyPath(void) {
+  static char path[1024];
+  const char *home = getenv("HOME");
+#ifdef _WIN32
+  if (!home) home = getenv("USERPROFILE");
+#endif
+  if (!home || snprintf(path, sizeof path, "%s/.rio_history", home) >= (int)sizeof path) return 0;
+  return path;
+}
+
 /* each line is added to what's pending; unfinished input (an open block, bracket or string) waits for
-   more, and a blank line gives up on it */
+   more, and a blank line gives up on it. Lines are typed with the line editor (os.h's: arrows, Home,
+   End, Ctrl+Left and Right by words, Up and Down for the lines typed before, kept in ~/.rio_history) */
 static int rio_repl(void) {
   static char pending[1 << 16];
-  char line[1024];
+  char line[rio_LINE + 1];
   size_t n = 0, k;
-  int result;
+  int result, got;
+  const char *history = rio_historyPath();
+  FILE *h;
   if (rio_replBegin(&rio_vm, rio_scratch, sizeof rio_scratch, 0)) {
     rio_report(0);
     return 1;
   }
-  printf("rio REPL. Ctrl-C stops a running program; Ctrl-D (Ctrl-Z Enter on Windows) quits.\n");
-  for (;;) {
-    fputs(n ? ". " : "> ", stdout); /* (as wide: lines line up) */
-    fflush(stdout);
-    rio_gotInterrupt = 0;
-    if (!fgets(line, sizeof line, stdin)) {
-      if (rio_gotInterrupt) {
-        clearerr(stdin);
-        n = 0;
-        putchar('\n');
-        continue;
-      }
-      break;
+  if (history && (h = fopen(history, "rb"))) { /* (the lines typed before, the last 256) */
+    int lines = 0, i;
+    while (fgets(line, sizeof line, h)) {
+      k = strcspn(line, "\r\n");
+      rio_osHistoryAdd(line, (int)k);
+      lines++;
     }
-    k = strlen(line);
-    if (n && (line[0] == '\n' || line[0] == '\r')) {
+    fclose(h);
+    if (lines > 1000 && (h = fopen(history, "wb"))) { /* (grown long: just those kept) */
+      for (i = 0; i < rio_osHistCount; i++) fprintf(h, "%s\n", rio_osHist[i]);
+      fclose(h);
+    }
+  }
+  printf("rio REPL. Ctrl-C stops a running program, or drops what's typed; Ctrl-D quits.\n");
+  for (;;) {
+    rio_gotInterrupt = 0;
+    got = rio_osLine(n ? ". " : "> ", 2, line, (int)sizeof line - 1); /* (as wide: lines line up) */
+    if (got == -2 || (got < 0 && rio_gotInterrupt)) { /* Ctrl+C: what's typed dropped */
+      clearerr(stdin);
+      n = 0;
+      continue;
+    }
+    if (got < 0) break;
+    if (got > 0 && history && (h = fopen(history, "ab"))) {
+      fprintf(h, "%s\n", line);
+      fclose(h);
+    }
+    line[got] = '\n'; /* (the line, with its line break, as the REPL takes it) */
+    line[got + 1] = 0;
+    k = (size_t)got + 1;
+    if (n && got == 0) {
       puts("(unfinished input dropped)");
       n = 0;
       continue;
@@ -255,7 +302,6 @@ static int rio_repl(void) {
     if (result) rio_report(0);
     n = 0;
   }
-  putchar('\n');
   return 0;
 }
 
@@ -453,18 +499,31 @@ static int rio_fmtMain(int argc, char **argv) {
   return status;
 }
 
+/* where the program's file is in argv (argc: none): rio's own flags come before it, its arguments after */
+static int rio_programAt(int argc, char **argv) {
+  int i;
+  for (i = 1; i < argc; i++) {
+    const char *a = argv[i];
+    if (a[0] != '-') return i;
+    if (!strcmp(a, "-c") || !strcmp(a, "-i") || !strcmp(a, "-H") || !strcmp(a, "-M") || !strcmp(a, "-window") ||
+        ((!strcmp(a, "-L") || !strcmp(a, "-D"))))
+      i++; /* (and its value) */
+  }
+  return argc;
+}
+
 int main(int argc, char **argv) {
   FILE *f;
   size_t n;
-  int proc, i, memReport = 0, jit = 0;
+  int proc, i, memReport = 0, jit = 0, programArgs = argc, at = rio_programAt(argc, argv);
   const char *cOut = 0, *imageOut = 0, *headerOut = 0, *path = 0;
   unsigned long memSize = rio_MEM_DEFAULT;
   if (argc > 1 && !strcmp(argv[1], "fmt")) return rio_fmtMain(argc - 2, argv + 2);
-  for (i = 1; i < argc; i++) { /* (these on their own) */
+  for (i = 1; i < at; i++) { /* (these on their own) */
     if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) return fputs(rio_help, stdout) < 0;
     if (!strcmp(argv[i], "-license") || !strcmp(argv[i], "--license")) return fputs(rio_license, stdout) < 0;
   }
-  for (i = 1; i < argc; i++) /* -M first: rio_init comes before -D */
+  for (i = 1; i < at; i++) /* -M first: rio_init comes before -D */
     if (!strcmp(argv[i], "-M") && i + 1 < argc) {
       memSize = rio_parseMemSize(argv[++i]);
       if (!memSize) {
@@ -504,12 +563,19 @@ int main(int argc, char **argv) {
         fprintf(stderr, "too many -D defines\n");
         return 2;
       }
-    } else if (arg[0] == '-' || path) return rio_usage();
-    else path = arg;
+    } else if (arg[0] == '-') return rio_usage();
+    else { /* the program's file: the rest are its arguments */
+      path = arg;
+      programArgs = i + 1;
+      break;
+    }
   }
+  rio_osStart(argc - programArgs, argv + programArgs);
   rio_setLog(&rio_vm, rio_printLine, 0);
-  rio_addFfi(&rio_vm, "clock", ">f", rio_ffiClock);
-  rio_addFfi(&rio_vm, "putc", "i", rio_ffiPutc);
+  if (rio_addOs()) {
+    fprintf(stderr, "can't add module os\n");
+    return 1;
+  }
   rio_setLoader(&rio_vm, rio_loadFile, 0);
   if (rio_window) rio_setSourceWindow(&rio_vm, (uint32_t)rio_window);
   signal(SIGINT, rio_onInterrupt);
@@ -580,7 +646,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "cannot write %s\n", cOut);
         return 2;
       }
-      error = rio_aot(&rio_vm, f, rio_ffiSource);
+      error = rio_aot(&rio_vm, f, rio_hostFfi());
       if (fclose(f) || error) {
         fprintf(stderr, "error writing %s\n", cOut);
         return 1;

@@ -1,5 +1,8 @@
 """Runs the examples in the docs as tests: python tests/docs.py path/to/rio docs README.md [-- args]
 
+Rinc's: rio's own tests run tests/docs.rio, the same in Rio (with rio's flags before each example's file:
+rio passes what comes after it to the program).
+
 Arguments after -- go after each example's file: a host such as rinc runs examples with -frames 2.
 
 Each ```rio block in a Markdown file is a whole program, run with the rio CLI:

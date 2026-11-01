@@ -45,11 +45,33 @@ fell 25.0 with 2 balls
 - **Friendly to read.** Types are inferred, blocks end with `end`, and structs, builders and text
   are plain values with no pointers to manage.
 
+## Rio, and the `rio` program: Rio+
+
+Rio itself stays small: the language, its builtins, and the C library, riocore, with nothing of an
+operating system in it. A host adds what it has as modules of its own (a game console's drawing and
+sound, say).
+
+The `rio` program is Rio+: Rio, plus a module for scripting on a computer, [`os`](docs/guide/os.md):
+files and folders, running other programs, the environment and arguments, text in and out (lines read
+with editing and history, as in its REPL), and time. A program imports it to use it, so Rio programs
+that don't stay plain Rio:
+
+```rio
+import os
+
+n := os.argCount()
+log("arguments:", n)
+```
+
+```output
+arguments: 0
+```
+
 ## Try it
 
 ```sh
 cmake -S . -B build && cmake --build build --config Release
-build/rio game.rio       # run a file (build/Release/rio.exe with MSVC)
+build/rio game.rio a b   # run a file, a and b its arguments (build/Release/rio.exe with MSVC)
 build/rio                # or a REPL
 ```
 

@@ -1,7 +1,9 @@
+import os
+
 M :: 2000000
 flags: Blob[M]
 main :: proc()
-  t := clock()
+  t := os.clock()
   count := 0
   for _ in 0..<10
     for i in 0..<M
@@ -19,5 +21,5 @@ main :: proc()
       end
     end
   end
-  log("sieve", count, clock() - t)
+  log("sieve", count, os.clock() - t)
 end

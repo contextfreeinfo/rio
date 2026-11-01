@@ -13,6 +13,7 @@ included. The C compiler then optimizes it like any other C code. Runtime errors
 through `#line` directives.
 
 Host procs are called as `void rio_ffi_<name>(rio_Val *a)`, with a dotted name's dots as `_`
-(`rio_ffi_pc_cls`). The CLI includes definitions of its own `clock` and `putc`; link your own for other
-host procs (and build with `-Drio_NO_HOST_FFI` to drop the CLI's). ctest runs the test suite both in the
+(`rio_ffi_pc_cls`). For a program that imports [os](os.md), the CLI includes module os's code (os.h),
+and `main` passes it the program's arguments; link your own for other host procs (and build with
+`-Drio_NO_HOST_FFI` to drop the CLI's). ctest runs the test suite both in the
 VM and through C.

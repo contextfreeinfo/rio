@@ -91,6 +91,31 @@ file(GLOB RIO_FMT_FILES ${CMAKE_SOURCE_DIR}/bench/*.rio ${CMAKE_SOURCE_DIR}/src/
   ${CMAKE_SOURCE_DIR}/tests/modules/*/*.rio ${CMAKE_SOURCE_DIR}/tests/modules/lib/*/*.rio)
 add_test(NAME rio_fmt_clean COMMAND rio fmt -l ${RIO_FMT_FILES})
 
+# module os (the rio command's): its procs, in the VM and as C (tests/os.rio, with a folder for files),
+# its line editor (tests/line.c), and os_host.h and os_text.h, made from os.rio and os.h, up to date
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/os-test ${CMAKE_BINARY_DIR}/os-test-aot) # (one each: they may run at once)
+add_test(NAME rio_os COMMAND rio ${CMAKE_SOURCE_DIR}/tests/os.rio $<TARGET_FILE:rio> ${CMAKE_BINARY_DIR}/os-test)
+set_tests_properties(rio_os PROPERTIES PASS_REGULAR_EXPRESSION "all os tests passed" FAIL_REGULAR_EXPRESSION "FAIL")
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/os_aot.c
+  COMMAND rio -c ${CMAKE_BINARY_DIR}/os_aot.c ${CMAKE_SOURCE_DIR}/tests/os.rio
+  DEPENDS rio ${CMAKE_SOURCE_DIR}/tests/os.rio)
+add_executable(os_aot ${CMAKE_BINARY_DIR}/os_aot.c)
+if(NOT MSVC)
+  target_link_libraries(os_aot PRIVATE m)
+endif()
+add_test(NAME rio_os_aot COMMAND os_aot $<TARGET_FILE:rio> ${CMAKE_BINARY_DIR}/os-test-aot)
+set_tests_properties(rio_os_aot PROPERTIES PASS_REGULAR_EXPRESSION "all os tests passed" FAIL_REGULAR_EXPRESSION "FAIL")
+add_executable(rio_line_test tests/line.c)
+target_link_libraries(rio_line_test PRIVATE riocore)
+add_test(NAME rio_line COMMAND rio_line_test)
+set_tests_properties(rio_line PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ line tests passed")
+add_test(NAME rio_os_header_make COMMAND rio -H ${CMAKE_BINARY_DIR}/os_host_now.h ${CMAKE_SOURCE_DIR}/src/os.rio)
+add_test(NAME rio_os_header COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_BINARY_DIR}/os_host_now.h ${CMAKE_SOURCE_DIR}/src/os_host.h)
+set_tests_properties(rio_os_header PROPERTIES DEPENDS rio_os_header_make)
+add_test(NAME rio_os_text_make COMMAND rio ${CMAKE_SOURCE_DIR}/tools/ctext.rio ${CMAKE_SOURCE_DIR}/src/os.h ${CMAKE_BINARY_DIR}/os_text_now.h rio_osCode)
+add_test(NAME rio_os_text COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_BINARY_DIR}/os_text_now.h ${CMAKE_SOURCE_DIR}/src/os_text.h)
+set_tests_properties(rio_os_text PROPERTIES DEPENDS rio_os_text_make)
+
 add_executable(rio_repl_test tests/repl.c)
 target_link_libraries(rio_repl_test PRIVATE riocore)
 add_test(NAME rio_repl COMMAND rio_repl_test)
@@ -106,17 +131,19 @@ target_link_libraries(rio_modules_test PRIVATE riocore)
 add_test(NAME rio_modules_api COMMAND rio_modules_test)
 set_tests_properties(rio_modules_api PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ module tests passed")
 
-# every example in the docs (docs/spec, docs/tutorial, README.md) runs as a test
+# every example in the docs (docs/spec, docs/tutorial, README.md) runs as a test: tests/docs.rio, Rio
+# (tests/docs.py, the same in Python, is rinc's, until it moves to docs.rio)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/docs-test ${CMAKE_BINARY_DIR}/docs-test-streamed)
+add_test(NAME rio_docs COMMAND rio ${CMAKE_SOURCE_DIR}/tests/docs.rio $<TARGET_FILE:rio> ${CMAKE_BINARY_DIR}/docs-test
+  ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md)
+set_tests_properties(rio_docs PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
+# and again, each read through a tiny window (as a host reading files a part at a time would), so the
+# text moves under the lexer all the time
+add_test(NAME rio_docs_streamed COMMAND rio ${CMAKE_SOURCE_DIR}/tests/docs.rio $<TARGET_FILE:rio> ${CMAKE_BINARY_DIR}/docs-test-streamed
+  ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md -- -window 128)
+set_tests_properties(rio_docs_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
-  add_test(NAME rio_docs COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/docs.py $<TARGET_FILE:rio>
-    ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md)
-  set_tests_properties(rio_docs PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
-  # and again, each read through a tiny window (as a host reading files a part at a time would), so the
-  # text moves under the lexer all the time
-  add_test(NAME rio_docs_streamed COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/docs.py $<TARGET_FILE:rio>
-    ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md -- -window 128)
-  set_tests_properties(rio_docs_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
   # random programs passing views of local and global memory around: none rio accepts keeps a view of a
   # proc's own memory past the call, and every one that keeps to the rules compiles
   add_test(NAME rio_views COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/viewtest.py $<TARGET_FILE:rio> 400)

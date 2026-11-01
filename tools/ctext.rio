@@ -1,0 +1,62 @@
+# A file as C text: a 0-terminated char array of it, a line of the file a line of C.
+#   rio tools/ctext.rio src/os.h src/os_text.h rio_osCode     (os_text.h: os.h, for a program's C)
+import os
+
+if os.argCount() != 3
+  os.writeErr("usage: rio tools/ctext.rio in out name\n")
+  os.exit(2)
+end
+arg: Blob[512]
+inPath: Blob[..512]
+outPath: Blob[..512]
+name: Blob[..128]
+n := os.arg(0, arg[])
+_ = inPath.pushAll(arg[0..<n])
+n = os.arg(1, arg[])
+_ = outPath.pushAll(arg[0..<n])
+n = os.arg(2, arg[])
+_ = name.pushAll(arg[0..<n])
+
+text: Blob[1 << 16]
+size := os.fileRead(inPath[0..<inPath.len()].asString(), text[])
+if size < 0 or size > text.len()
+  os.writeErr("can't read it (or it's over 64 KB)\n")
+  os.exit(1)
+end
+
+# the file's name, without its folders
+from := 0
+for k in 0..<inPath.len()
+  if inPath[k] == '/' or inPath[k] == '\\'
+    from = k + 1
+  end
+end
+base := inPath[from..<inPath.len()].asString()
+
+c: Blob[..1 << 18]
+ok := c.print("/* ", base, " as text, as ", name[0..<name.len()], ": made from it by tools/ctext.rio. Don't edit */\n")
+ok = ok and c.print("static const char ", name[0..<name.len()], "[] =")
+p := 0
+for p < size
+  e := p
+  for e < size and text[e] != '\n'
+    e += 1
+  end
+  ok = ok and c.pushAll("\n  \"")
+  for q in p..<e
+    ch := text[q]
+    if ch == '\\' or ch == '"'
+      ok = ok and c.push('\\')
+    end
+    if ch != '\r'
+      ok = ok and c.push(ch)
+    end
+  end
+  ok = ok and c.pushAll("\\n\"")
+  p = e + 1
+end
+ok = ok and c.pushAll(";\n")
+if not ok or os.fileWrite(outPath[0..<outPath.len()].asString(), c[0..<c.len()].asString()) != 0
+  os.writeErr("can't write it\n")
+  os.exit(1)
+end

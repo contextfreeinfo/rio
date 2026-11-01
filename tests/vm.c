@@ -11,8 +11,8 @@ static rio_Instr code[65535];
 static rio_Vm vm;
 
 static void out(void *ud, const char *s, int n) { (void)ud; fwrite(s, 1, (size_t)n, stdout); fputc('\n', stdout); }
+/* the host procs the test image calls: os.clock, as the rio command has it (its os module's) */
 static void ffi_clock(rio_Vm *v, rio_Val *a) { (void)v; a[0].f = (float)clock() / CLOCKS_PER_SEC; }
-static void ffi_putc(rio_Vm *v, rio_Val *a) { (void)v; fputc(a[0].i, stdout); }
 
 int main(int argc, char **argv) {
   FILE *f; size_t n; int fn;
@@ -20,8 +20,7 @@ int main(int argc, char **argv) {
   n = fread(img, 1, sizeof img, f); fclose(f);
   rio_init(&vm, mem, sizeof mem, code, 65535);
   rio_setLog(&vm, out, 0);
-  rio_addFfi(&vm, "clock", ">f", ffi_clock);
-  rio_addFfi(&vm, "putc", "i", ffi_putc);
+  rio_addFfi(&vm, "os.clock", ">f", ffi_clock);
   if (rio_loadImage(&vm, img, (uint32_t)n) || rio_run(&vm) || ((fn = rio_findProc(&vm, "main")) >= 0 && rio_call(&vm, fn))) {
     fflush(stdout); fprintf(stderr, "%s: %s\n", argv[1], rio_error(&vm)); return 1;
   }

@@ -83,10 +83,13 @@ two comments are indented as usual, and can have a note after a space (`# nofmt 
 needn't compile to be laid out, and hosts get it as `rio_format` (in `rio.h`), which needs no VM.
 
 Errors print as `game.rio:12:7: type mismatch`, which terminals and editors can turn into links.
-Ctrl-C stops a running program. The CLI's host procs are `clock() -> Float` (processor seconds) and
-`putc(c: Int)`.
+Ctrl-C stops a running program. Arguments after the program's file are the program's (`rio
+tool.rio a b`: `os.arg`). The CLI's host procs are in its module [os](os.md), for programs that
+`import os`.
 
 In the REPL, globals, procs, types and methods carry over from one input to the next, and a bare
 expression prints its value. An unfinished input gets a `.` prompt for more, as wide as `>` so the
-lines line up; a blank line drops it. A compile error leaves the session as it was. For line editing
-and history, Windows' console already has them; on Linux and macOS use `rlwrap rio`.
+lines line up; a blank line drops it. A compile error leaves the session as it was. Lines are edited
+as they're typed, as `os.readLine`'s are ([os](os.md)): the arrows, Home and End, Ctrl+Left and Right
+by words, Ctrl+K, Ctrl+U, Ctrl+W and Ctrl+Y, and Up and Down for the lines typed before, which are kept
+in `~/.rio_history`. Ctrl+C drops what's typed, and Ctrl+D quits.

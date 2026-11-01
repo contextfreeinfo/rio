@@ -431,7 +431,7 @@ static void rio_instruction(rio_Aot *a, int pc) {
 
 /* the runtime the generated code needs: memory, errors, log, builders */
 static const char *const rio_prelude =
-  "#define _CRT_SECURE_NO_WARNINGS\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <math.h>\n#include <time.h>\n"
+  "#define _CRT_SECURE_NO_WARNINGS\n#define _DEFAULT_SOURCE\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <math.h>\n#include <time.h>\n"
   "#ifdef __GNUC__\n#pragma GCC diagnostic ignored \"-Wunused\"\n#endif\n"
   "typedef union { int32_t i; float f; uint32_t u; } rio_Val;\n"
   "static union { rio_Val v[rio_MEM_SIZE / 4]; uint8_t b[rio_MEM_SIZE]; } rio_mem;\n"
@@ -587,7 +587,9 @@ int rio_aot(rio_Vm *vm, FILE *out, const char *hostFfi) {
       }
     if (pc < (int)vm->codeLen) rio_instruction(a, pc);
   }
-  fprintf(out, "}\n\nint main(void) {\n  rio_load();\n  rio_top();\n");
+  fprintf(out, "}\n\nint main(int argc, char **argv) {\n  (void)argc;\n  (void)argv;\n"
+               "#ifdef rio_HOST_START\n  rio_HOST_START(argc, argv); /* (the host's, if it has a start: its arguments) */\n#endif\n"
+               "  rio_load();\n  rio_top();\n");
   if ((mainProc = rio_findProc(vm, "main")) >= 0) fprintf(out, "  %s();\n", rio_procName(a, mainProc));
   fprintf(out, "  return 0;\n}\n");
   return ferror(out) ? -1 : 0;

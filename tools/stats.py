@@ -13,7 +13,9 @@ bench/stats.csv (record one with each batch of changes, so the file's history sh
   arm_vm, arm_compiler   bytes of code and data for the VM (common, image, runtime, vm) and the compiler
                          (the rest, jit.c too), built for the Fruit Jam's Cortex-M33 as Rinc builds them
                          (-O3, rio_SMALL); needs arm-none-eabi-gcc (the Pico SDK's, else on PATH)
-  src_lines              lines of C in src
+  src_lines              lines of C in src (written: not the headers made from others, os_host.h, os_text.h)
+  core_lines, cli_lines  of those, riocore's (the library: compiler and VM) and the rio command's own (its
+                         main.c, aot.c, header.c, and module os, os.h)
   rio_exe                bytes of the rio program given (this computer's build)
   test_img               bytes of tests/test.rio compiled to an image (how dense the code is)
   compile_ms             compiling tests/test.rio to an image, best of 5
@@ -79,6 +81,9 @@ def tried(f):
   except (subprocess.CalledProcessError, OSError, ValueError, IndexError):
     return ""
 
+MADE = {"os_host.h", "os_text.h"}  # (made from os.rio and os.h: not counted twice)
+CLI = {"main.c", "aot.c", "aot.h", "header.c", "os.h"}  # (the rio command's own; the rest is riocore)
+
 def defaultRio(root):
   return os.path.join(root, "build-win", "Release", "rio.exe") if os.name == "nt" else os.path.join(root, "build", "rio")
 
@@ -86,7 +91,11 @@ def measure(root, rio, cc, commit, date, note):
   row = {"date": date, "commit": commit, "machine": platform.node()}
   with tempfile.TemporaryDirectory() as d:
     row["arm_vm"], row["arm_compiler"] = tried(lambda: armSizes(root, d)) or ("", "")
-    row["src_lines"] = sum(len(open(p, encoding="utf-8", errors="replace").readlines()) for p in glob.glob(os.path.join(root, "src", "*.[ch]")))
+    lines = {os.path.basename(p): len(open(p, encoding="utf-8", errors="replace").readlines())
+             for p in glob.glob(os.path.join(root, "src", "*.[ch]")) if os.path.basename(p) not in MADE}
+    row["src_lines"] = sum(lines.values())
+    row["core_lines"] = sum(n for name, n in lines.items() if name not in CLI)
+    row["cli_lines"] = sum(n for name, n in lines.items() if name in CLI)
     row["rio_exe"] = os.path.getsize(rio)
     img = os.path.join(d, "test.img")
     test = os.path.join(root, "tests", "test.rio")
@@ -131,6 +140,8 @@ def commitTime(row):
 def record(row):
   head, rows = readStats()
   if not head: head = list(row)
+  for k in row: # (a measure new since the file began: a column, before the note)
+    if k not in head: head.insert(head.index("note") if "note" in head else len(head), k)
   rows.append(row)
   writeStats(head, rows)
   print("recorded in bench/stats.csv")
@@ -182,7 +193,7 @@ text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(
 PANELS = [
   ("The VM on the board", "KB", ["arm_vm"], 1 / 1024),
   ("The compiler on the board", "KB", ["arm_compiler"], 1 / 1024),
-  ("Lines of C in src", "lines", ["src_lines"], 1),
+  ("Lines of C in src", "lines", ["src_lines", "core_lines", "cli_lines"], 1),
   ("tests/test.rio as an image", "KB", ["test_img"], 1 / 1024),
   ("Compiling tests/test.rio", "ms", ["compile_ms"], 1),
   ("rio.exe on this machine", "KB", ["rio_exe"], 1 / 1024),

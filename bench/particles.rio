@@ -1,3 +1,5 @@
+import os
+
 P :: struct
   x, y, vx, vy: Float
 end
@@ -7,7 +9,7 @@ main :: proc()
   for i in 0..<N
     ps[i] = P{x = i.toFloat(), y = 0, vx = 1, vy = (i % 7).toFloat()}
   end
-  t := clock()
+  t := os.clock()
   for _ in 0..<1000
     for i in 0..<N
       ps[i].vy -= 0.01
@@ -23,5 +25,5 @@ main :: proc()
   for i in 0..<N
     sum += ps[i].y
   end
-  log("particles", sum, clock() - t)
+  log("particles", sum, os.clock() - t)
 end

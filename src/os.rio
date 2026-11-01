@@ -1,0 +1,57 @@
+# os.rio: module os, the rio command's: the program's arguments and environment, text in and out, files
+# and folders, running other programs, and time. A program imports it (import os), and it's in rio as
+# it runs a program, in its REPL, and in a program's C (rio -c); not in riocore, Rio as a library, whose
+# hosts have modules of their own (Rinc's pc). os.h has the procs, in C, and os_host.h, made from this
+# (rio -H src/os_host.h src/os.rio), their sigs.
+#
+# As in rinc's pc: what a proc reads goes into a Blob it's given, as much as fits, and it says the whole
+# length (or -1: there's none); what a proc does says 0, or -1 when it can't. Paths are as the system
+# takes them (on Windows, / works as \ does).
+
+# ---------------------------------------------------------------- the program
+
+argCount* :: host proc() -> Int                   # the arguments after the program's file: rio game.rio a b, 2
+arg* :: host proc(i: Int, out: Blob) -> Int       # argument i (from 0): its length, or -1
+env* :: host proc(name: String, out: Blob) -> Int # an environment variable: its length, or -1 (not set)
+envSet* :: host proc(name: String, value: String) -> Int # set for the program and the ones it runs: 0, or -1
+exit* :: host proc(code: Int)                     # the program ends here, with this exit code
+
+# ---------------------------------------------------------------- text in and out
+
+write* :: host proc(text: String)       # to standard output, as it is (log adds a line break, and spaces)
+writeErr* :: host proc(text: String)    # to standard error
+# a line typed, after prompt, edited as it's typed (when it's typed at a terminal: arrows, Home, End,
+# Ctrl+Left and Right by words, Backspace, Delete, Ctrl+K, Ctrl+U, Ctrl+W, Ctrl+Y, Up and Down for the
+# lines typed before): its length (without its line break), or -1 at the end of the input
+readLine* :: host proc(prompt: String, out: Blob) -> Int
+readAll* :: host proc(out: Blob) -> Int # standard input, to its end: as much as fits, and how long it was
+
+# ---------------------------------------------------------------- files and folders
+
+fileRead* :: host proc(path: String, out: Blob) -> Int      # as much as fits: its whole length, or -1
+fileWrite* :: host proc(path: String, data: String) -> Int  # made, or replaced: 0, or -1
+fileAppend* :: host proc(path: String, data: String) -> Int # added at its end (made if it isn't there): 0, or -1
+fileSize* :: host proc(path: String) -> Int                 # its length, or -1 (not a file)
+fileKind* :: host proc(path: String) -> Int                 # 0 nothing there, 1 a file, 2 a folder
+fileDelete* :: host proc(path: String) -> Int               # a file, or an empty folder: 0, or -1
+fileRename* :: host proc(from: String, to: String) -> Int    # (moved, too): 0, or -1
+dir* :: host proc(path: String, out: Blob) -> Int           # its entries, a line each ("d name", "f name"), folders first: how many, or -1
+dirMake* :: host proc(path: String) -> Int                  # a folder (the folder it's in, there already): 0, or -1
+cwd* :: host proc(out: Blob) -> Int                         # the folder relative paths start from: its length
+cwdSet* :: host proc(path: String) -> Int                   # another one: 0, or -1
+
+# ---------------------------------------------------------------- other programs
+
+# a command, as the system's shell runs it (sh, or cmd on Windows), waited for: its exit code, or -1
+# if it couldn't run
+run* :: host proc(command: String) -> Int
+# the same, with what it writes to standard output kept in out (as much as fits): {its exit code (or
+# -1), how long what it wrote was}
+runOut* :: host proc(command: String, out: Blob) -> [2]Int
+
+# ---------------------------------------------------------------- time
+
+clock* :: host proc() -> Float           # the processor's time the program has used, in seconds
+time* :: host proc() -> Float            # seconds since the program started, as a clock on the wall counts
+date* :: host proc(out: Blob) -> Int     # the date and time here, 2026-11-01 14:03:05: its length (19)
+sleep* :: host proc(seconds: Float)      # nothing, for this long

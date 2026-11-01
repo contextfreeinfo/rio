@@ -1,8 +1,10 @@
+import os
+
 main :: proc()
-  t := clock()
+  t := os.clock()
   s := 0
   for i in 0..<100000000
     s = s + (i & 7) * 3
   end
-  log("loop", s, clock() - t)
+  log("loop", s, os.clock() - t)
 end

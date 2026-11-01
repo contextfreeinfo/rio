@@ -1,0 +1,478 @@
+# The docs' examples, run as tests (as tests/docs.py does, in Rio):
+#   rio tests/docs.rio path/to/rio a/work/folder docs README.md [-- args]
+#
+# Arguments after -- go before each example's file: rio's own (-window 128). Each ```rio block in a Markdown file is a whole
+# program, run with rio, from a folder of its own in the work folder:
+#   ```rio                  must run without errors; an ```output block right after it is its exact output
+#   # error: message        (ending a line) compiling must fail there, with a message containing this
+#   # runtime error: msg    (ending a line) running must fail at that line
+#   ```rio file=geo.rio     a file for the next example to import or include (paths may have folders;
+#                           files under lib/ are packages: the example runs with -L lib)
+#   ```rio fragment         shown, not run (a piece of a program)
+import os
+
+# ---------------------------------------------------------------- text
+
+# where t is in s, from at on, or -1
+find :: proc(s: String, t: String, from: Int) -> Int
+  for p in from..<s.len() - t.len() + 1
+    if s[p..<p + t.len()] == t
+      return p
+    end
+  end
+  return -1
+end
+
+startsWith :: proc(s: String, t: String) -> Bool
+  return s.len() >= t.len() and s[0..<t.len()] == t
+end
+
+isSpace :: proc(c: Int) -> Bool
+  return c == ' ' or c == '\t' or c == '\r'
+end
+
+# s without the spaces at its ends
+trim :: proc(s: String) -> String
+  a := 0
+  b := s.len()
+  for a < b and isSpace(s[a])
+    a += 1
+  end
+  for b > a and isSpace(s[b - 1])
+    b -= 1
+  end
+  return s[a..<b]
+end
+
+# a line of s starts with t
+hasLine :: proc(s: String, t: String) -> Bool
+  p := find(s, t, 0)
+  for p >= 0
+    if p == 0 or s[p - 1] == '\n'
+      return true
+    end
+    p = find(s, t, p + 1)
+  end
+  return false
+end
+
+# ---------------------------------------------------------------- the arguments
+
+arg: Blob[1024]
+rio: Blob[..1024]
+work: Blob[..1024]
+extra: Blob[..1024] # (after --: rio's, for each example, with spaces between)
+
+argText :: proc(i: Int) -> String
+  n := os.arg(i, arg[])
+  return arg[0..<max(n, 0)].asString()
+end
+
+if os.argCount() < 3
+  os.writeErr("usage: rio tests/docs.rio path/to/rio a/work/folder docs README.md [-- args]\n")
+  os.exit(2)
+end
+_ = rio.pushAll(argText(0))
+_ = work.pushAll(argText(1))
+roots := os.argCount()
+for i in 2..<os.argCount()
+  if argText(i) == "--" and roots == os.argCount()
+    roots = i
+  case roots < i
+    _ = extra.push(' ')
+    _ = extra.pushAll(argText(i))
+  end
+end
+
+# ---------------------------------------------------------------- a Markdown file's blocks
+
+md: Blob[1 << 18]   # the file
+mdLen := 0
+lineAt: [8192]Int   # where each of its lines starts (and its end, after the last)
+lines := 0
+pool: Blob[..1 << 19] # each block's text, its indent left off
+BLOCKS :: 1024
+infoAt: [BLOCKS]Int # each block: its info (after ```), in md
+infoLen: [BLOCKS]Int
+startLine: [BLOCKS]Int # the first line of its text (from 1)
+endLine: [BLOCKS]Int   # its closing ``` line (from 0)
+textAt: [BLOCKS]Int    # its text, in pool
+textLen: [BLOCKS]Int
+blocks := 0
+
+line :: proc(i: Int) -> String
+  e := lineAt[i + 1] - 1
+  if e > lineAt[i] and md[e - 1] == '\r'
+    e -= 1
+  end
+  return md[lineAt[i]..<max(lineAt[i], e)].asString()
+end
+
+# a fence (``` after spaces): where its ``` starts, else -1
+fence :: proc(l: String) -> Int
+  k := 0
+  for k < l.len() and l[k] == ' '
+    k += 1
+  end
+  if startsWith(l[k..<l.len()], "```")
+    return k
+  end
+  return -1
+end
+
+readBlocks :: proc() -> Bool
+  lines = 0
+  lineAt[0] = 0
+  for p in 0..<mdLen
+    if md[p] == '\n' and lines < 8190
+      lines += 1
+      lineAt[lines] = p + 1
+    end
+  end
+  if mdLen == 0 or md[mdLen - 1] != '\n' # (a last line without a line break: as if it had one)
+    lines += 1
+    lineAt[lines] = mdLen + 1
+  end
+  pool.clear()
+  blocks = 0
+  i := 0
+  for i < lines and blocks < BLOCKS
+    indent := fence(line(i))
+    if indent < 0
+      i += 1
+      continue
+    end
+    info := trim(line(i)[indent + 3..<line(i).len()])
+    infoAt[blocks] = lineAt[i] + indent + 3 + find(line(i)[indent + 3..<line(i).len()], info, 0)
+    infoLen[blocks] = info.len()
+    startLine[blocks] = i + 2
+    textAt[blocks] = pool.len()
+    i += 1
+    for i < lines and not (fence(line(i)) >= 0 and trim(line(i)) == "```")
+      l := line(i)
+      if not pool.pushAll(l[min(indent, l.len())..<l.len()]) or not pool.push('\n')
+        return false
+      end
+      i += 1
+    end
+    textLen[blocks] = pool.len() - textAt[blocks]
+    endLine[blocks] = i
+    blocks += 1
+    i += 1
+  end
+  return true
+end
+
+info :: proc(b: Int) -> String
+  return md[infoAt[b]..<infoAt[b] + infoLen[b]].asString()
+end
+blockText :: proc(b: Int) -> String
+  return pool[textAt[b]..<textAt[b] + textLen[b]].asString()
+end
+
+# the info's words: its first, and whether it has w
+firstWord :: proc(s: String) -> String
+  e := 0
+  for e < s.len() and not isSpace(s[e])
+    e += 1
+  end
+  return s[0..<e]
+end
+hasWord :: proc(s: String, w: String) -> Bool
+  p := find(s, w, 0)
+  for p >= 0
+    if (p == 0 or isSpace(s[p - 1])) and (p + w.len() == s.len() or isSpace(s[p + w.len()]))
+      return true
+    end
+    p = find(s, w, p + 1)
+  end
+  return false
+end
+# the word in s starting with w (file=geo.rio: geo.rio), else ""
+wordAfter :: proc(s: String, w: String) -> String
+  p := find(s, w, 0)
+  if p < 0 or (p > 0 and not isSpace(s[p - 1]))
+    return ""
+  end
+  e := p + w.len()
+  for e < s.len() and not isSpace(s[e])
+    e += 1
+  end
+  return s[p + w.len()..<e]
+end
+
+# ---------------------------------------------------------------- running an example
+
+FILES :: 16
+fileBlock: [FILES]Int # the files the next example has (file=...): their blocks
+files := 0
+path: Blob[..2048]
+command: Blob[..4096]
+out: Blob[1 << 16]
+fails := 0
+total := 0
+where: Blob[..2048] # the Markdown file's path, for messages
+exampleCount := 0
+
+# the example's folder, then name: into path
+place :: proc(name: String) -> String
+  path.clear()
+  _ = path.pushAll(work[0..<work.len()])
+  _ = path.print("/example", exampleCount)
+  if name.len() > 0
+    _ = path.push('/')
+    _ = path.pushAll(name)
+  end
+  return path[0..<path.len()].asString()
+end
+
+# a file of the example's (its folders made first)
+put :: proc(name: String, text: String) -> Bool
+  for k in 0..<name.len()
+    if name[k] == '/'
+      _ = os.dirMake(place(name[0..<k]))
+    end
+  end
+  return os.fileWrite(place(name), text) == 0
+end
+
+fail :: proc(b: Int, why: String, got: String)
+  log("FAIL", where[0..<where.len()].asString(), startLine[b], why, trim(got))
+  fails += 1
+end
+
+# the last "# error: message" or "# runtime error: message" in text, ending a line not itself a
+# comment: its line (from 1), kind (1 error, 2 runtime error) and message, into these
+wantLine := 0
+wantKind := 0
+wantMessage: Blob[..512]
+wantName: Blob[..512]
+marks :: proc(name: String, text: String)
+  n := 1
+  a := 0
+  for a < text.len()
+    e := a
+    for e < text.len() and text[e] != '\n'
+      e += 1
+    end
+    l := text[a..<e]
+    h := find(l, "#", 0)
+    for h >= 0 and not startsWith(trim(l), "#")
+      rest := trim(l[h + 1..<l.len()])
+      kind := 0
+      if startsWith(rest, "runtime error:")
+        kind = 2
+        rest = trim(rest[14..<rest.len()])
+      case startsWith(rest, "error:")
+        kind = 1
+        rest = trim(rest[6..<rest.len()])
+      end
+      if kind > 0
+        wantLine = n
+        wantKind = kind
+        wantMessage.clear()
+        _ = wantMessage.pushAll(rest)
+        wantName.clear()
+        _ = wantName.pushAll(name)
+      end
+      h = find(l, "#", h + 1)
+    end
+    a = e + 1
+    n += 1
+  end
+end
+
+# lines a..<b are all blank
+blank :: proc(a, b: Int) -> Bool
+  for i in a..<b
+    if trim(line(i)).len() > 0
+      return false
+    end
+  end
+  return true
+end
+
+example :: proc(b: Int)
+  total += 1
+  exampleCount += 1
+  wantKind = 0
+  for f in 0..<files
+    marks(wordAfter(info(fileBlock[f]), "file="), blockText(fileBlock[f]))
+  end
+  marks("main.rio", blockText(b))
+  _ = os.dirMake(place(""))
+  ok := true
+  for f in 0..<files
+    ok = ok and put(wordAfter(info(fileBlock[f]), "file="), blockText(fileBlock[f]))
+  end
+  ok = ok and put("main.rio", blockText(b))
+  if not ok
+    fail(b, "couldn't write its files", "")
+    return
+  end
+  command.clear()
+  _ = command.push('"')
+  _ = command.pushAll(rio[0..<rio.len()])
+  _ = command.push('"')
+  if os.fileKind(place("lib")) == 2
+    _ = command.pushAll(" -L lib")
+  end
+  _ = command.pushAll(extra[0..<extra.len()])
+  _ = command.pushAll(" main.rio")
+  _ = command.pushAll(" 2>&1")
+  back: Blob[1024]
+  n := os.cwd(back[])
+  _ = os.cwdSet(place(""))
+  r := os.runOut(command[0..<command.len()].asString(), out[])
+  _ = os.cwdSet(back[0..<n].asString())
+  # what it wrote, its \r taken out (lines may end \r\n, or \r\r\n through Windows' text mode)
+  got: Blob[..1 << 16]
+  for c in out[0..<min(r[1], out.len())]
+    if c != '\r'
+      _ = got.push(c)
+    end
+  end
+  g := got[0..<got.len()].asString()
+  if wantKind > 0
+    message := wantMessage[0..<wantMessage.len()].asString()
+    name := wantName[0..<wantName.len()].asString()
+    at: Blob[..256]
+    _ = at.print(name, ":", wantLine, ":")
+    if wantKind == 2
+      _ = at.pushAll(" runtime error: ")
+    end
+    good := r[0] != 0 and find(g, message, 0) >= 0 and hasLine(g, at[0..<at.len()].asString())
+    if wantKind == 1
+      good = good and find(g, "runtime error", 0) < 0
+    end
+    if not good
+      kind := "error"
+      if wantKind == 2
+        kind = "runtime error"
+      end
+      why: Blob[..512]
+      _ = why.print("expected ", kind, " at ", name, ":", wantLine, " (", message, "), got:")
+      fail(b, why[0..<why.len()].asString(), g)
+    end
+  case r[0] != 0
+    fail(b, "failed:", g)
+  case b + 1 < blocks and info(b + 1) == "output" and blank(endLine[b] + 1, startLine[b + 1] - 2) and g != blockText(b + 1)
+    fail(b, "output differs, got:", g)
+  end
+end
+
+# the examples in one Markdown file
+runFile :: proc(p: String)
+  mdLen = os.fileRead(p, md[])
+  if mdLen < 0 or mdLen > md.len() or not readBlocks()
+    log("FAIL", p, "can't read it (or it's too big)")
+    fails += 1
+    return
+  end
+  where.clear()
+  _ = where.pushAll(p)
+  files = 0
+  for b in 0..<blocks
+    i := info(b)
+    if firstWord(i) != "rio" or hasWord(i, "fragment")
+      continue
+    end
+    if wordAfter(i, "file=").len() > 0
+      if files < FILES
+        fileBlock[files] = b
+        files += 1
+      end
+      continue
+    end
+    example(b)
+    files = 0
+  end
+end
+
+# Markdown files, and folders of them, in order: a folder's files by name, then its folders, each in
+# turn (as tests/docs.py walks them). Rio has no recursion: the folders still to see wait on a stack
+listing: Blob[1 << 16]
+stack: Blob[..1 << 16] # their paths, end to end
+stackAt: [512]Int      # where each one starts
+stackCount := 0
+pushPath :: proc(p: String)
+  if stackCount < 512 and stack.len() + p.len() <= stack.cap()
+    stackAt[stackCount] = stack.len()
+    _ = stack.pushAll(p)
+    stackCount += 1
+  end
+end
+walk :: proc(root: String)
+  pushPath(root)
+  for stackCount > 0
+    stackCount -= 1
+    here: Blob[..2048]
+    here.clear()
+    _ = here.pushAll(stack[stackAt[stackCount]..<stack.len()])
+    for stack.len() > stackAt[stackCount] # (popped)
+      _ = stack.pop()
+    end
+    p := here[0..<here.len()].asString()
+    if os.fileKind(p) == 1
+      if p.len() > 3 and p[p.len() - 3..<p.len()] == ".md"
+        runFile(p)
+      end
+      continue
+    end
+    n := os.dir(p, listing[])
+    if n < 0
+      continue
+    end
+    s := listing[0..<listing.len()].asString()
+    # its folders, last first, onto the stack (so the first comes off first), then its files, run now
+    ends: [512]Int
+    count := 0
+    a := 0
+    for count < min(n, 512)
+      e := a
+      for e < s.len() and s[e] != '\n'
+        e += 1
+      end
+      ends[count] = e
+      count += 1
+      a = e + 1
+    end
+    for k in 0..<count
+      j := count - 1 - k
+      from := 0
+      if j > 0
+        from = ends[j - 1] + 1
+      end
+      if s[from] == 'd'
+        child: Blob[..2048]
+        child.clear()
+        _ = child.pushAll(p)
+        _ = child.push('/')
+        _ = child.pushAll(s[from + 2..<ends[j]])
+        pushPath(child[0..<child.len()].asString())
+      end
+    end
+    for k in 0..<count
+      from := 0
+      if k > 0
+        from = ends[k - 1] + 1
+      end
+      if s[from] == 'f' and ends[k] - from > 5 and s[ends[k] - 3..<ends[k]] == ".md"
+        child: Blob[..2048]
+        child.clear()
+        _ = child.pushAll(p)
+        _ = child.push('/')
+        _ = child.pushAll(s[from + 2..<ends[k]])
+        runFile(child[0..<child.len()].asString())
+      end
+    end
+  end
+end
+for i in 2..<roots
+  walk(argText(i))
+end
+if fails > 0
+  log(fails, "of", total, "doc examples failed")
+  os.exit(1)
+end
+log("all", total, "doc examples passed")
