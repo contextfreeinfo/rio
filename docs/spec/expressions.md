@@ -83,7 +83,12 @@ log(x * n)  # error: type mismatch
 `==` and `!=` compare numbers, `Bool`s, enums and `String`s (the same bytes). `<`, `<=`, `>` and `>=`
 compare numbers, and `String`s by their bytes, a prefix first (`"apple" < "apples"`): for UTF-8 that's
 the order of their code points, so `"Zebra" < "apple"` and `"z" < "é"`. A maybe compares with `==` and
-`!=` too (see [unions](#unions)). Structs and arrays don't compare. `and`, `or` and `not` take `Bool`s, and `and` and
+`!=` too (see [unions](#unions)). Arrays, structs and unions compare as whole values with `==` and `!=`
+(not element by element): equal when every part is, each as `==` is for it, so a `String` inside by its
+text, a `Float` as a number, and a union by the type it holds, then its value. Only what's made of
+numbers, `Bool`s, enums, `String`s, `Blob`s and arrays, structs, unions and maybes of those compares:
+another slice, a builder or a proc inside is an error, so `==` never follows a view past a `String`'s
+bytes. They don't order: `<` is for numbers and `String`s. `and`, `or` and `not` take `Bool`s, and `and` and
 `or` skip their right side when the left decides:
 
 ```rio

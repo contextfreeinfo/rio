@@ -6,6 +6,13 @@ other languages have and people may expect. What's still open is in [ROADMAP.md]
 - **`**`:** `pow` covers Floats.
 - **Coroutines:** each needs a saved frame, which costs memory and is hard to specify.
 - **Traits and constraints on generics.**
+- **Ordering arrays (`<`):** arrays do arithmetic element by element, so `p < size` reads as a bounds
+  check, and order by the first element that differs would quietly pass `{5, 900} < {10, 10}`. A
+  comparator proc says which order is meant; `pc.Rect.has` and friends do bounds.
+- **Floats that can't be NaN:** a NaN-making operation as a runtime error, or a NaN-free `Float` with
+  `?Float`'s nil as NaN. `+`, `-` and `*` make NaN from infinities, so `Float` couldn't stay closed
+  under them, and checking every operation costs on the board. Floats stay IEEE: `x == x` is false for
+  a NaN, inside a struct too.
 - **Odin's `$T` for generics:** a parameter's first `$T` would quietly declare T. `proc[T]` lists
   them up front.
 - **Annotations, `@`:** programs don't define their own, since one the compiler checks would need a

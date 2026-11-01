@@ -62,14 +62,6 @@ In this order:
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
 
-- **`==` on structs and unions:** today structs refuse it (compare their fields) and unions compare
-  only with nil. Leaning to field by field, each field as its own `==` does (Strings by their text,
-  Floats as numbers, unions by tag then value), and only for types whose every field compares that
-  way: numbers, Bools, enums, Strings and Blobs, maybes, and structs and unions of those. A slice,
-  array, builder or proc field refuses `==`, so it never follows a view past one level (a String's
-  bytes). Plain bytes alone would be wrong where `==` already means more (a String's bytes are its
-  address; `-0.0` and `NaN`; a union's unused room), but the compiler can use them for structs of
-  just Ints, Bools and enums.
 - **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
   already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
   backfilling a commit again could add samples to its row rather than a second row, so a jump in the
@@ -156,6 +148,12 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **`==` on arrays, structs and unions:** whole values, each part as its own `==` (a String by its text,
+  a Float as a number), a union by its tag first and then its value as that type. Only what's made of
+  numbers, Bools, enums, Strings, Blobs and arrays, structs, unions and maybes of those compares, so
+  `==` never follows a view past a String's bytes. What equal bytes settle (no Floats, Strings, unions
+  or bitfields) is one `seq` over both. Structs and arrays don't order.
 
 - **More literals typed by their values:** a `{a, b}` where no struct, array or slice is expected is
   `[_]{a, b}` (`{p.y, p.x} * 2`, `x := {1, 2}`); field names still need a struct. And `[N]{a, b}`: N

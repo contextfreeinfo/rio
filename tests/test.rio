@@ -1611,6 +1611,29 @@ liN :: 3
 check(({liB[0], liB[1]} * 2)[1] == 4 and liX.len() == 2 and liX[1] == 5 and (2 * {liB[2], 1})[0] == 6, "{a, b}: an array of its values")
 check(liF.len() == 4 and liF[0] == 1.5 and liF[3] == 0.0 and [liN]{7}[2] == 0 and [2]{liB[2], 9}[1] == 9, "[N]{...}: N, typed by the first, zeros after")
 
+# ---- == on whole values: arrays, structs, unions
+weP :: struct
+  at: [2]Int
+  name: String
+  scale: Float
+end
+weU :: union
+  nil
+  Int, String
+end
+weT := "xhi"
+weA := weP{at = {1, 2}, name = "hi", scale = 0.0}
+weB := weP{at = {1, 2}, name = weT[1..], scale = -0.0}
+weG: [3][2]Int
+weH: [3][2]Int
+weH[2][1] = 5
+weU1: weU = 3
+weU2: weU = "3"
+weU3: weU = 3
+weN: weU
+check(weA == weB and not (weA != weB) and weA.at == {1, 2} and weA.at != weA.at.yx and weG != weH and weG == weG, "== on arrays and structs: whole values, Strings by text, Floats as numbers")
+check(weU1 == weU3 and weU1 != weU2 and weN == weN and weN != weU1 and [2]String{"a", "hi"} == {"a", weT[1..]}, "== on unions: the same type, then its value")
+
 # ---- maybes with ==: nil, a value, another maybe
 meN := "2".toInt()
 meM := "x".toInt()

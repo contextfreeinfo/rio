@@ -184,6 +184,152 @@ static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   rio_isTest(vm, l, r);
 }
 
+/* ------------------------------------------------------------------ == on whole values */
+
+/* Can values of type t be compared with == as wholes: every part a number, Bool, enum, String or Blob, or
+   an array, struct or union of those (never another view, a builder or a proc: == goes no further than a
+   String's bytes). *plain stays 1 if equal bytes are equal values too: no Floats, Strings, unions,
+   bitfields or bytes that don't fill a word. */
+static int rio_comparable(rio_Vm *vm, int t, int *plain) {
+  rio_Type *y = rio_type(vm, t);
+  uint32_t i;
+  switch (y->kind) {
+  case rio_TypeKind_int: case rio_TypeKind_bool: case rio_TypeKind_enum: return 1;
+  case rio_TypeKind_byte: *plain = 0; return 1;
+  case rio_TypeKind_float: *plain = 0; return 1;
+  case rio_TypeKind_slice: *plain = 0; return t == rio_TypeId_string || t == rio_TypeId_blob;
+  case rio_TypeKind_array:
+    if (rio_type(vm, y->elem)->size % 4) *plain = 0;
+    return rio_comparable(vm, y->elem, plain);
+  case rio_TypeKind_struct:
+    for (i = 0; i < y->fieldCount; i++) {
+      rio_Field *f = rio_field(vm, y->firstField + i);
+      if (f->bits) *plain = 0;
+      if (!rio_comparable(vm, f->type, plain)) return 0;
+    }
+    return 1;
+  case rio_TypeKind_union:
+    *plain = 0;
+    for (i = 0; i < y->fieldCount; i++) {
+      int m = rio_field(vm, y->firstField + i)->type;
+      if (m != rio_TypeId_void && !rio_comparable(vm, m, plain)) return 0;
+    }
+    return 1;
+  default: return 0;
+  }
+}
+
+/* e as a place to read parts of: a computed value, kept in temporaries first */
+static void rio_eqPlace(rio_Vm *vm, rio_Expr *e) {
+  rio_Expr held;
+  if (e->kind == rio_ExprKind_static || e->kind == rio_ExprKind_indirect) return;
+  held = rio_exprOf(rio_ExprKind_static, rio_valueType(e->type), rio_allocSlots(vm, rio_typeWords(vm, e->type)) * 4);
+  rio_store(vm, &held, e);
+  held.tempStart = e->tempStart;
+  *e = held;
+}
+
+/* the slot of a Bool: whether places l and r, of comparable type t, hold equal values. A union's value
+   is read only as the type its tag says (any other could read a String's address from an Int). */
+static int rio_eqPlaces(rio_Vm *vm, rio_Expr l, rio_Expr r, int t) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *y = rio_type(vm, t);
+  int plain = 1, d, s, u, i, n;
+  l.type = r.type = (uint16_t)t;
+  l.access = r.access = 0;
+  if (y->kind == rio_TypeKind_struct || y->kind == rio_TypeKind_array) {
+    rio_comparable(vm, t, &plain);
+    if (plain && y->size > 4) { /* (the same bytes: as Strings are compared) */
+      s = rio_allocSlots(vm, 4);
+      rio_emit(vm, rio_Op_mov, s, rio_toAddrSlot(vm, &l), 0);
+      rio_emit(vm, rio_Op_mov, s + 1, rio_constSlot(vm, y->size), 0);
+      rio_emit(vm, rio_Op_mov, s + 2, rio_toAddrSlot(vm, &r), 0);
+      rio_emit(vm, rio_Op_mov, s + 3, rio_constSlot(vm, y->size), 0);
+      d = rio_allocSlots(vm, 1);
+      rio_emit(vm, rio_Op_seq, d, s, s + 2);
+      return d;
+    }
+    d = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_mov, d, rio_constSlot(vm, 1), 0);
+    n = y->kind == rio_TypeKind_array ? (int)y->count : (int)y->fieldCount;
+    if (n > 64) rio_FAIL(0, "too many parts to compare one by one: compare them in a loop");
+    for (i = 0; i < n; i++) { /* each part: and its being equal in */
+      rio_Expr a = l, b = r;
+      int pt;
+      if (y->kind == rio_TypeKind_array) {
+        pt = y->elem;
+        rio_offsetPlace(&a, i * (int32_t)rio_type(vm, pt)->size);
+        rio_offsetPlace(&b, i * (int32_t)rio_type(vm, pt)->size);
+      } else {
+        rio_Field *f = rio_field(vm, y->firstField + i);
+        pt = f->type;
+        rio_offsetPlace(&a, f->offset);
+        rio_offsetPlace(&b, f->offset);
+        if (f->bits) {
+          a.bitAt = b.bitAt = f->bitAt;
+          a.bits = b.bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
+          a.bitSigned = b.bitSigned = f->bits < 0;
+        }
+      }
+      s = rio_eqPlaces(vm, a, b, pt);
+      if (rio_failed(vm)) return 0;
+      rio_emit(vm, rio_Op_and, d, d, s);
+    }
+    return d;
+  }
+  if (y->kind == rio_TypeKind_union) { /* the same tag, then the value, as that type */
+    rio_Expr lt = l, rt = r;
+    int done, skip;
+    lt.type = rt.type = rio_TypeId_int;
+    d = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_eq, d, rio_toSlot(vm, &lt, 1), rio_toSlot(vm, &rt, 1));
+    done = rio_emit(vm, rio_Op_jz, d, 0, rio_NONE);
+    for (u = 0; u < (int)y->fieldCount; u++) {
+      int m = rio_field(vm, y->firstField + u)->type, tag;
+      rio_Expr a = l, b = r;
+      if (m == rio_TypeId_void) continue; /* (nil: the same tag is all) */
+      lt = l;
+      lt.type = rio_TypeId_int;
+      tag = rio_allocSlots(vm, 1);
+      rio_emit(vm, rio_Op_eq, tag, rio_toSlot(vm, &lt, 1), rio_constSlot(vm, (uint32_t)u));
+      skip = rio_emit(vm, rio_Op_jz, tag, 0, rio_NONE);
+      rio_offsetPlace(&a, 4);
+      rio_offsetPlace(&b, 4);
+      s = rio_eqPlaces(vm, a, b, m);
+      if (rio_failed(vm)) return 0;
+      rio_emit(vm, rio_Op_mov, d, s, 0);
+      done = rio_emit(vm, rio_Op_jmp, 0, 0, done); /* (chained: all patched to the end) */
+      rio_patchJumps(vm, skip, rio_label(vm));
+    }
+    rio_patchJumps(vm, done, rio_label(vm));
+    return d;
+  }
+  { /* a number, Bool, enum, String or Blob: as == is for it */
+    rio_Expr a = l, b = r;
+    a.tempStart = b.tempStart = (uint16_t)c->freeSlot; /* (what's made so far stays) */
+    rio_binaryOp(vm, rio_Tok_eqEq, &a, &b);
+    if (rio_failed(vm)) return 0;
+    return rio_toSlot(vm, &a, 1);
+  }
+}
+
+/* l == r, l != r for arrays, structs and unions of the same type: whole values (rio_comparable's) */
+static void rio_wholeCompare(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
+  int t = rio_valueType(l->type), plain = 1, d, tempStart = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+  rio_coerce(vm, r, t);
+  if (rio_failed(vm)) return;
+  if (rio_valueType(r->type) != t) rio_FAIL(, "type mismatch");
+  if (!rio_comparable(vm, t, &plain))
+    rio_FAIL(, "these don't compare with ==: something in them is a view (other than a String or Blob), a builder or a proc");
+  rio_eqPlace(vm, l);
+  rio_eqPlace(vm, r);
+  d = rio_eqPlaces(vm, *l, *r, t);
+  if (rio_failed(vm)) return;
+  if (op == rio_Tok_notEq) rio_emit(vm, rio_Op_not, d, d, 0);
+  *l = rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4);
+  l->tempStart = (uint16_t)tempStart;
+}
+
 /* a maybe compared: in slots, so its tag and value are read where they are (a computed one, or one
    through an address: copied to temporaries first) */
 static void rio_maybeHeld(rio_Vm *vm, rio_Expr *e) {
@@ -216,7 +362,10 @@ static void rio_unionCompare(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
     }
     return;
   }
-  if (!rio_isMaybe(vm, u)) rio_FAIL(, "a union compares only with nil (x == nil); is tests which type it holds");
+  if (!rio_isMaybe(vm, u)) { /* two of a union: the same type held, and equal (a maybe's nil value is zeros: read as below) */
+    rio_wholeCompare(vm, op, l, r);
+    return;
+  }
   elem = rio_type(vm, u)->elem;
   typeOf = rio_exprOf(rio_ExprKind_type, elem, 0);
   there = rio_unionMember(vm, u, &typeOf);
@@ -441,6 +590,10 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
   }
   {
     int lk = rio_type(vm, l->type)->kind, rk = rio_type(vm, r->type)->kind;
+    if ((op == rio_Tok_eqEq || op == rio_Tok_notEq) && (lk == rio_TypeKind_array || lk == rio_TypeKind_struct)) {
+      rio_wholeCompare(vm, op, l, r); /* (whole values: not element by element) */
+      return;
+    }
     if (lk == rio_TypeKind_array || lk == rio_TypeKind_struct || rk == rio_TypeKind_array || rk == rio_TypeKind_struct) {
       rio_elementwiseOp(vm, op, l, r, 0);
       return;
@@ -546,7 +699,7 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
     int arithmetic = op == '+' || op == '-' || op == '*' || op == '/' || op == '%';
     if (rio_type(vm, l->type)->kind == rio_TypeKind_struct || rio_type(vm, r->type)->kind == rio_TypeKind_struct)
       rio_FAIL(, arithmetic ? "structs don't do arithmetic: use an array of numbers, such as [2]Float (its .x and .y are its elements)"
-                            : "structs don't compare as wholes: compare their fields");
+                            : "structs don't order: == and != compare them as wholes; order them by a field");
     rio_FAIL(, "arithmetic needs numbers, or arrays of them");
   }
   type = lElem ? l->type : r->type;
