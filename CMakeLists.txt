@@ -82,6 +82,15 @@ add_test(NAME rio_cli_runtime_error COMMAND rio ${CMAKE_SOURCE_DIR}/tests/runtim
 set_tests_properties(rio_cli_runtime_error PROPERTIES PASS_REGULAR_EXPRESSION "runtime_error\\.rio:4: runtime error: index out of bounds")
 
 # REPL sessions and break, through the API
+# rio fmt: its cases and random token soups (tests/fmt.c), and rio's own Rio files, already laid out its way
+add_executable(rio_fmt_test tests/fmt.c)
+target_link_libraries(rio_fmt_test PRIVATE riocore)
+add_test(NAME rio_fmt COMMAND rio_fmt_test)
+set_tests_properties(rio_fmt PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ fmt tests passed")
+file(GLOB RIO_FMT_FILES ${CMAKE_SOURCE_DIR}/bench/*.rio ${CMAKE_SOURCE_DIR}/src/core.rio ${CMAKE_SOURCE_DIR}/tests/modules/*.rio
+  ${CMAKE_SOURCE_DIR}/tests/modules/*/*.rio ${CMAKE_SOURCE_DIR}/tests/modules/lib/*/*.rio)
+add_test(NAME rio_fmt_clean COMMAND rio fmt -l ${RIO_FMT_FILES})
+
 add_executable(rio_repl_test tests/repl.c)
 target_link_libraries(rio_repl_test PRIVATE riocore)
 add_test(NAME rio_repl COMMAND rio_repl_test)

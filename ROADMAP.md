@@ -135,7 +135,12 @@ In this order:
   the easy ones. Control words at the start of a statement (`if`, `for`, `return`) are riskier, since
   `return (x)` and a call `return(x)` would look alike.
 - **`rio fmt`:** one standard look for Rio source, before 1.0, so code (rinc's included) settles into it
-  while the language does.
+  while the language does. Its layout is part of 1.0 too: code `rio fmt` laid out stays as it is under
+  later versions, so it never shifts code that was already in the standard form. Open before then:
+  - **Making alignment:** today it keeps `::`, `:=` and `=` lined up where they already are (and
+    comments' columns), but never lines them up itself. Decide whether it should.
+  - **Leaving code alone:** a way to mark lines it mustn't touch (such as `# nofmt` at a line's end,
+    or around a block), for tables lined up by hand.
 - **A language server:** tooling, so it can come before or after 1.0.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:

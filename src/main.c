@@ -6,6 +6,8 @@
    rio -i out.img file.rio compile to an image (see rio_loadImage) instead of running it
    rio -H out.h file.rio   write C for a host implementing the host procs file.rio declares (rio_hostHeader)
    rio file.img            run an image
+   rio fmt [-w | -l] file.rio...  lay the files out the one way (rio_format): printed, or -w rewrites
+                           the ones it changes, or -l lists them (exiting 1 if any)
    -j                      compile simple loops to native code first (ARM with Thumb-2 only)
    -M size                 the memory the program gets (default 8M, up to 1G; K, M and G suffixes),
                            allocated once at the start. An image needs at least the memory it was
@@ -22,6 +24,10 @@
 #include <time.h>
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/mman.h>
+#endif
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
 #endif
 #include "compiler.h" /* (for the memory report) */
 #include "aot.h"
@@ -161,6 +167,7 @@ static int rio_usage(void) {
                   "       rio -c out.c [-D NAME[=value]]... [-L dir]... file.rio\n"
                   "       rio -m [-D NAME[=value]]... [-L dir]... file.rio    memory report\n"
                   "       rio -i out.img [-D NAME[=value]]... [-L dir]... file.rio\n"
+                  "       rio fmt [-w | -l] file.rio...\n"
                   "  -M size (like 256K): memory for the program\n"
                   "       rio -help | -license\n");
   return 2;
@@ -174,6 +181,8 @@ static const char rio_help[] =
   "  rio -m file.rio         report where the program's memory goes, instead of running it\n"
   "  rio -i out.img file.rio compile to an image instead of running it\n"
   "  rio file.img            run an image\n"
+  "  rio fmt file.rio...     the files laid out the one way (only spaces change), printed;\n"
+  "                          -w rewrites the ones that change, -l lists them (exiting 1 if any)\n"
   "  -j                      compile simple loops to native code first (ARM with Thumb-2 only)\n"
   "  -M size                 the memory the program gets (default 8M, up to 1G; K, M and G\n"
   "                          suffixes). An image needs at least the memory it was compiled with\n"
@@ -396,12 +405,61 @@ static void rio_setBaseDir(const char *path) {
   rio_baseDir[len] = 0;
 }
 
+/* rio fmt: each file through rio_format */
+static int rio_fmtMain(int argc, char **argv) {
+  int i, write = 0, list = 0, status = 0;
+  for (i = 0; i < argc && argv[i][0] == '-'; i++) {
+    if (!strcmp(argv[i], "-w")) write = 1;
+    else if (!strcmp(argv[i], "-l")) list = 1;
+    else return rio_usage();
+  }
+  if (i >= argc || (write && list)) return rio_usage();
+#ifdef _WIN32
+  _setmode(_fileno(stdout), _O_BINARY); /* (the files' own line ends, \n or \r\n) */
+#endif
+  for (; i < argc; i++) {
+    static char out[3 * sizeof rio_src];
+    FILE *f = fopen(argv[i], "rb");
+    size_t n;
+    int32_t len;
+    if (!f) {
+      fprintf(stderr, "cannot open %s\n", argv[i]);
+      status = 2;
+      continue;
+    }
+    n = fread(rio_src, 1, sizeof rio_src, f);
+    fclose(f);
+    if (n == sizeof rio_src) {
+      fprintf(stderr, "%s: too big\n", argv[i]);
+      status = 2;
+      continue;
+    }
+    if ((len = rio_format(rio_src, (uint32_t)n, out, sizeof out)) < 0) {
+      fprintf(stderr, len == -1 ? "%s: too big\n" : "%s: rio fmt would change its tokens (a bug in rio fmt): left as it is\n", argv[i]);
+      status = 2;
+      continue;
+    }
+    if (!write && !list) fwrite(out, 1, (size_t)len, stdout);
+    else if ((size_t)len != n || memcmp(out, rio_src, n)) {
+      if (list) {
+        printf("%s\n", argv[i]);
+        status = status ? status : 1;
+      } else if (!(f = fopen(argv[i], "wb")) || fwrite(out, 1, (size_t)len, f) != (size_t)len || fclose(f)) {
+        fprintf(stderr, "cannot write %s\n", argv[i]);
+        status = 2;
+      }
+    }
+  }
+  return status;
+}
+
 int main(int argc, char **argv) {
   FILE *f;
   size_t n;
   int proc, i, memReport = 0, jit = 0;
   const char *cOut = 0, *imageOut = 0, *headerOut = 0, *path = 0;
   unsigned long memSize = rio_MEM_DEFAULT;
+  if (argc > 1 && !strcmp(argv[1], "fmt")) return rio_fmtMain(argc - 2, argv + 2);
   for (i = 1; i < argc; i++) { /* (these on their own) */
     if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) return fputs(rio_help, stdout) < 0;
     if (!strcmp(argv[i], "-license") || !strcmp(argv[i], "--license")) return fputs(rio_license, stdout) < 0;

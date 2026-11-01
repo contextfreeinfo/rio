@@ -23,7 +23,7 @@ check(1_000_000 == 1000000 and 0xFFFF_FFFF == -1 and 0b1111_0000 == 240, "digit 
 check(-2147483648 == 0x8000_0000 and 2147483647 == 0x7FFF_FFFF, "Int range literals")
 check(1_000.25 == 1000.25 and 1.000_5 == 1.0005 and 2e1_0 == 2e10, "separators in floats")
 x := 1.5
-y : Float = 2
+y: Float = 2
 check(x * y == 3.0, "float mul")
 check(x + 1 == 2.5, "const coercion")
 check(a.toFloat() / 2 == 3.5, "itof")

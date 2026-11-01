@@ -37,7 +37,17 @@ rio -i game.img game.rio compile to an image instead (see Images); rio game.img 
 rio -m game.rio          how near its limits it comes, and where its memory goes, instead of running it
 rio -M 256K ...          the memory the program gets (default 8M, up to 1G), allocated once at the start
 rio -j game.rio          compile simple loops to native code first (ARM with Thumb-2 only)
+rio fmt game.rio ...     the files laid out the one way, printed; -w rewrites the ones that change,
+                         -l lists them (exiting 1 if any)
 ```
+
+`rio fmt` changes only spaces: the indent at each line's start (2 for each block it's in) and the gaps
+between tokens (`x := a[i] + f(b, -c)`). It never changes a token, a line break or a comment, and
+before it gives code back it checks, line by line, that the tokens are the same, so the program means
+what it did. It keeps what lines things up: runs of spaces before `::`, `:=` or `=` that line up with
+the lines around them, comments in the column they were in, and lines going on (in brackets, or after
+an operator) where they were from their statement's start. Code needn't compile to be laid out, and
+hosts get it as `rio_format` (in `rio.h`), which needs no VM.
 
 Errors print as `game.rio:12:7: type mismatch`, which terminals and editors can turn into links.
 Ctrl-C stops a running program. The CLI's host procs are `clock() -> Float` (processor seconds) and

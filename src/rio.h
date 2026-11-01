@@ -116,6 +116,12 @@ uint32_t rio_saveImage(rio_Vm *vm, void *out, uint32_t cap);
    too little room. */
 uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t scratchSize, const char *prefix,
                         char *out, uint32_t cap);
+/* src (len bytes of Rio code), laid out the one way (src/fmt.c, rio fmt), into out (cap bytes): only
+   spaces change, never a token or a line break, and it checks that before giving it back. Needs no vm,
+   and the code needn't compile. Returns the length written (0-terminated), or -1: too little room (the
+   same lines, with their indents, may need more than len), or -2: it couldn't keep the tokens the same
+   (a bug in rio_format: keep src as it is). */
+int32_t rio_format(const char *src, uint32_t len, char *out, uint32_t cap);
 #endif
 int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len);
 /* The same, a part at a time, for a host without room for a whole image beside the vm (such as one
