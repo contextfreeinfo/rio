@@ -65,10 +65,17 @@ void rio_failAtToken(rio_Vm *vm, const char *message) {
 /* ------------------------------------------------------------------ tokens */
 
 /* in the order of rio_Tok_proc on */
-static const char *const rio_keywords[] = {
-  "proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include",
-  "enum", "union", "switch", "case", "is", "nil", "and", "or", "not", "do",
+#define rio_KEYWORD(w) {w, sizeof w - 1}
+static const struct {
+  const char *word;
+  int len;
+} rio_keywords[] = {
+  rio_KEYWORD("proc"), rio_KEYWORD("struct"), rio_KEYWORD("if"), rio_KEYWORD("else"), rio_KEYWORD("for"), rio_KEYWORD("in"),
+  rio_KEYWORD("end"), rio_KEYWORD("return"), rio_KEYWORD("break"), rio_KEYWORD("continue"), rio_KEYWORD("import"),
+  rio_KEYWORD("include"), rio_KEYWORD("enum"), rio_KEYWORD("union"), rio_KEYWORD("switch"), rio_KEYWORD("case"), rio_KEYWORD("is"),
+  rio_KEYWORD("nil"), rio_KEYWORD("and"), rio_KEYWORD("or"), rio_KEYWORD("not"), rio_KEYWORD("do"),
 };
+#undef rio_KEYWORD
 
 /* two-character operators: the pairs, and their tokens (negative: c= assignment for operator c) */
 static const char rio_operatorPairs[] = "::" ":=" "==" "!=" "<=" ">=" "&&" "||" "<<" ">>" "->" "+=" "-=" "*=" "/=" "%=" "&=" "|=" "^=";
@@ -373,8 +380,12 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
     while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
     if ((p >= e && rio_moreToCome(c)) || p - s >= rio_TOKEN_MOST) rio_TOKEN_FAIL("name too long (255 characters at most)");
     t->kind = rio_Tok_id;
-    for (i = 0; i < (int)(sizeof rio_keywords / sizeof rio_keywords[0]); i++)
-      if ((int)strlen(rio_keywords[i]) == p - s && !memcmp(rio_keywords[i], s, p - s)) t->kind = rio_Tok_proc + i;
+    if (*s >= 'a' && *s <= 'z') /* (Rio's words start with a small letter: a length, a first letter, then the rest) */
+      for (i = 0; i < (int)(sizeof rio_keywords / sizeof rio_keywords[0]); i++)
+        if (rio_keywords[i].len == p - s && rio_keywords[i].word[0] == *s && !memcmp(rio_keywords[i].word, s, (size_t)(p - s))) {
+          t->kind = rio_Tok_proc + i;
+          break;
+        }
   } else if (rio_isDigit(*p)) {
     rio_lexNumberAt(vm, t, p, start);
     return;

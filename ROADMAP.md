@@ -44,8 +44,13 @@ In this order:
   - **Big local arrays of views:** an array of over 16 words holding strings (`[20]String`, an
     argument list) must be global, so a proc building one keeps it outside itself.
   - **Declared before used:** a proc called before its declaration, further down the file, is an
-    error, which comes up often in a script of many procs. Whether procs at the top level could be
-    used before they're declared (a pass to collect them first) is worth deciding.
+    error, which comes up often in a script of many procs. Decided (2026-11-02): it stays. Compiling
+    stays one pass (another, to collect procs first, would cost time, and on a board another read of
+    the card), it keeps recursion out but through callbacks (whose check needs no such pass), and it
+    makes an editor's check at the cursor's line see what the language does.
+  - **Joining strings:** decided (2026-11-02): no `+` on strings (no hidden memory); builders stay how
+    text is made, `_ =` and all (so a push that didn't fit is never forgotten), with no join shorthand
+    for now. `+` for constants is a maybe (below).
 - **Then the memory spec and the full spec** (Before 1.0, below), with tests drawn from them.
 
 ## Leaning yes
@@ -75,6 +80,20 @@ In this order:
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
 
+- **Faster compiling and checking:** an editor checks code as it's edited (rinc's, `rio lsp`), so
+  compile time matters now: 4 ms for ~2,600 lines on a desktop, but ~600 ms of compiling on the RP2350
+  (profiled on the board: bench/compile-profile.md). Of a 763 ms check: the lexer ~150 ms of its own
+  (~250 cycles a byte), reading the card 150 ms, lookups only 55 ms, and half in the rest of the
+  compiler, not yet split. Not started; 10x is a stretch, maybe 2-4x. In order:
+  - The lexer: keywords by a switch on length and first letter rather than comparing every one (with
+    `strlen`), the operator tables likewise, and (on the board) its hot loop in SRAM.
+  - A finer profile of the rest (statements, expressions, declarations, the operator stack).
+  - Name lookup by hash: `rio_lookup`, `rio_lookupExport` and `rio_lookupMethod` scan every symbol,
+    newest first, for each name read; but they're only 7%.
+  - A check that makes no code: `rio_check` still generates code (a statement at a time); with
+    emitting stubbed (jump lists and patches need care) it could skip much of codegen.
+  - A module's tables kept between compiles, copied in rather than compiled again (an auto-import
+    like pc first, then any module whose source hasn't changed).
 - **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
   already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
   backfilling a commit again could add samples to its row rather than a second row, so a jump in the
@@ -82,6 +101,8 @@ In this order:
 
 ## Maybe
 
+- **`+` for constant strings:** `ROOT :: "/rinc/" + "apps"`, joined while compiling: no storage
+  question, as both sides are constants. Only for constants (decided: no `+` on other strings).
 - **Void as a unit type:** a zero-sized value, so `proc() -> Void` is a proc with no result and a
   branch with no value a `Void` (as JavaScript's `undefined` or Python's `None`). `Bool` stays the
   name for a `?Void`, being friendlier. Generics don't need it: an empty struct already is a zero-size

@@ -566,6 +566,264 @@ static int rio_fmtMain(int argc, char **argv) {
 }
 
 /* where the program's file is in argv (argc: none): rio's own flags come before it, its arguments after */
+/* ------------------------------------------------------------------ rio lsp: a language server */
+
+/* rio lsp: the Language Server Protocol over standard input and output (an editor runs it: VS Code's
+   extension, editors/vscode). Documents are kept whole (full sync); each change is checked
+   (rio_check: its first error, a diagnostic); completion checks the document up to the cursor's line,
+   then asks rio_complete; formatting is rio_format's. Imports are found from the document's folder, as
+   rio finds them, and import os works. Basic for now: no go to definition, hover or renames */
+#define rio_LSP_DOCS 16
+#define rio_LSP_TEXT (512 << 10) /* a document's most */
+static struct {
+  char uri[1024];
+  char text[rio_LSP_TEXT];
+  uint32_t len;
+} rio_lspDocs[rio_LSP_DOCS];
+static char rio_lspIn[2 * rio_LSP_TEXT + 65536], rio_lspOut[1 << 20];
+static uint8_t rio_lspMem[64 << 10]; /* (a check's vm: just the constants) */
+static uint32_t rio_lspOutLen;
+
+/* the value after "key": in a JSON message, from s (the first such key: messages are small and their
+   keys distinct enough), or 0 */
+static const char *rio_jsonAt(const char *s, const char *key) {
+  char k[64];
+  const char *p;
+  snprintf(k, sizeof k, "\"%s\"", key);
+  if (!s || !(p = strstr(s, k))) return 0;
+  p += strlen(k);
+  while (*p == ' ' || *p == ':') p++;
+  return p;
+}
+/* a JSON string at v, unescaped (\uXXXX as UTF-8), into out: its length, or -1 */
+static int rio_jsonString(const char *v, char *out, int cap) {
+  int n = 0;
+  if (!v || *v != '"') return -1;
+  for (v++; *v && *v != '"' && n < cap - 4; v++) {
+    int ch = (unsigned char)*v;
+    if (ch == '\\') {
+      ch = *++v;
+      if (ch == 'n') ch = '\n';
+      else if (ch == 't') ch = '\t';
+      else if (ch == 'r') ch = '\r';
+      else if (ch == 'b') ch = '\b';
+      else if (ch == 'f') ch = '\f';
+      else if (ch == 'u') {
+        unsigned u = 0;
+        int k;
+        for (k = 1; k <= 4 && v[k]; k++) u = u * 16 + (unsigned)(v[k] <= '9' ? v[k] - '0' : (v[k] | 32) - 'a' + 10);
+        v += 4;
+        if (u < 0x80) out[n++] = (char)u;
+        else if (u < 0x800) out[n++] = (char)(0xC0 | u >> 6), out[n++] = (char)(0x80 | (u & 63));
+        else out[n++] = (char)(0xE0 | u >> 12), out[n++] = (char)(0x80 | (u >> 6 & 63)), out[n++] = (char)(0x80 | (u & 63));
+        continue;
+      }
+    }
+    out[n++] = (char)ch;
+  }
+  out[n] = 0;
+  return n;
+}
+static void rio_lspPut(const char *s, int n) {
+  if (n < 0) n = (int)strlen(s);
+  if (rio_lspOutLen + (uint32_t)n < sizeof rio_lspOut) memcpy(rio_lspOut + rio_lspOutLen, s, (size_t)n), rio_lspOutLen += (uint32_t)n;
+}
+static void rio_lspPutString(const char *s, int n) { /* (as a JSON string) */
+  int i;
+  rio_lspPut("\"", 1);
+  for (i = 0; i < n; i++) {
+    char e[8];
+    unsigned char ch = (unsigned char)s[i];
+    if (ch == '"' || ch == '\\') e[0] = '\\', e[1] = (char)ch, rio_lspPut(e, 2);
+    else if (ch == '\n') rio_lspPut("\\n", 2);
+    else if (ch < 32) snprintf(e, sizeof e, "\\u%04x", ch), rio_lspPut(e, 6);
+    else rio_lspPut(s + i, 1);
+  }
+  rio_lspPut("\"", 1);
+}
+static void rio_lspSend(void) { /* (the message built in rio_lspOut) */
+  printf("Content-Length: %u\r\n\r\n", (unsigned)rio_lspOutLen);
+  fwrite(rio_lspOut, 1, rio_lspOutLen, stdout);
+  fflush(stdout);
+  rio_lspOutLen = 0;
+}
+static void rio_lspReply(const char *id, const char *result) {
+  rio_lspPut("{\"jsonrpc\":\"2.0\",\"id\":", -1);
+  rio_lspPut(id, (int)strcspn(id, ",}"));
+  rio_lspPut(",\"result\":", -1);
+  rio_lspPut(result, -1);
+  rio_lspPut("}", 1);
+  rio_lspSend();
+}
+
+/* a file: URI's path (%XX decoded; file:///c:/x as c:/x) */
+static void rio_lspPath(const char *uri, char *out, size_t cap) {
+  size_t n = 0;
+  if (!strncmp(uri, "file://", 7)) uri += 7;
+  if (uri[0] == '/' && uri[1] && (uri[2] == ':' || (uri[2] == '%' && uri[3] == '3'))) uri++; /* (/c:/: Windows's) */
+  for (; *uri && n + 1 < cap; uri++) {
+    if (*uri == '%' && uri[1] && uri[2]) {
+      char h[3] = {uri[1], uri[2], 0};
+      out[n++] = (char)strtol(h, 0, 16);
+      uri += 2;
+    } else out[n++] = *uri;
+  }
+  out[n] = 0;
+}
+
+/* a check of document d's first len bytes, its imports from its folder: 0, or -1 (rio_errorInfo says) */
+static int rio_lspCheck(int d, uint32_t len) {
+  char path[1024], *slash;
+  rio_lspPath(rio_lspDocs[d].uri, path, sizeof path);
+  if ((slash = strrchr(path, '/')) != 0 || (slash = strrchr(path, '\\')) != 0) *slash = 0;
+  else strcpy(path, ".");
+  snprintf(rio_baseDir, sizeof rio_baseDir, "%s", path);
+  rio_srcLen = rio_fileNamesLen = 0;
+  rio_textCount = rio_window = 0;
+  rio_init(&rio_vm, rio_lspMem, sizeof rio_lspMem, 0, 0);
+  if (rio_addOs()) return -1;
+  rio_setLoader(&rio_vm, rio_loadFile, 0);
+  return rio_check(&rio_vm, rio_lspDocs[d].text, len, 0, 0, rio_scratch, sizeof rio_scratch);
+}
+
+static void rio_lspDiagnose(int d) {
+  char head[64];
+  rio_lspPut("{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/publishDiagnostics\",\"params\":{\"uri\":", -1);
+  rio_lspPutString(rio_lspDocs[d].uri, (int)strlen(rio_lspDocs[d].uri));
+  rio_lspPut(",\"diagnostics\":[", -1);
+  if (rio_lspCheck(d, rio_lspDocs[d].len)) {
+    rio_Error e = rio_errorInfo(&rio_vm);
+    int line = e.line > 0 ? e.line - 1 : 0, col = e.col > 0 ? e.col - 1 : 0, w = e.len > 0 ? e.len : 1;
+    char msg[rio_ERROR_BUF_SIZE + 1100];
+    if (e.file) { /* (in a file it imports: shown at the top of this one) */
+      snprintf(msg, sizeof msg, "%s:%d:%d: %s", e.file, e.line, e.col, e.msg);
+      line = col = 0;
+      w = 1;
+    } else snprintf(msg, sizeof msg, "%s", e.msg ? e.msg : rio_error(&rio_vm));
+    snprintf(head, sizeof head, "{\"range\":{\"start\":{\"line\":%d,\"character\":%d},", line, col);
+    rio_lspPut(head, -1);
+    snprintf(head, sizeof head, "\"end\":{\"line\":%d,\"character\":%d}},", line, col + w);
+    rio_lspPut(head, -1);
+    rio_lspPut("\"severity\":1,\"source\":\"rio\",\"message\":", -1);
+    rio_lspPutString(msg, (int)strlen(msg));
+    rio_lspPut("}", 1);
+  }
+  rio_lspPut("]}}", 3);
+  rio_lspSend();
+}
+
+static void rio_lspOffer(void *userData, const char *name, int nameLen, int kind, const char *detail, int detailLen) {
+  static const int kinds[] = {14, 6, 21, 22, 3, 2, 5, 9, 20}; /* (rio_Item_* as LSP's CompletionItemKind) */
+  char k[32];
+  int *count = (int *)userData;
+  if ((*count)++) rio_lspPut(",", 1);
+  rio_lspPut("{\"label\":", -1);
+  rio_lspPutString(name, nameLen);
+  snprintf(k, sizeof k, ",\"kind\":%d", kinds[kind >= 0 && kind < 9 ? kind : 0]);
+  rio_lspPut(k, -1);
+  if (detailLen) {
+    rio_lspPut(",\"detail\":", -1);
+    rio_lspPutString(detail, detailLen);
+  }
+  rio_lspPut("}", 1);
+}
+
+/* where line and character are in document d's text (characters as bytes: ASCII's the same) */
+static uint32_t rio_lspOffset(int d, int line, int character, uint32_t *lineStart) {
+  uint32_t at = 0;
+  const char *t = rio_lspDocs[d].text;
+  while (line > 0 && at < rio_lspDocs[d].len)
+    if (t[at++] == '\n') line--;
+  *lineStart = at;
+  while (character-- > 0 && at < rio_lspDocs[d].len && t[at] != '\n') at++;
+  return at;
+}
+
+static int rio_lspDoc(const char *msg, int open) { /* (the document a message is about: by its uri) */
+  char uri[1024];
+  int i, free = -1;
+  if (rio_jsonString(rio_jsonAt(msg, "uri"), uri, sizeof uri) < 0) return -1;
+  for (i = 0; i < rio_LSP_DOCS; i++) {
+    if (!strcmp(rio_lspDocs[i].uri, uri)) return i;
+    if (free < 0 && !rio_lspDocs[i].uri[0]) free = i;
+  }
+  if (!open) return -1;
+  if (free < 0) free = 0; /* (full: the first goes) */
+  snprintf(rio_lspDocs[free].uri, sizeof rio_lspDocs[free].uri, "%s", uri);
+  return free;
+}
+
+static int rio_lspMain(void) {
+  static char formatted[rio_LSP_TEXT + 4096];
+#ifdef _WIN32
+  _setmode(_fileno(stdin), _O_BINARY);
+  _setmode(_fileno(stdout), _O_BINARY);
+#endif
+  for (;;) {
+    char line[256], method[64];
+    long size = -1;
+    const char *id;
+    int d;
+    while (fgets(line, sizeof line, stdin)) { /* the headers, to a blank line */
+      if (!strncmp(line, "Content-Length:", 15)) size = atol(line + 15);
+      if (line[0] == '\r' || line[0] == '\n') break;
+    }
+    if (size < 0 || size >= (long)sizeof rio_lspIn) return size < 0 ? 0 : 1;
+    if (fread(rio_lspIn, 1, (size_t)size, stdin) != (size_t)size) return 1;
+    rio_lspIn[size] = 0;
+    if (rio_jsonString(rio_jsonAt(rio_lspIn, "method"), method, sizeof method) < 0) continue;
+    id = rio_jsonAt(rio_lspIn, "id");
+    if (!strcmp(method, "initialize"))
+      rio_lspReply(id, "{\"capabilities\":{\"textDocumentSync\":1,\"completionProvider\":{\"triggerCharacters\":[\".\"]},"
+                       "\"documentFormattingProvider\":true},\"serverInfo\":{\"name\":\"rio\"}}");
+    else if (!strcmp(method, "shutdown")) rio_lspReply(id, "null");
+    else if (!strcmp(method, "exit")) return 0;
+    else if ((!strcmp(method, "textDocument/didOpen") || !strcmp(method, "textDocument/didChange")) &&
+             (d = rio_lspDoc(rio_lspIn, 1)) >= 0) {
+      const char *text = !strcmp(method, "textDocument/didOpen") ? rio_jsonAt(rio_lspIn, "text") : rio_jsonAt(rio_jsonAt(rio_lspIn, "contentChanges"), "text");
+      int n = rio_jsonString(text, rio_lspDocs[d].text, rio_LSP_TEXT);
+      rio_lspDocs[d].len = n > 0 ? (uint32_t)n : 0;
+      rio_lspDiagnose(d);
+    } else if (!strcmp(method, "textDocument/didClose") && (d = rio_lspDoc(rio_lspIn, 0)) >= 0) rio_lspDocs[d].uri[0] = 0;
+    else if (!strcmp(method, "textDocument/completion") && id) {
+      const char *pos = rio_jsonAt(rio_lspIn, "position");
+      uint32_t lineStart, at;
+      int count = 0;
+      if ((d = rio_lspDoc(rio_lspIn, 0)) < 0 || !pos) {
+        rio_lspReply(id, "[]");
+        continue;
+      }
+      at = rio_lspOffset(d, atoi(rio_jsonAt(pos, "line")), atoi(rio_jsonAt(pos, "character")), &lineStart);
+      rio_lspCheck(d, lineStart); /* (up to the cursor's line: what's open there stays in the tables) */
+      rio_lspPut("{\"jsonrpc\":\"2.0\",\"id\":", -1);
+      rio_lspPut(id, (int)strcspn(id, ",}"));
+      rio_lspPut(",\"result\":[", -1);
+      rio_complete(&rio_vm, rio_lspDocs[d].text + lineStart, at - lineStart, rio_lspOffer, &count);
+      rio_lspPut("]}", 2);
+      rio_lspSend();
+    } else if (!strcmp(method, "textDocument/formatting") && id) {
+      int32_t n;
+      int lines = 0;
+      uint32_t i;
+      char range[96];
+      if ((d = rio_lspDoc(rio_lspIn, 0)) < 0 || (n = rio_format(rio_lspDocs[d].text, rio_lspDocs[d].len, formatted, sizeof formatted)) < 0 ||
+          ((uint32_t)n == rio_lspDocs[d].len && !memcmp(formatted, rio_lspDocs[d].text, (size_t)n))) {
+        rio_lspReply(id, "[]");
+        continue;
+      }
+      for (i = 0; i < rio_lspDocs[d].len; i++) lines += rio_lspDocs[d].text[i] == '\n';
+      rio_lspPut("{\"jsonrpc\":\"2.0\",\"id\":", -1);
+      rio_lspPut(id, (int)strcspn(id, ",}"));
+      snprintf(range, sizeof range, ",\"result\":[{\"range\":{\"start\":{\"line\":0,\"character\":0},\"end\":{\"line\":%d,\"character\":0}},", lines + 1);
+      rio_lspPut(range, -1);
+      rio_lspPut("\"newText\":", -1);
+      rio_lspPutString(formatted, n);
+      rio_lspPut("}]}", 3);
+      rio_lspSend();
+    } else if (id && strncmp(method, "$/", 2) && strcmp(method, "initialized")) rio_lspReply(id, "null"); /* (anything else asked: nothing) */
+  }
+}
+
 static int rio_programAt(int argc, char **argv) {
   int i;
   for (i = 1; i < argc; i++) {
@@ -585,6 +843,7 @@ int main(int argc, char **argv) {
   const char *cOut = 0, *imageOut = 0, *headerOut = 0, *path = 0;
   unsigned long memSize = rio_MEM_DEFAULT;
   if (argc > 1 && !strcmp(argv[1], "fmt")) return rio_fmtMain(argc - 2, argv + 2);
+  if (argc > 1 && !strcmp(argv[1], "lsp")) return rio_lspMain();
   for (i = 1; i < at; i++) { /* (these on their own) */
     if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) return fputs(rio_help, stdout) < 0;
     if (!strcmp(argv[i], "-license") || !strcmp(argv[i], "--license")) return fputs(rio_license, stdout) < 0;

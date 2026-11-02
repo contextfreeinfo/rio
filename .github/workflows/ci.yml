@@ -171,13 +171,17 @@ jobs:
         include:
           - os: ubuntu-22.04 # (an older glibc, linked dynamically: the program runs on more Linux systems)
             name: linux-x86_64
+            vscode: linux-x64
           - os: ubuntu-22.04-arm # (64-bit Arm: Raspberry Pi OS on a Pi 4 or 5, say)
             name: linux-arm64
+            vscode: linux-arm64
           - os: macos-latest # (Apple silicon only: for an Intel Mac too, "arm64;x86_64", and name it macos-universal)
             name: macos-arm64
+            vscode: darwin-arm64
             flags: -DCMAKE_OSX_ARCHITECTURES=arm64
           - os: windows-latest
             name: windows-x86_64
+            vscode: win32-x64
             flags: -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
     runs-on: ${{ matrix.os }}
     steps:
@@ -196,10 +200,22 @@ jobs:
           name="rio-$version-${{ matrix.name }}"
           if [ -f build/Release/rio.exe ]; then 7z a "$name.zip" ./build/Release/rio.exe > /dev/null
           else tar czf "$name.tar.gz" -C build rio; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Package the VS Code extension, with this rio in it
+        shell: bash
+        run: |
+          version=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo nightly)
+          cd editors/vscode
+          mkdir -p bin
+          if [ -f ../../build/Release/rio.exe ]; then cp ../../build/Release/rio.exe bin/; else cp ../../build/rio bin/ && chmod +x bin/rio; fi
+          npm ci
+          npx --yes @vscode/vsce@3.2.1 package --target ${{ matrix.vscode }} -o "../../rio-vscode-$version-${{ matrix.vscode }}.vsix"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
-          path: rio-*.*
+          path: rio-*.* # (the program, and the extension with it: rio-vscode-...vsix)
 
   release:
     needs: build-release

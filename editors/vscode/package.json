@@ -1,0 +1,54 @@
+{
+  "name": "rio",
+  "displayName": "Rio",
+  "description": "Rio: colors, and through rio lsp, errors as you type, completion and formatting",
+  "version": "0.1.0",
+  "publisher": "contextfree",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/contextfreeinfo/rio"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rio",
+        "aliases": [
+          "Rio"
+        ],
+        "extensions": [
+          ".rio"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rio",
+        "scopeName": "source.rio",
+        "path": "./syntaxes/rio.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Rio",
+      "properties": {
+        "rio.path": {
+          "type": "string",
+          "default": "",
+          "description": "The rio program (rio lsp is its language server): empty for the one bundled with the extension (in a platform's package), else rio on the PATH."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  }
+}
