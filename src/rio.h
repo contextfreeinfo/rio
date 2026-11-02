@@ -271,6 +271,20 @@ int rio_replEval(rio_Vm *vm, const char *src, uint32_t len);
    else, case) */
 int rio_replIndent(const char *src, uint32_t len);
 int rio_replOutdent(const char *word, uint32_t len);
+/* The kinds of names completing offers (a language server's: keyword, variable, constant, struct,
+   function, method, field, module, enum member) */
+enum { rio_Item_keyword, rio_Item_var, rio_Item_const, rio_Item_type, rio_Item_proc, rio_Item_method, rio_Item_field, rio_Item_module,
+       rio_Item_value };
+typedef void (*rio_CompleteFn)(void *userData, const char *name, int nameLen, int kind, const char *detail, int detailLen);
+/* the names that fit at the cursor (at, in text: the input so far, or an editor's whole text), each
+   starting with the word before it, through fn: its name, kind (rio_Item_*) and detail (its type, a
+   proc's signature, or ""). After x., Type. or module.: x's fields and methods (and its kind's built-in
+   ones), an enum's values and a type's static procs, a module's exported names. Elsewhere: Rio's words
+   that fit there (a statement's, an expression's, a type's, after a value: and, or, is ...), the names
+   in scope, and names the text declares that aren't compiled yet (an unfinished input's, a proc's
+   parameters). Names and types come from what vm's compiler has (a REPL session's); vm may be 0 (just
+   the text and the words). Returns where the word being completed starts in text */
+int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, void *userData);
 #endif
 
 /* ------------------------------------------------------------------ errors */

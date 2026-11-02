@@ -89,12 +89,14 @@ static char rio_osPath[rio_OS_PATH], rio_osPath2[rio_OS_PATH];
    sends them: ESC [ sequences for the others), apart from the terminal, so tests can type at it. */
 #define rio_LINE 4096
 #define rio_HISTORY 256
+#define rio_OFFERS 8192 /* Tab's completions: their names and details (rio_osComplete) */
 typedef struct {
   char buf[rio_LINE], draft[rio_LINE], kill[rio_LINE];
   int len, pos, draftLen, killLen;
   int hist;             /* the history line shown (rio_osHistCount: the one being typed) */
   int esc, escN, esc0, esc1; /* an escape sequence coming: 1 after ESC, 2 in ESC [ (its numbers), 3 ESC O */
   int clear;            /* Ctrl+L: clear the screen first */
+  int list;             /* Tab, with nothing it could add: show what fits (rio_osOffers) */
 } rio_OsLine;
 static char rio_osHist[rio_HISTORY][rio_LINE / 4];
 static int rio_osHistCount;
@@ -173,9 +175,41 @@ static void rio_osHistoryStep(rio_OsLine *e, int step) {
   e->pos = e->len;
 }
 
+/* Tab's completions for the word before the cursor (main.c sets this, for the REPL: rio_complete's):
+   into out (cap bytes), the names that fit, each 0-terminated, with its detail (a type) after it,
+   0-terminated too; returns how many, and where the word starts in s (*from). 0, as for a program's
+   os.readLine: Tab just indents */
+static int (*rio_osComplete)(const char *s, int n, int at, char *out, int cap, int *from);
+static char rio_osOffers[rio_OFFERS];
+static int rio_osOfferCount;
+
+/* Tab: at a line's indent, a step more; after a word, the rest of it, as far as what fits there agrees
+   (all of it, if just one name fits); when that adds nothing, the names that fit are shown */
+static void rio_osTab(rio_OsLine *e) {
+  const char *s = rio_osOffers, *first = rio_osOffers;
+  int i, from = e->pos, common = 0, word;
+  for (i = 0; i < e->pos && (e->buf[i] == ' ' || e->buf[i] == '\t'); i++) {}
+  if (!rio_osComplete || i == e->pos) {
+    rio_osInsert(e, "  ", 2);
+    return;
+  }
+  rio_osOfferCount = rio_osComplete(e->buf, e->len, e->pos, rio_osOffers, (int)sizeof rio_osOffers, &from);
+  if (rio_osOfferCount <= 0 || from < 0 || from > e->pos) return;
+  for (i = 0; i < rio_osOfferCount; i++) { /* (the longest start they all have) */
+    int n = (int)strlen(s), m;
+    for (m = 0; i && m < common && m < n && first[m] == s[m]; m++) {}
+    common = i ? m : n;
+    s += n + 1;
+    s += strlen(s) + 1;
+  }
+  word = e->pos - from;
+  if (common > word) rio_osInsert(e, first + word, common - word);
+  else if (rio_osOfferCount > 1) e->list = 1;
+}
+
 /* the line, ready for another */
 static void rio_osLineBegin(rio_OsLine *e) {
-  e->len = e->pos = e->draftLen = e->esc = e->clear = 0;
+  e->len = e->pos = e->draftLen = e->esc = e->clear = e->list = 0;
   e->hist = rio_osHistCount;
 }
 
@@ -239,7 +273,7 @@ static int rio_osLineKey(rio_OsLine *e, int c) {
   case 16: rio_osHistoryStep(e, -1); return 0;                       /* Ctrl+P */
   case 14: rio_osHistoryStep(e, 1); return 0;                        /* Ctrl+N */
   case 12: e->clear = 1; return 0;                                   /* Ctrl+L */
-  case 9: rio_osInsert(e, "  ", 2); return 0;                        /* Tab: a step of indent */
+  case 9: rio_osTab(e); return 0;                                    /* Tab: indent, or complete the word */
   default: {
     char ch = (char)c;
     if (c >= 32 || c < 0) rio_osInsert(e, &ch, 1);
@@ -373,6 +407,49 @@ static void rio_osLineDraw(const rio_OsLine *e, const char *prompt, int promptLe
   fflush(stdout);
 }
 
+static int rio_osLower(int c) { return c >= 'A' && c <= 'Z' ? c + 32 : c; }
+
+/* what Tab found fits (rio_osOffers), below the line, in order: a few, a line each with its detail; more,
+   in columns (as many as fit) */
+static void rio_osShowOffers(void) {
+  static const char *names[256], *details[256];
+  int count = 0, i, j, wide = 0, cols = rio_osColumns(), across, rows;
+  const char *s = rio_osOffers;
+  for (i = 0; i < rio_osOfferCount && count < 256; i++) {
+    const char *name = s, *t;
+    s += strlen(s) + 1;
+    for (j = count; j > 0; j--) { /* (sorted as it goes: by name, small letters and capitals together) */
+      int a, b, k = 0;
+      for (t = names[j - 1]; name[k] && t[k] && rio_osLower(name[k]) == rio_osLower(t[k]); k++) {}
+      a = rio_osLower(name[k]);
+      b = rio_osLower(t[k]);
+      if (a > b || (a == b && strcmp(name, t) >= 0)) break;
+      names[j] = names[j - 1];
+      details[j] = details[j - 1];
+    }
+    names[j] = name;
+    details[j] = s;
+    count++;
+    if ((int)strlen(name) > wide) wide = (int)strlen(name);
+    s += strlen(s) + 1;
+  }
+  fputs("\r\n", stdout);
+  if (count <= 12) {
+    for (i = 0; i < count; i++)
+      printf(rio_osColors && *details[i] ? "  %-*s  \x1b[90m%s\x1b[0m\r\n" : "  %-*s  %s\r\n", wide, names[i], details[i]);
+  } else {
+    across = (cols - 2) / (wide + 2);
+    if (across < 1) across = 1;
+    rows = (count + across - 1) / across;
+    for (i = 0; i < rows; i++) {
+      for (j = 0; j < across && j * rows + i < count; j++) printf("  %-*s", wide, names[j * rows + i]);
+      fputs("\r\n", stdout);
+    }
+  }
+  if (rio_osOfferCount > count) printf("  (and %d more)\r\n", rio_osOfferCount - count);
+  fflush(stdout);
+}
+
 /* a line typed, after prompt: at a terminal, edited (rio_osLineKey), else read as it comes. Its length
    (into out, 0-terminated, without its line break), -1 at the end of the input, -2 interrupted
    (Ctrl+C) */
@@ -394,6 +471,10 @@ static int rio_osLine(const char *prompt, int promptLen, char *out, int cap) {
   while (!done) {
     if ((c = rio_osReadByte()) < 0) done = -1;
     else done = rio_osLineKey(&e, c);
+    if (e.list) { /* (below it: the line drawn again under them) */
+      rio_osShowOffers();
+      e.list = 0;
+    }
     if (!e.esc) rio_osLineDraw(&e, prompt, promptLen);
     e.clear = 0;
   }

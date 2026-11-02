@@ -54,6 +54,22 @@ static int typed(const char *keys, char *line, int *result) {
   return n;
 }
 
+/* Tab's completions, made up: these names, the ones starting with the word before the cursor */
+static int offers(const char *s, int n, int at, char *out, int cap, int *from) {
+  static const char *const names[] = {"position", "Point", "pointer", "print", "x", 0};
+  int i, count = 0, used = 0;
+  (void)n;
+  *from = at;
+  while (*from > 0 && rio_osWordChar((unsigned char)s[*from - 1])) (*from)--;
+  for (i = 0; names[i]; i++)
+    if (!strncmp(names[i], s + *from, (size_t)(at - *from)) && used + 24 < cap) {
+      used += sprintf(out + used, "%s", names[i]) + 1;
+      used += sprintf(out + used, "a detail") + 1;
+      count++;
+    }
+  return count;
+}
+
 int main(void) {
   static char line[rio_LINE + 2];
   int failed = 0, passed = 0, result;
@@ -79,6 +95,24 @@ int main(void) {
   typed("draft\x1b[A\x1b[A\x1b[B\x1b[B", line, &result);
   if (strcmp(line, "draft|")) printf("FAIL: Down, back to the line typed, got \"%s\"\n", line), failed++;
   else passed++;
+  { /* Tab: complete the word (as far as what fits agrees), or show what fits; at an indent, indent */
+    static const char *const tabs[][2] = {
+      {"pos\t", "position|"}, {"pr\t", "print|"}, {"po\t", "po|"}, {"poi\t", "pointer|"}, {"Po\t", "Point|"},
+      {"pos)\x1b[D\t", "position|)"}, {"\t", "  |"}, {"  \t", "    |"}, {"a := pos\t", "a := position|"}, {"q\t", "q|"}, {"x\t", "x|"},
+    };
+    static rio_OsLine e;
+    rio_osComplete = offers;
+    for (i = 0; i < sizeof tabs / sizeof tabs[0]; i++) {
+      typed(tabs[i][0], line, &result);
+      if (strcmp(line, tabs[i][1])) printf("FAIL Tab %d: got \"%s\", want \"%s\"\n", (int)i, line, tabs[i][1]), failed++;
+      else passed++;
+    }
+    rio_osLineBegin(&e); /* (nothing to add, and more than one fits: they're to be shown) */
+    for (i = 0; i < 3; i++) rio_osLineKey(&e, "po\t"[i]);
+    if (!e.list || rio_osOfferCount != 2) printf("FAIL Tab: po should show 2, got %d (%d)\n", rio_osOfferCount, e.list), failed++;
+    else passed++;
+    rio_osComplete = 0;
+  }
   if (failed) return 1;
   printf("all %d line tests passed\n", passed);
   return 0;

@@ -12,10 +12,16 @@
 static unsigned char mem[1 << 20], scratch[1 << 19];
 static rio_Instr code[16384];
 
+static void offered(void *ud, const char *name, int nameLen, int kind, const char *detail, int detailLen) {
+  (void)ud; (void)kind;
+  if (nameLen < 1 || detailLen < 0 || (nameLen && !name[nameLen - 1]) || (detailLen && !detail[detailLen - 1])) __builtin_trap();
+}
+
 /* the input's size picks how: with a code buffer, or the code in mem, compiled in scratch (and to C)
-   or overlaid on mem */
+   or overlaid on mem. Compiled in scratch, the compiler's tables stay, as a language server's would:
+   completing at places in the input, with them and without */
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-  rio_Vm vm; int how = (int)(size % 3);
+  rio_Vm vm; int how = (int)(size % 3); size_t at;
   if (size > (1 << 16)) return 0;
   rio_init(&vm, mem, sizeof mem, how ? 0 : code, 16384);
   if (how == 2) { rio_compile(&vm, (const char *)data, (uint32_t)size); return 0; }
@@ -23,5 +29,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     FILE *f = fopen("/dev/null", "w");
     if (f) { rio_aot(&vm, f, ""); fclose(f); }
   }
+  for (at = size; at + 64 > size && at <= size; at--) /* (the last 64 places, and the start) */
+    rio_complete(how ? &vm : 0, (const char *)data, (uint32_t)at, offered, 0);
+  rio_complete(&vm, (const char *)data, 0, offered, 0);
   return 0;
 }

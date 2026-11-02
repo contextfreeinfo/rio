@@ -30,7 +30,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATS = os.path.join(HERE, "bench", "stats.csv")
 SVG = os.path.join(HERE, "bench", "stats.svg")
 VM = ["common", "image", "runtime", "vm"]
-COMPILER = ["builtins", "codegen", "compile", "decls", "expr", "fmt", "host", "lexer", "modules", "operators", "repl",
+COMPILER = ["builtins", "codegen", "compile", "complete", "decls", "expr", "fmt", "host", "lexer", "modules", "operators", "repl",
             "statements", "tables", "jit"]  # (fmt: rio_format, riocore's since e89ad00, counted from the rows after bb81f14: a step up there)
 ARM_FLAGS = ["-mcpu=cortex-m33", "-mthumb", "-march=armv8-m.main+fp+dsp", "-mfloat-abi=softfp", "-O3", "-DNDEBUG",
              "-Drio_SMALL", "-Drio_MAX_FFI=256"]

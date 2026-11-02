@@ -95,3 +95,12 @@ as they're typed, as `os.readLine`'s are ([os](os.md)): the arrows, Home and End
 by words, Ctrl+K, Ctrl+U, Ctrl+W and Ctrl+Y, and Up and Down for the lines typed before, which are kept
 in `~/.rio_history`. Ctrl+C drops what's typed, and Ctrl+D quits. Code is in colors as it's typed (Rio's
 words, types, calls, numbers, strings and comments), unless `NO_COLOR` is set or `TERM` is `dumb`.
+
+Tab completes the name before the cursor, from what the session knows: after `p.`, `p`'s fields and
+methods (and its kind's built-in ones, like `len` and `push`); after `Dir.`, an enum's values and a
+type's static procs; after `os.`, what a module exports. Elsewhere it's the names in scope, the names
+the input so far declares (an unfinished proc's parameters and locals), and Rio's words that fit
+there: a statement's (`if`, `for`, `return`, and `end` or `else` inside a block), an expression's
+(`not`, `nil`), and after a value, an operator's (`and`, `or`, `is`, and `in` or `do` in a header).
+Where a type goes (`x: `, `-> `), it's just types. It fills in as much as the names that fit agree on,
+and when that's nothing more, it shows them, with their types. At the start of a line, Tab indents.

@@ -12,6 +12,7 @@ set(RIO_COMPILER_SOURCES # what compiles them
   ${CMAKE_CURRENT_LIST_DIR}/src/builtins.c
   ${CMAKE_CURRENT_LIST_DIR}/src/codegen.c
   ${CMAKE_CURRENT_LIST_DIR}/src/compile.c
+  ${CMAKE_CURRENT_LIST_DIR}/src/complete.c
   ${CMAKE_CURRENT_LIST_DIR}/src/decls.c
   ${CMAKE_CURRENT_LIST_DIR}/src/expr.c
   ${CMAKE_CURRENT_LIST_DIR}/src/fmt.c

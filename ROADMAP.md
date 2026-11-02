@@ -157,12 +157,18 @@ In this order:
   - **A web playground:** riocore in the browser (the core alone: no `os`).
   - **Signed releases:** macOS (notarized, so Gatekeeper lets it run) and Windows (so SmartScreen
     doesn't warn) binaries signed in CI: which certificates, what they cost, and how the keys stay safe.
-  - **The REPL as the place to start:** Rio-aware completion (exact names, from the session's own
-    symbols and modules), in its line editor first, then in the language server. Colors are in:
-    `rio_highlight` (riocore, beside `rio_format`) gives each token's kind, the REPL's line editor
-    colors with it, and the language server's semantic tokens will come from it (its kinds are
-    keyword, type, function, number, string, comment, operator); VS Code's colors before the server
-    starts come from a TextMate grammar with the same kinds, which the extension ships.
+  - **The REPL as the place to start:** colors and completion are in, made to serve the language
+    server too. `rio_highlight` (riocore, beside `rio_format`) gives each token's kind; the REPL's
+    line editor colors with it, and the language server's semantic tokens will come from it (its
+    kinds are keyword, type, function, number, string, comment, operator); VS Code's colors before
+    the server starts come from a TextMate grammar with the same kinds, which the extension ships.
+    `rio_complete` (riocore, src/complete.c) gives the names that fit at a cursor, from a compiler's
+    tables (the REPL session's, or a document compiled in scratch) and the text: members after `x.`,
+    `Type.` and `module.`, Rio's words by context, names the text declares that aren't compiled yet;
+    each with an LSP-shaped kind and a type or signature. The REPL's Tab uses it; the language server's
+    completions will. Next: auto-indent in the REPL (`rio_replIndent` and `rio_replOutdent` are the
+    start), then the same three in rinc's editor. Open in completion: a generic's `T` shows as `?`,
+    and the text's own names (not compiled yet) have no types unless written `x: T` or `x := T{...}`.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:
   - **Procs:** a proc's name as an argument, `log(f)`, is "not a value", though

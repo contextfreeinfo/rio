@@ -242,6 +242,46 @@ static void rio_colorLine(const char *s, int n, unsigned char *kinds) {
   rio_highlight(s, (uint32_t)n, rio_colorToken, 0);
 }
 
+/* the REPL's Tab (os.h's line editor: rio_osComplete): rio_complete's names, each once, for what's typed
+   so far (the unfinished input's lines before this one, and this one to the cursor) */
+static char rio_pending[1 << 16];
+static size_t rio_pendingLen;
+typedef struct {
+  char *out;
+  int cap, used, count;
+} rio_Offers;
+static void rio_offer(void *userData, const char *name, int nameLen, int kind, const char *detail, int detailLen) {
+  rio_Offers *o = (rio_Offers *)userData;
+  int i, at = 0;
+  (void)kind;
+  for (i = 0; i < o->count; i++) { /* (a name once: the first, the newest) */
+    int n = (int)strlen(o->out + at);
+    if (n == nameLen && !memcmp(o->out + at, name, (size_t)n)) return;
+    at += n + 1;
+    at += (int)strlen(o->out + at) + 1;
+  }
+  if (o->used + nameLen + detailLen + 2 > o->cap) return;
+  memcpy(o->out + o->used, name, (size_t)nameLen);
+  o->used += nameLen;
+  o->out[o->used++] = 0;
+  memcpy(o->out + o->used, detail, (size_t)detailLen);
+  o->used += detailLen;
+  o->out[o->used++] = 0;
+  o->count++;
+}
+static int rio_completeLine(const char *s, int n, int at, char *out, int cap, int *from) {
+  static char text[sizeof rio_pending + rio_LINE];
+  rio_Offers o;
+  (void)n;
+  o.out = out;
+  o.cap = cap;
+  o.used = o.count = 0;
+  memcpy(text, rio_pending, rio_pendingLen);
+  memcpy(text + rio_pendingLen, s, (size_t)at);
+  *from = rio_complete(&rio_vm, text, (uint32_t)(rio_pendingLen + (size_t)at), rio_offer, &o) - (int)rio_pendingLen;
+  return o.count;
+}
+
 /* the REPL's history file: ~/.rio_history (HOME, or USERPROFILE on Windows); 0 if there's no home */
 static const char *rio_historyPath(void) {
   static char path[1024];
@@ -255,11 +295,11 @@ static const char *rio_historyPath(void) {
 
 /* each line is added to what's pending; unfinished input (an open block, bracket or string) waits for
    more, and a blank line gives up on it. Lines are typed with the line editor (os.h's: arrows, Home,
-   End, Ctrl+Left and Right by words, Up and Down for the lines typed before, kept in ~/.rio_history) */
+   End, Ctrl+Left and Right by words, Up and Down for the lines typed before, kept in ~/.rio_history,
+   Tab to complete a name) */
 static int rio_repl(void) {
-  static char pending[1 << 16];
   char line[rio_LINE + 1];
-  size_t n = 0, k;
+  size_t k;
   int result, got;
   const char *history = rio_historyPath();
   FILE *h;
@@ -281,13 +321,14 @@ static int rio_repl(void) {
     }
   }
   if (!getenv("NO_COLOR") && !(getenv("TERM") && !strcmp(getenv("TERM"), "dumb"))) rio_osColors = rio_colorLine; /* (no-color.org) */
+  rio_osComplete = rio_completeLine;
   printf("rio REPL. Ctrl-C stops a running program, or drops what's typed; Ctrl-D quits.\n");
   for (;;) {
     rio_gotInterrupt = 0;
-    got = rio_osLine(n ? ". " : "> ", 2, line, (int)sizeof line - 1); /* (as wide: lines line up) */
+    got = rio_osLine(rio_pendingLen ? ". " : "> ", 2, line, (int)sizeof line - 1); /* (as wide: lines line up) */
     if (got == -2 || (got < 0 && rio_gotInterrupt)) { /* Ctrl+C: what's typed dropped */
       clearerr(stdin);
-      n = 0;
+      rio_pendingLen = 0;
       continue;
     }
     if (got < 0) break;
@@ -298,22 +339,22 @@ static int rio_repl(void) {
     line[got] = '\n'; /* (the line, with its line break, as the REPL takes it) */
     line[got + 1] = 0;
     k = (size_t)got + 1;
-    if (n && got == 0) {
+    if (rio_pendingLen && got == 0) {
       puts("(unfinished input dropped)");
-      n = 0;
+      rio_pendingLen = 0;
       continue;
     }
-    if (n + k >= sizeof pending) {
+    if (rio_pendingLen + k >= sizeof rio_pending) {
       puts("(input too long)");
-      n = 0;
+      rio_pendingLen = 0;
       continue;
     }
-    memcpy(pending + n, line, k);
-    n += k;
-    result = rio_replEval(&rio_vm, pending, (uint32_t)n);
+    memcpy(rio_pending + rio_pendingLen, line, k);
+    rio_pendingLen += k;
+    result = rio_replEval(&rio_vm, rio_pending, (uint32_t)rio_pendingLen);
     if (result == rio_ReplResult_more) continue;
     if (result) rio_report(0);
-    n = 0;
+    rio_pendingLen = 0;
   }
   return 0;
 }

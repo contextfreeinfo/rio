@@ -120,6 +120,10 @@ add_executable(rio_repl_test tests/repl.c)
 target_link_libraries(rio_repl_test PRIVATE riocore)
 add_test(NAME rio_repl COMMAND rio_repl_test)
 set_tests_properties(rio_repl PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ repl tests passed")
+add_executable(rio_complete_test tests/complete.c) # what Tab offers (rio_complete)
+target_link_libraries(rio_complete_test PRIVATE riocore)
+add_test(NAME rio_complete COMMAND rio_complete_test)
+set_tests_properties(rio_complete PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ completion tests passed")
 
 # modules: real files through the CLI loader, and edge cases through the API
 add_test(NAME rio_modules COMMAND rio -L ${CMAKE_SOURCE_DIR}/tests/modules/lib ${CMAKE_SOURCE_DIR}/tests/modules/main.rio)

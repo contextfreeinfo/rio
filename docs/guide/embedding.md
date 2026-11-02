@@ -163,3 +163,17 @@ static void token(void *userData, uint32_t at, uint32_t len, int kind) {
 }
 rio_highlight(src, len, token, 0);
 ```
+
+A third takes what a compiler knows, too: `rio_complete` gives the names that fit at a cursor, as the
+REPL's Tab does. With a REPL session's vm, they're the session's; with a vm that compiled a whole
+text in its own scratch (`rio_compileScratch`, failing or not), they're that text's, as a language
+server would have them; with no vm (0), just Rio's words and the names the text declares. Each comes
+with a kind (`rio_Item_*`: a keyword, var, const, type, proc, method, field, module or enum value)
+and a detail (its type, or a proc's signature). It returns where the word being completed starts:
+
+```c fragment
+static void offer(void *userData, const char *name, int nameLen, int kind, const char *detail, int detailLen) {
+  /* name[0..nameLen): rio_Item_field with "Float", rio_Item_method with "proc() -> Float", ... */
+}
+int start = rio_complete(vm, text, cursor, offer, 0); /* the word is text[start..cursor) */
+```
