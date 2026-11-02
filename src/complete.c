@@ -254,11 +254,41 @@ static int rio_cplSkipSpace(const char *p, const char *e) {
   return (int)(q - p);
 }
 
-/* where the text declares name last before end, as a type it names (else 0); self: the receiver of the
+/* a type the tables have: of kind (slice, array, builder, builderView), with elements of elem, and count
+   of them (arrays, builders); else one with the same members (another count; a builder for a view), or 0 */
+static int rio_cplFind(rio_Cpl *k, int kind, int elem, uint32_t count) {
+  int i, near = 0;
+  if (kind == rio_TypeKind_slice && elem == rio_TypeId_byte) return rio_TypeId_blob;
+  for (i = rio_TypeId_builtinCount; i < k->c->typeCount; i++) {
+    rio_Type *t = rio_type(k->vm, i);
+    int same = t->elem == elem && !(t->kind == rio_TypeKind_array && t->firstField);
+    if (same && t->kind == kind && (kind == rio_TypeKind_slice || kind == rio_TypeKind_builderView || t->count == count)) return i;
+    if (same && !near && (t->kind == kind || (kind == rio_TypeKind_builderView && t->kind == rio_TypeKind_builder))) near = i;
+  }
+  return near;
+}
+
+/* the brackets at p, [], [..], [..8] or [4]: their kind and count, and where they end */
+static const char *rio_cplBrackets(const char *p, const char *end, int *kind, uint32_t *count) {
+  int range = 0;
+  *count = 0;
+  p++;
+  if (p + 1 < end && p[0] == '.' && p[1] == '.') {
+    range = 1;
+    p += 2;
+  }
+  while (p < end && rio_isDigit(*p)) *count = *count * 10 + (uint32_t)(*p++ - '0');
+  *kind = range ? (*count ? rio_TypeKind_builder : rio_TypeKind_builderView) : *count ? rio_TypeKind_array : rio_TypeKind_slice;
+  return p < end && *p == ']' ? p + 1 : end;
+}
+
+/* where the text declares name last before end, as a type it names (else 0; minus T, for a []T the
+   tables don't have); self: the receiver of the
    last T.name :: proc */
 static int rio_cplTextType(rio_Cpl *k, const char *name, int n, const char *end) {
   const char *p = k->text, *best = 0;
-  int self = n == 4 && !memcmp(name, "self", 4), isSelf = 0, i;
+  int self = n == 4 && !memcmp(name, "self", 4), isSelf = 0, i, kinds[4], depth, type;
+  uint32_t counts[4];
   for (; p + n <= end; p++) {
     const char *q;
     if ((p > k->text && (rio_cplWordChar(p[-1]) || p[-1] == '.')) || !rio_isAlpha(*p)) continue;
@@ -284,11 +314,25 @@ static int rio_cplTextType(rio_Cpl *k, const char *name, int n, const char *end)
     best += rio_cplSkipSpace(best, end);
     if (best < end && *best == '&') best++;
   }
+  for (depth = 0; depth < 4 && best < end && *best == '['; depth++) best = rio_cplBrackets(best, end, &kinds[depth], &counts[depth]); /* ([]T, [4]T, [..8]T) */
   for (p = best; p < end && rio_cplWordChar(*p); p++) {}
   if (p == best || !(*best >= 'A' && *best <= 'Z')) return 0;
-  if (!isSelf && p < end && *p != '{' && *p != '.' && *p != ')' && *p != ',' && *p != ' ' && *p != '\n' && *p != '\r' && *p != '=') return 0;
   i = rio_lookup(k->vm, best, (int)(p - best));
-  return i >= 0 && k->c->syms[i].kind == rio_SymKind_type ? k->c->syms[i].type : 0;
+  if (i < 0 || k->c->syms[i].kind != rio_SymKind_type) return 0;
+  type = k->c->syms[i].type;
+  if (type == rio_TypeId_blob && p < end && *p == '[') { /* Blob[4], Blob[..8], Blob[..]: of bytes */
+    int kind;
+    uint32_t count;
+    p = rio_cplBrackets(p, end, &kind, &count);
+    type = kind == rio_TypeKind_slice ? 0 : rio_cplFind(k, kind, rio_TypeId_byte, count);
+  }
+  if (!isSelf && p < end && *p != '{' && *p != '.' && *p != ')' && *p != ',' && *p != ' ' && *p != '\n' && *p != '\r' && *p != '=') return 0;
+  while (depth-- > 0 && type) {
+    int t = rio_cplFind(k, kinds[depth], type, counts[depth]);
+    if (!t && !depth && kinds[0] == rio_TypeKind_slice) return -type; /* (a []T the tables don't have: T's, negated) */
+    type = t;
+  }
+  return type;
 }
 
 /* the bracket closing the one at p (before end), or end */
@@ -312,7 +356,7 @@ static rio_CplIs rio_cplChain(rio_Cpl *k, const char *from, const char *dot) {
   int i, steps;
   for (q = p; q < dot && rio_cplWordChar(*q); q++) {}
   if ((i = rio_lookup(k->vm, p, (int)(q - p))) >= 0) r = rio_cplOfSymbol(k, i);
-  else if ((i = rio_cplTextType(k, p, (int)(q - p), from)) != 0) r = rio_cplIs(rio_Is_value, i); /* (not compiled yet) */
+  else if ((i = rio_cplTextType(k, p, (int)(q - p), from)) != 0) r = rio_cplIs(i > 0 ? rio_Is_value : rio_Is_slice, i > 0 ? i : -i); /* (not compiled yet) */
   for (p = q, steps = 0; p < dot && r.is && steps < 32; steps++) {
     rio_Type *ty = rio_type(k->vm, r.type);
     if (*p == '(') { /* a call: its result */
@@ -436,7 +480,7 @@ static void rio_cplMembers(rio_Cpl *k, rio_CplIs r) {
   else if (kind == rio_TypeKind_float) list[0] = toInt, list[1] = toFloat;
   else if (kind == rio_TypeKind_bool) list[0] = toInt, list[1] = toBool;
   else if (kind == rio_TypeKind_enum) list[0] = toInt;
-  for (j = 0; j < 4 && list[j] >= 0; j++) rio_cplNames(k, lists + list[j], rio_Item_method, "built in"); /* (the conversions) */
+  for (j = 0; j < 4; j++) if (list[j] >= 0) rio_cplNames(k, lists + list[j], rio_Item_method, "built in"); /* (the conversions) */
 }
 
 /* Type.: an enum's values, static procs (and static host procs, Type.name) */
@@ -617,7 +661,8 @@ int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, v
   first = line;
   if (b == line || rio_cplIs1(prev, prevLen, "do") || rio_cplIs1(prev, prevLen, "else")) { /* a statement starts here */
     rio_cplNames(&k, statement, rio_Item_keyword, "");
-    if (b == line) rio_cplNames(&k, rio_replIndent(text, (uint32_t)(line - text)) ? inBlock : topLevel, rio_Item_keyword, "");
+    if (b == line) /* (the blocks open: the text's, and a check's, cut there) */
+      rio_cplNames(&k, rio_replIndent(text, (uint32_t)(line - text)) || (k.c && k.c->blockCount) ? inBlock : topLevel, rio_Item_keyword, "");
     else rio_cplNames(&k, inBlock + 3, rio_Item_keyword, ""); /* (if x do break) */
     rio_cplSymbols(&k, rio_CplSyms_scope, 0);
     rio_cplTextNames(&k, word);

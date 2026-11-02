@@ -112,7 +112,7 @@ int main(void) {
   eval("Point.at :: static proc(x: Float, y?: Float) -> Point\n  return Point{x = x, y = y}\nend\n");
   eval("Dir :: enum\n  north, east, south, west\nend\n");
   eval("Line :: struct\n  from, to: Point\n  dir: Dir\nend\n");
-  eval("pts: [..8]Point\nline: Line\ncounts: [Dir]Int\nbytes: Blob[..64]\nname := \"rio\"\nr := 0..<10\nflag := true\n");
+  eval("pts: [..8]Point\nline: Line\ncounts: [Dir]Int\nbytes: Blob[..64]\nfixed: Blob[4]\nname :=\"rio\"\nr := 0..<10\nflag := true\n");
   eval("mid :: callback proc(a: Point, b: &Point) -> Point\n  return Point{x = (a.x + b.x) / 2, y = (a.y + b.y) / 2}\nend\n");
   eval("pointer := mid\nposition := Point{x = 1, y = 2}\n");
   eval("import shapes\nN :: 16\n");
@@ -133,7 +133,9 @@ int main(void) {
   exact("pts[1..<3].|", "len:m:built in cap:m:built in swap:m:built in");
   exact("pts.pop().|", "x:f:Float y:f:Float len2:m:proc() -> Float");
   has("bytes.|", "len:m push:m format:m print:m pack:m getInt:m toInt:m toFloat:m asString:m !toBool:");
-  has("name.|", "len:m swap:m pack:m toInt:m asString:m !push:");
+  exact("fixed.as|", "asString:m:built in"); /* (a Blob[N]) */
+  has("fixed.|", "len:m swap:m pack:m asString:m !toInt: !push:");
+  has("name.|","len:m swap:m pack:m toInt:m asString:m !push:");
   has("name[0].|", "toInt:m toFloat:m toBool:m");
   has("counts.|", "len:m toInt:m toFloat:m !push:");
   exact("r.|", "first:f:Int last:f:Int len:m:built in has:m:built in");
@@ -189,6 +191,10 @@ int main(void) {
   exact("f :: proc(p: Point)\n  p.|", "x:f:Float y:f:Float len2:m:proc() -> Float");
   exact("f :: proc(p: &Point)\n  p.y|", "y:f:Float");
   exact("q := Point{x = 1, y = 2}\nq.x|", "x:f:Float");
+  exact("f :: proc(b: Blob[..])\n  b.as|", "asString:m:built in");
+  exact("f :: proc(b: Blob[..16], c: Blob[2])\n  c.as|", "asString:m:built in");
+  exact("f :: proc(ps: [..8]Point)\n  ps[0].y|", "y:f:Float");
+  exact("f :: proc(ps: []Point)\n  ps.l|", "len:m:built in");
   exact("Point.sum :: proc() -> Float\n  return self.|", "x:f:Float y:f:Float len2:m:proc() -> Float");
 
   /* where the word starts */
@@ -211,6 +217,74 @@ int main(void) {
         rio_complete(0, texts[t], (uint32_t)i, item, 0);
       }
     n++;
+  }
+
+  { /* a check (rio_check), as an editor's: a small vm, a program with far more memory than it has, cut
+       at the start of the cursor's line; then completing there, from its tables */
+    static unsigned char small[16 << 10], room[48 << 10], many[96 << 10];
+    static char src[64 << 10];
+    static const char *const cut = "Point :: struct\n  x, y: Float\nend\nbig: [200000]Int\nhuge: Blob[300000]\n"
+                                   "f :: proc(p: Point, n: Int) -> Float\n  q := p\n  for i in 0..<n\n    w := big[i]\n";
+    rio_Vm cv;
+    size_t len = 0;
+    int i, r;
+    rio_init(&cv, small, sizeof small, 0, 0);
+    r = rio_check(&cv, cut, (uint32_t)strlen(cut), 0, 0, room, sizeof room);
+    n++;
+    if (r != -1 || !strstr(rio_error(&cv), "missing 'end'")) {
+      printf("FAIL %d: a check cut in a proc: %d %s\n", n, r, rio_error(&cv));
+      fails++;
+    }
+    gotLen = 0;
+    got[0] = 0;
+    {
+      static char text[1024];
+      snprintf(text, sizeof text, "    q."); /* (the cursor's line: the rest is in the tables) */
+      rio_complete(&cv, text, (uint32_t)strlen(text), item, 0);
+    }
+    n++;
+    if (strcmp(got, "x:f:Float y:f:Float")) {
+      printf("FAIL %d: completing after a check: %s\n", n, got);
+      fails++;
+    }
+    gotLen = 0;
+    got[0] = 0;
+    {
+      static char text[1024];
+      snprintf(text, sizeof text, "    ");
+      rio_complete(&cv, text, (uint32_t)strlen(text), item, 0);
+    }
+    n++;
+    if (!offered("w:v:Int") || !offered("i:v:Int") || !offered("q:v:Point") || !offered("huge:v:Blob[300000]") || !offered("end:k") || offered("x:")) {
+      printf("FAIL %d: a check's scope: %s\n", n, got);
+      fails++;
+    }
+    r = rio_check(&cv, "big: [200000]Int\nlog(big[3])\n", 29, 0, 0, room, sizeof room); /* (whole: nothing to run, nothing written) */
+    n++;
+    if (r || rio_run(&cv) == 0) {
+      printf("FAIL %d: a whole check: %d, and runnable after\n", n, r);
+      fails++;
+    }
+    for (i = 0; i < 60; i++) { /* (far more code than the scratch holds: kept a statement at a time) */
+      int j;
+      len += (size_t)snprintf(src + len, sizeof src - len, "p%d :: proc(a: Int) -> Int\n  b := a\n", i);
+      for (j = 0; j < 20; j++) len += (size_t)snprintf(src + len, sizeof src - len, "  if b > %d\n    b = b * 3 - a / %d\n  end\n", j, j + 1);
+      len += (size_t)snprintf(src + len, sizeof src - len, "  return b\nend\n");
+    }
+    rio_init(&cv, small, sizeof small, 0, 0);
+    r = rio_compileScratch(&cv, src, (uint32_t)len, many, sizeof many);
+    n++;
+    if (r != -1 || !strstr(rio_error(&cv), "code too large")) {
+      printf("FAIL %d: a long program's code should outgrow scratch when compiled: %d %s\n", n, r, rio_error(&cv));
+      fails++;
+    }
+    rio_init(&cv, small, sizeof small, 0, 0);
+    r = rio_check(&cv, src, (uint32_t)len, 0, 0, many, sizeof many);
+    n++;
+    if (r) {
+      printf("FAIL %d: a check of a long program: %s\n", n, rio_error(&cv));
+      fails++;
+    }
   }
 
   /* no compiler: just the words and the text's names */

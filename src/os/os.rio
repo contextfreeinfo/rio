@@ -57,6 +57,6 @@ run* :: host proc(args: []String, options?: RunOptions) -> [2]Int
 # ---------------------------------------------------------------- time
 
 clock* :: host proc() -> Float           # the processor's time the program has used, in seconds
-time* :: host proc() -> Float            # seconds since the program started, as a clock on the wall counts
+time* :: host proc() -> Float            # seconds since the program started, by a clock that only goes forward (not the time of day)
 date* :: host proc(out: Blob) -> Int     # the date and time here, 2026-11-01 14:03:05: its length (19)
 sleep* :: host proc(seconds: Float)      # nothing, for this long

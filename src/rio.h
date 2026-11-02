@@ -231,6 +231,17 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
    so, the main one in memory) rio_setSourceWindow set */
 int rio_compileStream(rio_Vm *vm, rio_SourceFn read, void *userData);
 void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes);
+/* A check: a source compiled for what it says, not to run: its first error, if any (rio_error,
+   rio_errorInfo), and what it declares, in scratch's tables, for rio_complete (an editor's, a language
+   server's). The program gets no memory: mem holds only the constants (4 bytes each; a few KB
+   is plenty), so a small vm checks a big program, and the code is kept a top-level statement at a
+   time (scratch needs room for the biggest). The source is src (len bytes), or read a part at a time
+   through read (src NULL); imports come through the loader, as for compiling. An editor checks its
+   text up to the start of the cursor's line: the error there (missing 'end', say) is expected, and
+   the blocks open at that point, a proc's parameters and locals among them, stay in the tables. Then
+   rio_complete takes the text from there (the cursor's line, to the cursor): the rest is in the tables,
+   in scope or not, as it should be. Returns 0 (no error) or -1; the vm isn't left ready to run either way */
+int rio_check(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size);
 #endif
 
 /* ------------------------------------------------------------------ running */
@@ -368,6 +379,7 @@ struct rio_Vm {
   rio_LogFn logFn;
   void *logData;
   int logLen, trapped, ready, procCount, ffiCount, defineCount, inRepl, running;
+  int checking;            /* compiling for rio_check: not to run */
   volatile int interrupted; /* set by rio_interrupt */
   rio_Define defines[rio_MAX_DEFINES];
   const char *autoImports[rio_MAX_AUTO_IMPORTS];

@@ -117,12 +117,24 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   vm->freeAt = 0;
   if (!below || below > vm->memSize) below = vm->memSize;
   if (lim) l = *lim;
-  else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
+  else if (vm->checking) { /* (a check: the code and strings of a statement at a time; the tables, as big as
+                               leaves room for them, the source's window and its copies) */
+    uint32_t k, room = (vm->sourceWindow ? vm->sourceWindow : 2048) * 2 + 4096;
+    l = rio_limitsFor(size / 4); /* (the smallest: if none fits, the error says so) */
+    for (k = size + size / 2; k > size / 4; k -= size / 32) {
+      l = rio_limitsFor(k);
+      l.code = rio_clamp(size / 128, 256, 65535);
+      l.slots = rio_clamp(size / 32, 2048, 65536); /* (their map, 2 bytes each, is for finishing, which a check doesn't) */
+      if (l.slots < l.consts + 1024) l.slots = l.consts + 1024;
+      if (rio_limitsSize(&l) + room + 64 <= size) break;
+    }
+  } else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
     uint32_t n = inMem ? below : size;
     l = rio_limitsFor(codeInScratch ? n - n / 4 : n);
     l.code = rio_limitsFor(n).code;
   }
   if (!codeInScratch) l.code = 0;
+  if (vm->checking && l.consts * 4 + 256 > vm->memSize) l.consts = vm->memSize > 512 ? (vm->memSize - 256) / 4 : 16; /* (a check: its constants are all mem holds) */
   if (l.code > 65535) l.code = 65535;
   if (l.consts < 16) l.consts = 16;
   if (l.slots > 65536) l.slots = 65536;
@@ -149,7 +161,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   c->pool = (uint8_t *)c + used;
   c->poolCap = c->lineTableTop = (size - (uint32_t)pad - used) & ~3u;
   vm->constCap = l.consts;
-  vm->top = vm->memSize;
+  vm->top = vm->checking ? 0x10000000u : vm->memSize; /* (a check's program has no memory: just addresses, 256 MB of them) */
   vm->constCount = 1; /* word 0 stays 0 */
   vm->codeLen = 0;
   vm->procCount = 0;
@@ -359,6 +371,13 @@ void rio_compileAll(rio_Vm *vm) {
   while (!rio_failed(vm)) {
     if (c->tok.kind != rio_Tok_eof) {
       c->keepUsed = 0; /* (names kept through the statement before: done with) */
+      if (vm->checking && !c->blockCount && c->curProc < 0) { /* (a check: the code so far, its lines and strings, aren't needed) */
+        vm->codeLen = 0;
+        c->lastLabel = 0;
+        c->poolCap = c->lineTableTop;
+        c->poolUsed = 0; /* (its strings too: nothing reads them, but by where they were) */
+        c->lineCount = c->lastLine = c->lastLinePc = 0;
+      }
       rio_statement(vm);
       continue;
     }
@@ -755,16 +774,30 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
     if (!rio_failed(vm)) rio_compileAll(vm);
   }
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
-  if (!rio_failed(vm)) rio_finish(vm);
-  if (rio_failed(vm)) {
+  if (!rio_failed(vm) && !vm->checking) rio_finish(vm);
+  if (vm->errorKind != rio_ErrorKind_none) { /* (not c->failed: rio_finish's moves may have written over c, overlaid
+                                              on mem; it fails, if it does, before them) */
     rio_noteCompile(vm); /* (how far it got: the compiler's tables are still there) */
     if (inMem) vm->compiler = 0;
     return -1;
   }
   if (inMem) vm->compiler = 0; /* (overwritten by the program's memory) */
+  if (vm->checking) return 0;
   vm->ready = 1;
   if (vm->jitHook) vm->jitHook(vm);
   return 0;
+}
+
+int rio_check(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size) {
+  int r;
+  if (!scratch) {
+    rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, "a check needs scratch of its own");
+    return -1;
+  }
+  vm->checking = 1;
+  r = rio_compileText(vm, src, len, read, readData, scratch, size, 0);
+  vm->checking = 0;
+  return r;
 }
 
 void rio_trackUsage(rio_Vm *vm, rio_Usage *usage) { vm->usage = usage; }

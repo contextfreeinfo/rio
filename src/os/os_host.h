@@ -66,7 +66,7 @@ typedef char os_RunOptions_size[sizeof(os_RunOptions) == 16 ? 1 : -1]; /* (Rio's
   X(date, os_date_SIG) \
   X(sleep, os_sleep_SIG)
 
-#define os_HASH 0x0c1296ebu /* (rio_hashText of the source) */
+#define os_HASH 0x6f3143b3u /* (rio_hashText of the source) */
 #define os_SOURCE \
   "# os.rio: module os, the rio command's: the program's arguments and environment, text in and out, files\n" \
   "# and folders, running other programs, and time. A program imports it (import os), and it's in rio as\n" \
@@ -127,6 +127,6 @@ typedef char os_RunOptions_size[sizeof(os_RunOptions) == 16 ? 1 : -1]; /* (Rio's
   "# ---------------------------------------------------------------- time\n" \
   "\n" \
   "clock* :: host proc() -> Float           # the processor's time the program has used, in seconds\n" \
-  "time* :: host proc() -> Float            # seconds since the program started, as a clock on the wall counts\n" \
+  "time* :: host proc() -> Float            # seconds since the program started, by a clock that only goes forward (not the time of day)\n" \
   "date* :: host proc(out: Blob) -> Int     # the date and time here, 2026-11-01 14:03:05: its length (19)\n" \
   "sleep* :: host proc(seconds: Float)      # nothing, for this long\n"
