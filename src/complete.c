@@ -15,7 +15,9 @@ typedef struct {
   const char *text, *word;
   int wordLen;
   rio_CompleteFn fn;
+  rio_LookupFn define; /* (rio_lookupAt's: the word exactly, and where it's declared) */
   void *userData;
+  int file, line, textAt; /* where the name being offered is declared (rio_cplAt) */
   char detail[rio_CPL_DETAIL];
   int detailLen;
   int seenAt[rio_CPL_SEEN], seenLen[rio_CPL_SEEN], seenCount;
@@ -23,9 +25,24 @@ typedef struct {
 
 static int rio_cplWordChar(int ch) { return rio_isAlpha(ch) || rio_isDigit(ch); }
 
+/* where the next name offered is declared: its file (a rio_Module's index; 1 the main one, 0 none), line
+   (0: not known), or where in the text (-1: not there) */
+static void rio_cplAt(rio_Cpl *k, int file, int line, int textAt) {
+  k->file = file;
+  k->line = line;
+  k->textAt = textAt;
+}
+
 static void rio_cplOffer(rio_Cpl *k, const char *name, int n, int kind) {
+  const char *file = 0;
   if (n < k->wordLen || memcmp(name, k->word, (size_t)k->wordLen)) return;
-  k->fn(k->userData, name, n, kind, k->detail, k->detailLen);
+  if (!k->define) {
+    k->fn(k->userData, name, n, kind, k->detail, k->detailLen);
+    return;
+  }
+  if (n != k->wordLen) return; /* (rio_lookupAt: the word, exactly) */
+  if (k->c && k->file >= 2 && k->file < k->c->moduleCount) file = k->c->names + k->c->modules[k->file].file;
+  k->define(k->userData, name, n, kind, k->detail, k->detailLen, file, k->file == 1 || file ? k->line : 0, k->textAt);
 }
 
 /* ------------------------------------------------------------------ details: types as written */
@@ -204,6 +221,7 @@ static void rio_cplSymbols(rio_Cpl *k, int which, int arg) {
     for (j = i + 1; j < c->symCount; j++) /* (a newer one of the name hides it) */
       if (rio_nameIs(k->vm, c->syms[j].name, c->syms[j].nameLen, c->names + y->name, y->nameLen) && rio_cplTakes(k, &c->syms[j], which, arg)) break;
     if (j < c->symCount) continue;
+    rio_cplAt(k, y->file, y->line, -1);
     rio_cplOffer(k, c->names + y->name, y->nameLen, rio_cplSymbol(k, y));
   }
 }
@@ -431,6 +449,7 @@ static void rio_cplNames(rio_Cpl *k, const char *const *names, int kind, const c
   for (; *names; names++) {
     k->detailLen = 0;
     rio_cplPut(k, detail, -1);
+    rio_cplAt(k, 0, 0, -1);
     rio_cplOffer(k, *names, (int)strlen(*names), kind);
   }
 }
@@ -455,7 +474,9 @@ static void rio_cplMembers(rio_Cpl *k, rio_CplIs r) {
   isSeq = isBuilder || kind == rio_TypeKind_array || kind == rio_TypeKind_slice;
   for (j = 0; kind == rio_TypeKind_struct && j < ty->fieldCount; j++) {
     rio_Field *f = rio_field(k->vm, ty->firstField + j);
+    int sym = rio_cplTypeSym(k, r.type);
     rio_cplType(k, f->type);
+    rio_cplAt(k, sym ? k->c->syms[sym - 1].file : 0, f->line, -1); /* (its struct's file) */
     rio_cplOffer(k, k->c->names + f->name, f->nameLen, rio_Item_field);
   }
   rio_cplSymbols(k, rio_CplSyms_methods, rio_valueType(r.type));
@@ -494,6 +515,7 @@ static void rio_cplStatics(rio_Cpl *k, int type) {
       rio_Field *f = rio_field(k->vm, ty->firstField + j);
       k->detailLen = 0;
       rio_cplTypeFlat(k, type);
+      rio_cplAt(k, sym ? c->syms[sym - 1].file : 0, f->line, -1);
       rio_cplOffer(k, c->names + f->name, f->nameLen, rio_Item_value);
     }
     rio_cplNames(k, more, rio_Item_method, "built in");
@@ -504,6 +526,7 @@ static void rio_cplStatics(rio_Cpl *k, int type) {
     if (y->kind != rio_SymKind_ffi || y->value < 0 || (y->module != c->curModule && !y->exported) || y->module != t->module) continue;
     if (y->nameLen <= t->nameLen + 1 || memcmp(c->names + y->name, c->names + t->name, t->nameLen) || c->names[y->name + t->nameLen] != '.') continue;
     rio_cplFfi(k, y);
+    rio_cplAt(k, y->file, y->line, -1);
     rio_cplOffer(k, c->names + y->name + t->nameLen + 1, y->nameLen - t->nameLen - 1, rio_Item_proc);
   }
 }
@@ -580,6 +603,7 @@ static void rio_cplTextNames(rio_Cpl *k, const char *end) {
       k->seenAt[k->seenCount] = (int)(p - k->text);
       k->seenLen[k->seenCount++] = n;
       k->detailLen = 0;
+      rio_cplAt(k, 0, 0, (int)(p - k->text));
       rio_cplOffer(k, p, n, kind);
     }
     p = q;
@@ -619,7 +643,7 @@ static int rio_cplInIndex(const char *text, const char *end) {
 /* is [p, p + n) the word w? */
 static int rio_cplIs1(const char *p, int n, const char *w) { return (int)strlen(w) == n && !memcmp(p, w, (size_t)n); }
 
-int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, void *userData) {
+static int rio_cplRun(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, rio_LookupFn define, void *userData) {
   static const char *const statement[] = {"if", "for", "switch", "do", "return", 0};
   static const char *const inBlock[] = {"end", "else", "case", "break", "continue", 0};
   static const char *const topLevel[] = {"import", "include", 0};
@@ -638,6 +662,7 @@ int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, v
   k.c = vm ? vm->compiler : 0;
   k.text = text;
   k.fn = fn;
+  k.define = define;
   k.userData = userData;
   while (word > text && rio_cplWordChar(word[-1])) word--;
   k.word = word;
@@ -708,6 +733,14 @@ int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, v
   rio_cplSymbols(&k, rio_CplSyms_scope, 0);
   rio_cplTextNames(&k, word);
   return (int)(word - text);
+}
+
+int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, void *userData) {
+  return rio_cplRun(vm, text, at, fn, 0, userData);
+}
+
+int rio_lookupAt(rio_Vm *vm, const char *text, uint32_t at, rio_LookupFn fn, void *userData) {
+  return rio_cplRun(vm, text, at, 0, fn, userData);
 }
 
 #endif

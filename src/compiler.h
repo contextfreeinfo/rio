@@ -76,15 +76,18 @@ typedef struct {
   uint16_t type, offset;  /* an enum value's 32 bits are split over these: high, low */
   uint8_t bitAt;          /* a bitfield (bits not 0): Int(bits), from bit bitAt of the word at offset */
   int8_t bits;
+  uint16_t line;          /* where it's declared (its struct's or enum's file), for an editor (0: not known) */
 } rio_Field;
 
 typedef struct {
   uint16_t name, nameLen;
   uint16_t type;
-  uint16_t module;  /* where it's defined (0: built in, visible everywhere) */
-  uint8_t kind;     /* rio_SymKind */
-  uint8_t exported; /* name* */
-  int32_t value;    /* by kind: see rio_SymKind */
+  uint16_t module;      /* where it's defined (0: built in, visible everywhere) */
+  uint8_t kind : 7;     /* rio_SymKind */
+  uint8_t exported : 1; /* name* */
+  uint8_t file;         /* where it's declared, for an editor: its file (rio_Module's index; 255: past them) */
+  uint16_t line;        /* and line (0: not known) */
+  int32_t value;        /* by kind: see rio_SymKind */
 } rio_Symbol;
 
 /* A source file: a module, or a part included into one. Index 0 stands for the built-in names and 1 for
@@ -323,6 +326,7 @@ typedef struct rio_Compiler {
   rio_Module *modules;
   int moduleCount, curModule, curFile, resumeCount, exporting;
   int afterOneLine; /* the statement before was a one-line case or else: case, else or end comes next */
+  int stmtLine;     /* the line the statement being compiled starts on: where its names are declared */
   int autoSources[rio_MAX_AUTO_IMPORTS], autoSourceCount; /* auto-imports the loader has sources for */
   rio_Resume resume[rio_MAX_IMPORT_DEPTH];
   /* slots: liveSlots hold variables, temporaries start at freeSlot; slotHigh is the most used */

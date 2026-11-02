@@ -1125,6 +1125,7 @@ void rio_statement(rio_Vm *vm) {
   rio_Block *top = rio_topBlock(vm);
   int t = c->tok.kind, blocksBefore = c->blockCount, labelLen = 0, afterOneLine;
   const char *label = 0;
+  c->stmtLine = c->tok.line; /* (where what it declares is: rio_addSymbol's) */
   c->freeSlot = c->liveSlots;
   c->isTestCount = 0; /* (x is T tests narrow within their statement: none from before) */
   if (t == rio_Tok_id && c->peek.kind == ':' && !c->peek.newline && rio_peekAfterNext(vm) == rio_Tok_for) { /* outer: for ... */

@@ -571,8 +571,9 @@ static int rio_fmtMain(int argc, char **argv) {
 /* rio lsp: the Language Server Protocol over standard input and output (an editor runs it: VS Code's
    extension, editors/vscode). Documents are kept whole (full sync); each change is checked
    (rio_check: its first error, a diagnostic); completion checks the document up to the cursor's line,
-   then asks rio_complete; formatting is rio_format's. Imports are found from the document's folder, as
-   rio finds them, and import os works. Basic for now: no go to definition, hover or renames */
+   then asks rio_complete; hover and go to definition, rio_lookupAt (with the comment lines above a
+   declaration, for hover); formatting is rio_format's. Imports are found from the document's folder, as
+   rio finds them, and import os works. Not yet: renames, references */
 #define rio_LSP_DOCS 16
 #define rio_LSP_TEXT (512 << 10) /* a document's most */
 static struct {
@@ -678,7 +679,7 @@ static void rio_lspPath(const char *uri, char *out, size_t cap) {
 #define rio_LSP_IMPORTS 4
 static char rio_lspConfig[1024]; /* (the rio.json loaded, "" none) */
 static struct {
-  char name[64];
+  char name[64], path[1600];
   const char *src;
   uint32_t len;
 } rio_lspImports[rio_LSP_IMPORTS];
@@ -725,6 +726,7 @@ static void rio_lspLoadConfig(const char *dir) {
     n = (uint32_t)fread(rio_lspImportText + used, 1, sizeof rio_lspImportText - used - 1, m);
     fclose(m);
     snprintf(rio_lspImports[rio_lspImportCount].name, sizeof rio_lspImports[0].name, "%s", name);
+    snprintf(rio_lspImports[rio_lspImportCount].path, sizeof rio_lspImports[0].path, "%s", path);
     rio_lspImports[rio_lspImportCount].src = rio_lspImportText + used;
     rio_lspImports[rio_lspImportCount++].len = n;
     rio_init(&rio_vm, headerMem, sizeof headerMem, 0, 0); /* (its host procs' sigs: name_SIG "...", as rio -H writes them) */
@@ -838,6 +840,172 @@ static uint32_t rio_lspOffset(int d, int line, int character, uint32_t *lineStar
   return at;
 }
 
+/* hover and go to definition: what the name at the cursor is (rio_lookupAt, after a check up to its line),
+   and where it's declared */
+static struct {
+  int found, kind, line, textAt;
+  char name[128], detail[256], file[1024];
+} rio_lspFound;
+static void rio_lspFind(void *userData, const char *name, int nameLen, int kind, const char *detail, int detailLen, const char *file,
+                        int line, int textAt) {
+  (void)userData;
+  if (rio_lspFound.found++) return; /* (the first: the one in scope) */
+  rio_lspFound.kind = kind;
+  rio_lspFound.line = line;
+  rio_lspFound.textAt = textAt;
+  snprintf(rio_lspFound.name, sizeof rio_lspFound.name, "%.*s", nameLen, name);
+  snprintf(rio_lspFound.detail, sizeof rio_lspFound.detail, "%.*s", detailLen, detail);
+  snprintf(rio_lspFound.file, sizeof rio_lspFound.file, "%s", file ? file : "");
+}
+
+/* the name at line and character of document d, found: 1, and rio_lspFound says what it is (its line made
+   one in d, from 1, when the text itself declares it), else 0 */
+static int rio_lspFindAt(int d, int line, int character) {
+  uint32_t lineStart, at = rio_lspOffset(d, line, character, &lineStart), end = at;
+  const char *t = rio_lspDocs[d].text;
+  while (end < rio_lspDocs[d].len && (rio_isAlpha(t[end]) || (t[end] >= '0' && t[end] <= '9'))) end++; /* (to the word's end) */
+  if (end == lineStart || !(rio_isAlpha(t[end - 1]) || (t[end - 1] >= '0' && t[end - 1] <= '9'))) return 0;
+  memset(&rio_lspFound, 0, sizeof rio_lspFound);
+  rio_lspCheck(d, lineStart);
+  rio_lookupAt(&rio_vm, t + lineStart, end - lineStart, rio_lspFind, 0);
+  if (rio_lspFound.found && rio_lspFound.textAt >= 0) rio_lspFound.line = line + 1, rio_lspFound.file[0] = 0;
+  return rio_lspFound.found && rio_lspFound.kind != rio_Item_keyword;
+}
+
+/* the text a declaration's in: document d (no file), else its file, read; its length, or -1 */
+static long rio_lspSource(int d, const char *file, const char **text) {
+  static char buf[rio_LSP_TEXT];
+  FILE *f;
+  size_t n;
+  int i;
+  if (!*file) {
+    *text = rio_lspDocs[d].text;
+    return (long)rio_lspDocs[d].len;
+  }
+  for (i = 0; i < rio_lspImportCount; i++) /* (an auto-import's: its text, and its file, from now on) */
+    if (!strcmp(file, rio_lspImports[i].name) || !strcmp(file, rio_lspImports[i].path) ||
+        (!strncmp(file, rio_lspImports[i].name, strlen(rio_lspImports[i].name)) && !strcmp(file + strlen(rio_lspImports[i].name), ".rio"))) {
+      snprintf(rio_lspFound.file, sizeof rio_lspFound.file, "%s", rio_lspImports[i].path);
+      *text = rio_lspImports[i].src;
+      return (long)rio_lspImports[i].len;
+    }
+  if (!(f = fopen(file, "rb"))) return -1;
+  n = fread(buf, 1, sizeof buf - 1, f);
+  fclose(f);
+  *text = buf;
+  return (long)n;
+}
+
+/* where line (from 1) starts in text, or -1 */
+static long rio_lspLineAt(const char *text, long len, int line) {
+  long at = 0;
+  while (--line > 0 && at < len) {
+    while (at < len && text[at] != '\n') at++;
+    at++;
+  }
+  return at <= len ? at : -1;
+}
+
+static void rio_lspHover(const char *id, int d, int line, int character) {
+  static const char *const kinds[] = {"", "", "", "", "", "", "", "module ", ""};
+  const char *text;
+  long len, at, start;
+  char head[512];
+  if (!rio_lspFindAt(d, line, character)) {
+    rio_lspReply(id, "null");
+    return;
+  }
+  if (rio_lspFound.kind == rio_Item_proc || rio_lspFound.kind == rio_Item_method || rio_lspFound.kind == rio_Item_type)
+    snprintf(head, sizeof head, "%s :: %s", rio_lspFound.name, rio_lspFound.detail[0] ? rio_lspFound.detail : "?");
+  else if (rio_lspFound.detail[0])
+    snprintf(head, sizeof head, "%s%s: %s", kinds[rio_lspFound.kind], rio_lspFound.name, rio_lspFound.detail);
+  else snprintf(head, sizeof head, "%s", rio_lspFound.name);
+  rio_lspPut("{\"jsonrpc\":\"2.0\",\"id\":", -1);
+  rio_lspPut(id, (int)strcspn(id, ",}"));
+  rio_lspPut(",\"result\":{\"contents\":{\"kind\":\"markdown\",\"value\":", -1);
+  {
+    static char md[8192];
+    int n = snprintf(md, sizeof md, "```rio\n%s\n```", head);
+    /* (the comment lines just above the declaration, and one on its own line: what it says it is) */
+    if (rio_lspFound.line > 0 && (len = rio_lspSource(d, rio_lspFound.file, &text)) >= 0 && (at = rio_lspLineAt(text, len, rio_lspFound.line)) >= 0) {
+      const char *hash = 0, *p;
+      long first = at, e = at;
+      while (e < len && text[e] != '\n') e++;
+      for (p = text + at; p < text + e; p++) /* (a comment after the code, outside a string) */
+        if (*p == '"') {
+          for (p++; p < text + e && *p != '"'; p++)
+            if (*p == '\\') p++;
+        } else if (*p == '#') {
+          hash = p;
+          break;
+        }
+      for (;;) { /* (back over the comment lines above) */
+        long s = first - 1, q;
+        if (s <= 0) break;
+        start = s;
+        while (start > 0 && text[start - 1] != '\n') start--;
+        for (q = start; q < s && (text[q] == ' ' || text[q] == '\t'); q++) {}
+        if (q >= s || text[q] != '#') break;
+        first = start;
+      }
+      if (first < at || hash) n += snprintf(md + n, sizeof md - (size_t)n, "\n\n");
+      while (first < at && n < (int)sizeof md - 2) { /* (each comment line's words, # left off) */
+        long s = first;
+        while (s < at && (text[s] == ' ' || text[s] == '\t')) s++;
+        s++;
+        if (s < at && text[s] == ' ') s++;
+        while (s < at && text[s] != '\n' && n < (int)sizeof md - 2) md[n++] = text[s++] == '\r' ? ' ' : text[s - 1];
+        md[n++] = ' ';
+        first = s + 1;
+      }
+      if (hash) {
+        for (p = hash + 1; *p == ' '; p++) {}
+        while (p < text + e && *p != '\r' && n < (int)sizeof md - 1) md[n++] = *p++;
+      }
+    }
+    rio_lspPutString(md, n);
+  }
+  rio_lspPut("}}}", 3);
+  rio_lspSend();
+}
+
+static void rio_lspDefinition(const char *id, int d, int line, int character) {
+  const char *text;
+  long len, at;
+  int col = 0, n = (int)strlen(rio_lspFound.name);
+  char range[160];
+  if (!rio_lspFindAt(d, line, character) || rio_lspFound.line <= 0 || (len = rio_lspSource(d, rio_lspFound.file, &text)) < 0 ||
+      (at = rio_lspLineAt(text, len, rio_lspFound.line)) < 0) {
+    rio_lspReply(id, "null");
+    return;
+  }
+  n = (int)strlen(rio_lspFound.name);
+  { /* (the name on its line: its column) */
+    long p;
+    for (p = at; p + n <= len && text[p] != '\n'; p++)
+      if (!memcmp(text + p, rio_lspFound.name, (size_t)n) && (p == at || !rio_isAlpha(text[p - 1])) &&
+          (p + n >= len || !(rio_isAlpha(text[p + n]) || (text[p + n] >= '0' && text[p + n] <= '9')))) {
+        col = (int)(p - at);
+        break;
+      }
+  }
+  rio_lspPut("{\"jsonrpc\":\"2.0\",\"id\":", -1);
+  rio_lspPut(id, (int)strcspn(id, ",}"));
+  rio_lspPut(",\"result\":{\"uri\":", -1);
+  if (!rio_lspFound.file[0]) rio_lspPutString(rio_lspDocs[d].uri, (int)strlen(rio_lspDocs[d].uri));
+  else {
+    char uri[1200], *u;
+    snprintf(uri, sizeof uri, "file://%s%s", rio_lspFound.file[0] == '/' ? "" : "/", rio_lspFound.file);
+    for (u = uri; *u; u++)
+      if (*u == '\\') *u = '/';
+    rio_lspPutString(uri, (int)strlen(uri));
+  }
+  snprintf(range, sizeof range, ",\"range\":{\"start\":{\"line\":%d,\"character\":%d},\"end\":{\"line\":%d,\"character\":%d}}}}",
+           rio_lspFound.line - 1, col, rio_lspFound.line - 1, col + n);
+  rio_lspPut(range, -1);
+  rio_lspSend();
+}
+
 static int rio_lspDoc(const char *msg, int open) { /* (the document a message is about: by its uri) */
   char uri[1024];
   int i, free = -1;
@@ -874,7 +1042,7 @@ static int rio_lspMain(void) {
     id = rio_jsonAt(rio_lspIn, "id");
     if (!strcmp(method, "initialize"))
       rio_lspReply(id, "{\"capabilities\":{\"textDocumentSync\":1,\"completionProvider\":{\"triggerCharacters\":[\".\"]},"
-                       "\"documentFormattingProvider\":true},\"serverInfo\":{\"name\":\"rio\"}}");
+                       "\"documentFormattingProvider\":true,\"hoverProvider\":true,\"definitionProvider\":true},\"serverInfo\":{\"name\":\"rio\"}}");
     else if (!strcmp(method, "shutdown")) rio_lspReply(id, "null");
     else if (!strcmp(method, "exit")) return 0;
     else if ((!strcmp(method, "textDocument/didOpen") || !strcmp(method, "textDocument/didChange")) &&
@@ -900,6 +1068,11 @@ static int rio_lspMain(void) {
       rio_complete(&rio_vm, rio_lspDocs[d].text + lineStart, at - lineStart, rio_lspOffer, &count);
       rio_lspPut("]}", 2);
       rio_lspSend();
+    } else if ((!strcmp(method, "textDocument/hover") || !strcmp(method, "textDocument/definition")) && id) {
+      const char *pos = rio_jsonAt(rio_lspIn, "position");
+      if ((d = rio_lspDoc(rio_lspIn, 0)) < 0 || !pos) rio_lspReply(id, "null");
+      else if (method[13] == 'h') rio_lspHover(id, d, atoi(rio_jsonAt(pos, "line")), atoi(rio_jsonAt(pos, "character")));
+      else rio_lspDefinition(id, d, atoi(rio_jsonAt(pos, "line")), atoi(rio_jsonAt(pos, "character")));
     } else if (!strcmp(method, "textDocument/formatting") && id) {
       int32_t n;
       int lines = 0;

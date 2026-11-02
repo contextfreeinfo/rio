@@ -45,6 +45,15 @@ static void item(void *ud, const char *name, int nameLen, int kind, const char *
                              detailLen ? ":" : "", detailLen, detail);
 }
 
+/* rio_lookupAt's first: "name detail line textAt" */
+static char found[256];
+static void foundAt(void *ud, const char *name, int nameLen, int kind, const char *detail, int detailLen, const char *file, int line, int textAt) {
+  (void)ud;
+  (void)kind;
+  (void)file;
+  if (!found[0]) snprintf(found, sizeof found, "%.*s %.*s %d %d", nameLen, name, detailLen, detail, line, textAt);
+}
+
 /* the names offered at text's '|' (where the word starts: at the word's start, with its length) */
 static int complete(const char *text) {
   static char t[1024];
@@ -283,6 +292,35 @@ int main(void) {
     n++;
     if (r) {
       printf("FAIL %d: a check of a long program: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+  }
+
+  { /* rio_lookupAt: the name exactly, and where it's declared (the main source: no file; its line) */
+    static unsigned char small[16 << 10], room[48 << 10];
+    static const char *const src = "Point :: struct\n  across: Int\n  down: Int\nend\nfar :: proc(p: Point) -> Int\n  q := p\n";
+    rio_Vm cv;
+    rio_init(&cv, small, sizeof small, 0, 0);
+    (void)rio_check(&cv, src, (uint32_t)strlen(src), 0, 0, room, sizeof room);
+    found[0] = 0;
+    rio_lookupAt(&cv, "  q.down", 8, foundAt, 0);
+    n++;
+    if (strcmp(found, "down Int 3 -1")) {
+      printf("FAIL %d: lookup of a field: %s\n", n, found);
+      fails++;
+    }
+    found[0] = 0;
+    rio_lookupAt(&cv, "  x := far", 10, foundAt, 0);
+    n++;
+    if (strcmp(found, "far proc(Point) -> Int 5 -1")) {
+      printf("FAIL %d: lookup of a proc: %s\n", n, found);
+      fails++;
+    }
+    found[0] = 0;
+    rio_lookupAt(&cv, "  x := far(q).acr", 17, foundAt, 0);
+    n++;
+    if (found[0]) {
+      printf("FAIL %d: no lookup of part of a name: %s\n", n, found);
       fails++;
     }
   }

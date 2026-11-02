@@ -28,6 +28,8 @@ void rio_addSymbol(rio_Vm *vm, const char *s, int n, int kind, int type, int32_t
   y->value = value;
   y->module = (uint16_t)c->curModule;
   y->exported = 0;
+  y->file = (uint8_t)(c->curFile < 255 ? c->curFile : 255);
+  y->line = (uint16_t)(c->stmtLine < 65535 ? c->stmtLine : 0);
   if (c->exporting && !c->blockCount && c->curProc < 0) { /* name* :: ... */
     y->exported = 1;
     c->exporting = 0;
@@ -92,6 +94,7 @@ int rio_genericOf(rio_Vm *vm, int tmpl) {
 int rio_newField(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   if (c->fieldCount >= (int)c->limits.fields) rio_FAIL(-1, "too many fields");
+  c->fields[c->fieldCount].line = (uint16_t)(c->prevLine < 65535 ? c->prevLine : 0); /* (the last token read: its name, or its type, on its line) */
   return c->fieldCount++;
 }
 

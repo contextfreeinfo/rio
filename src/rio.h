@@ -296,6 +296,14 @@ typedef void (*rio_CompleteFn)(void *userData, const char *name, int nameLen, in
    parameters). Names and types come from what vm's compiler has (a REPL session's); vm may be 0 (just
    the text and the words). Returns where the word being completed starts in text */
 int rio_complete(rio_Vm *vm, const char *text, uint32_t at, rio_CompleteFn fn, void *userData);
+/* The name that ends at at, in text (as for rio_complete: a check's text from the cut), exactly: what it
+   is (rio_complete's kind and detail) and where it's declared, for an editor's hover and go to definition.
+   file: the file (as the loader named it; 0: the main source, or none, as for a builtin), line (from 1;
+   0: not known), or textAt: where in text, for a name the text declares (-1 otherwise). More than one
+   can come, as for a name that's two things (a type, and a module's); the first is the one in scope */
+typedef void (*rio_LookupFn)(void *userData, const char *name, int nameLen, int kind, const char *detail, int detailLen,
+                             const char *file, int line, int textAt);
+int rio_lookupAt(rio_Vm *vm, const char *text, uint32_t at, rio_LookupFn fn, void *userData);
 #endif
 
 /* ------------------------------------------------------------------ errors */
