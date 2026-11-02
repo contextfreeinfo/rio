@@ -1,4 +1,4 @@
-"""The REPL at a terminal (a pseudo-terminal: Linux and macOS): python3 tests/tty.py path/to/rio
+"""The REPL at a terminal (a pseudo-terminal: Linux and macOS): python3 tests/terminal.py path/to/rio
 
 Keys as a terminal sends them, through the line editor in raw mode (os.h's): editing, history (kept in
 ~/.rio_history, a folder of its own for HOME here), Tab completing names, Ctrl+C dropping a line, Ctrl+D

@@ -149,7 +149,7 @@ set_tests_properties(rio_docs_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all [
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
   if(NOT WIN32) # the REPL at a terminal (a pseudo-terminal): the line editor in raw mode, history, Ctrl+C and D
-    add_test(NAME rio_tty COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/tty.py $<TARGET_FILE:rio>)
+    add_test(NAME rio_tty COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/terminal.py $<TARGET_FILE:rio>)
     set_tests_properties(rio_tty PROPERTIES PASS_REGULAR_EXPRESSION "the REPL came through")
   endif()
   # random programs passing views of local and global memory around: none rio accepts keeps a view of a
