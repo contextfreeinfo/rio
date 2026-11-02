@@ -40,20 +40,37 @@ send("log(1 + 1)\r")                                   # 2
 send("value := 1\r")
 send("log(va\t + x)\r")                                # Tab: value, so 41
 send("value.to\t\x15")                                 # Tab: what fits shown (toInt, toFloat, toBool); Ctrl+U
+send("f :: proc(n: Int) -> Int\r")                     # typed a line at a time: each starts at its indent
+send("if n > 2\r")
+send("return n\r")
+send("end\r")                                          # (end: a step out)
+send("return 0\r")
+send("end\r")
+send("log(f(5) + f(1))\r")                             # 5
+send("\x1b[200~g :: proc() -> Int\r  return 7\r\rend\r\x1b[201~")  # pasted: its own indents, its blank line kept
+send("log(g())\r")                                     # 7
+send("h :: proc()\r")
+send("\r")                                             # a blank line (but for its indent): dropped
 send("\x04", 1.5)                                      # Ctrl+D: the end
 _, status = os.waitpid(pid, 0)
 shown = re.sub(rb"\x1b\[[0-9;?]*[A-Za-z]", b"", out).replace(b"\r", b"").decode("utf-8", "replace")
-results = [l for l in shown.split("\n") if l and not l.startswith(">") and not l.startswith("rio REPL")]
+results = [l for l in shown.split("\n") if l and not l.startswith(">") and not l.startswith(". ") and not l.startswith("rio REPL")]
 history = open(os.path.join(home, ".rio_history")).read().split("\n")
 fails = []
 listed = [l.split()[0] for l in shown.split("\n") if l.startswith("  to")]
 results = [l for l in results if not l.startswith("  ")]
 if listed != ["toBool", "toFloat", "toInt"]:
     fails.append("Tab's list: %r" % listed)
-if results != ["41", "40", "9", "41", "2", "41"]:
+if results != ["41", "40", "9", "41", "2", "41", "5", "7", "(unfinished input dropped)"]:
     fails.append("results: %r" % results)
 if history[:6] != ["x := 40", "log(x + 1)", "log(x)", "log(9)", "log(x + 1)", "log(1 + 1)"]:
     fails.append("history: %r" % history)
+proc = history[history.index("f :: proc(n: Int) -> Int"):][:7]
+if proc != ["f :: proc(n: Int) -> Int", "  if n > 2", "    return n", "  end", "  return 0", "end", "log(f(5) + f(1))"]:
+    fails.append("indents: %r" % proc)
+pasted = history[history.index("g :: proc() -> Int"):][:3]
+if pasted != ["g :: proc() -> Int", "  return 7", "end"]:
+    fails.append("pasted: %r" % pasted)
 if not os.WIFEXITED(status) or os.WEXITSTATUS(status) != 0:
     fails.append("exit: %r" % status)
 for f in fails:

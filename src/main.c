@@ -282,6 +282,16 @@ static int rio_completeLine(const char *s, int n, int at, char *out, int cap, in
   return o.count;
 }
 
+/* the REPL's indents (os.h's rio_osIndent): a step (two spaces) for each block and bracket the input so
+   far leaves open, a step less for a line starting end, else or case */
+static int rio_indentLine(const char *s, int n) {
+  int depth = rio_replIndent(rio_pending, (uint32_t)rio_pendingLen), i = 0, w;
+  while (i < n && (s[i] == ' ' || s[i] == '\t')) i++;
+  for (w = i; w < n && ((s[w] >= 'a' && s[w] <= 'z') || (s[w] >= 'A' && s[w] <= 'Z')); w++) {}
+  if (depth && w > i && (w == n || s[w] == ' ') && rio_replOutdent(s + i, (uint32_t)(w - i))) depth--;
+  return depth * 2;
+}
+
 /* the REPL's history file: ~/.rio_history (HOME, or USERPROFILE on Windows); 0 if there's no home */
 static const char *rio_historyPath(void) {
   static char path[1024];
@@ -294,13 +304,13 @@ static const char *rio_historyPath(void) {
 }
 
 /* each line is added to what's pending; unfinished input (an open block, bracket or string) waits for
-   more, and a blank line gives up on it. Lines are typed with the line editor (os.h's: arrows, Home,
+   more, and a blank line gives up on it (not one in a paste). Lines are typed with the line editor (os.h's: arrows, Home,
    End, Ctrl+Left and Right by words, Up and Down for the lines typed before, kept in ~/.rio_history,
-   Tab to complete a name) */
+   Tab to complete a name; a line starts at its indent, and end, else and case step out) */
 static int rio_repl(void) {
   char line[rio_LINE + 1];
   size_t k;
-  int result, got;
+  int result, got, blank;
   const char *history = rio_historyPath();
   FILE *h;
   if (rio_replBegin(&rio_vm, rio_scratch, sizeof rio_scratch, 0)) {
@@ -322,6 +332,7 @@ static int rio_repl(void) {
   }
   if (!getenv("NO_COLOR") && !(getenv("TERM") && !strcmp(getenv("TERM"), "dumb"))) rio_osColors = rio_colorLine; /* (no-color.org) */
   rio_osComplete = rio_completeLine;
+  rio_osIndent = rio_indentLine;
   printf("rio REPL. Ctrl-C stops a running program, or drops what's typed; Ctrl-D quits.\n");
   for (;;) {
     rio_gotInterrupt = 0;
@@ -332,14 +343,15 @@ static int rio_repl(void) {
       continue;
     }
     if (got < 0) break;
-    if (got > 0 && history && (h = fopen(history, "ab"))) {
+    blank = (int)strspn(line, " \t") == got; /* (spaces only: an indent it was given, and no more) */
+    if (!blank && history && (h = fopen(history, "ab"))) {
       fprintf(h, "%s\n", line);
       fclose(h);
     }
     line[got] = '\n'; /* (the line, with its line break, as the REPL takes it) */
     line[got + 1] = 0;
     k = (size_t)got + 1;
-    if (rio_pendingLen && got == 0) {
+    if (rio_pendingLen && blank && !rio_osPasting && !(rio_osIsTerminal() && rio_osWaiting())) { /* (a paste's blank lines are kept) */
       puts("(unfinished input dropped)");
       rio_pendingLen = 0;
       continue;

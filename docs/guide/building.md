@@ -104,3 +104,9 @@ there: a statement's (`if`, `for`, `return`, and `end` or `else` inside a block)
 (`not`, `nil`), and after a value, an operator's (`and`, `or`, `is`, and `in` or `do` in a header).
 Where a type goes (`x: `, `-> `), it's just types. It fills in as much as the names that fit agree on,
 and when that's nothing more, it shows them, with their types. At the start of a line, Tab indents.
+
+A line of unfinished input starts at its indent: two spaces for each block and bracket still open.
+A line starting `end`, `else` or `case` steps back out once the word is typed, and Backspace in an
+indent goes back a whole step. An indent changed by hand stays as it is. Pasted code keeps its own
+indents, and its blank lines don't drop it: terminals that mark pastes say where one starts and
+ends, and anything already waiting when a line starts counts as pasted too.

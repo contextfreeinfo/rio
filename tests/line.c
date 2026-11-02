@@ -44,6 +44,7 @@ static int typed(const char *keys, char *line, int *result) {
   const char *k;
   int n;
   rio_osLineBegin(&e);
+  rio_osLineIndent(&e); /* (when there's rio_osIndent) */
   *result = 0;
   for (k = keys; *k; k++) *result = rio_osLineKey(&e, (unsigned char)*k);
   memcpy(line, e.buf, (size_t)e.pos);
@@ -68,6 +69,18 @@ static int offers(const char *s, int n, int at, char *out, int cap, int *from) {
       count++;
     }
   return count;
+}
+
+/* indents, made up: depth steps, one less for a line starting end, else or case (as the REPL's) */
+static int depth;
+static int indent(const char *s, int n) {
+  int i = 0, w;
+  while (i < n && s[i] == ' ') i++;
+  for (w = i; w < n && s[w] >= 'a' && s[w] <= 'z'; w++) {}
+  if (depth && (w == n || s[w] == ' ') &&
+      ((w - i == 3 && !memcmp(s + i, "end", 3)) || (w - i == 4 && (!memcmp(s + i, "else", 4) || !memcmp(s + i, "case", 4)))))
+    return (depth - 1) * 2;
+  return depth * 2;
 }
 
 int main(void) {
@@ -112,6 +125,27 @@ int main(void) {
     if (!e.list || rio_osOfferCount != 2) printf("FAIL Tab: po should show 2, got %d (%d)\n", rio_osOfferCount, e.list), failed++;
     else passed++;
     rio_osComplete = 0;
+  }
+  { /* indents: a line starts at its depth's (two spaces a step), end, else and case step out once
+       typed, Backspace in the indent goes back a step, and what's pasted, or indented by hand, stays */
+    static const struct {
+      int depth;
+      const char *keys, *want;
+    } ins[] = {
+      {1, "x", "  x|"}, {0, "x", "x|"}, {2, "", "    |"}, {1, "end\r", "end|"}, {2, "else ", "  else |"},
+      {2, "case .x", "  case .x|"}, {1, "endx ", "  endx |"}, {1, "ends\r", "  ends|"}, {1, "\x7f", "|"}, {2, "\x7f", "  |"},
+      {2, " \x7f\x7f", "  |"}, {1, "\x7f" "end ", "end |"}, {1, "\t" "end ", "    end |"}, {1, "\x1b[200~end\r", "  end|"},
+      {1, "\x1b[201~else ", "else |"}, {1, "x\x7f\x7f", "|"}, {1, "  y\x01" "end", "end|    y"},
+    };
+    rio_osIndent = indent;
+    for (i = 0; i < sizeof ins / sizeof ins[0]; i++) {
+      depth = ins[i].depth;
+      typed(ins[i].keys, line, &result);
+      if (strcmp(line, ins[i].want)) printf("FAIL indent %d: got \"%s\", want \"%s\"\n", (int)i, line, ins[i].want), failed++;
+      else passed++;
+    }
+    rio_osIndent = 0;
+    rio_osPasting = 0;
   }
   if (failed) return 1;
   printf("all %d line tests passed\n", passed);

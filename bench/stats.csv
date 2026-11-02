@@ -63,3 +63,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-11-01,8b21bac+,puddle,31636,210044,17008,384000,18.8,90200,0.45,0.007,0.54,0.005,0.441,0.008,0.652,0.137,14498,2510,"asString on byte builders and Blob[N]; builders for arg lists"
 2026-11-01,8bd9ce9+,puddle,31636,211556,17088,386560,26.8,90200,0.573,0.008,0.53,0.006,0.346,0.014,0.579,0.125,14545,2543,"rio_highlight; REPL colors"
 2026-11-01,2a9c870+,puddle,31636,223733,17892,412160,24.0,90200,0.57,0.008,0.531,0.004,0.347,0.014,0.58,0.127,15227,2665,"rio_complete; REPL Tab completion"
+2026-11-01,80641b4+,puddle,31636,223733,17981,416768,24.8,90200,0.57,0.008,0.54,0.006,0.345,0.011,0.58,0.136,15229,2752,"REPL auto-indent; fmt.c VM-only guard"

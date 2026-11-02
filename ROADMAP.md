@@ -166,9 +166,9 @@ In this order:
     tables (the REPL session's, or a document compiled in scratch) and the text: members after `x.`,
     `Type.` and `module.`, Rio's words by context, names the text declares that aren't compiled yet;
     each with an LSP-shaped kind and a type or signature. The REPL's Tab uses it; the language server's
-    completions will. Next: auto-indent in the REPL (`rio_replIndent` and `rio_replOutdent` are the
-    start), then the same three in rinc's editor. Open in completion: a generic's `T` shows as `?`,
-    and the text's own names (not compiled yet) have no types unless written `x: T` or `x := T{...}`.
+    completions will. The REPL indents as lines are typed too (`rio_replIndent`, `rio_replOutdent`),
+    pastes kept as they are. Next: exact completion in rinc's editor and console. Open in completion:
+    a generic's `T` shows as `?`, and the text's own names (not compiled yet) have no types unless written `x: T` or `x := T{...}`.
 - **Better printing of everything:** every value should print, and print usefully, in `log`,
   `print` and `format` alike. Known gaps:
   - **Procs:** a proc's name as an argument, `log(f)`, is "not a value", though

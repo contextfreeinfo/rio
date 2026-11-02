@@ -24,6 +24,7 @@
 #else
 #include <dirent.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -97,13 +98,16 @@ typedef struct {
   int esc, escN, esc0, esc1; /* an escape sequence coming: 1 after ESC, 2 in ESC [ (its numbers), 3 ESC O */
   int clear;            /* Ctrl+L: clear the screen first */
   int list;             /* Tab, with nothing it could add: show what fits (rio_osOffers) */
+  int autoIndent;       /* the indent the line was given (rio_osIndent), while it's still that; else -1 */
 } rio_OsLine;
 static char rio_osHist[rio_HISTORY][rio_LINE / 4];
 static int rio_osHistCount;
 
 /* a line remembered, for Up and Down (not an empty one, or the same as the last) */
 static void rio_osHistoryAdd(const char *s, int n) {
-  if (n <= 0 || n >= (int)sizeof rio_osHist[0]) return;
+  int i = 0;
+  while (i < n && (s[i] == ' ' || s[i] == '\t')) i++;
+  if (i >= n || n >= (int)sizeof rio_osHist[0]) return; /* (nor just spaces) */
   if (rio_osHistCount && (int)strlen(rio_osHist[rio_osHistCount - 1]) == n && !memcmp(rio_osHist[rio_osHistCount - 1], s, (size_t)n)) return;
   if (rio_osHistCount == rio_HISTORY) {
     memmove(rio_osHist[0], rio_osHist[1], sizeof rio_osHist[0] * (rio_HISTORY - 1));
@@ -181,6 +185,12 @@ static void rio_osHistoryStep(rio_OsLine *e, int step) {
    os.readLine: Tab just indents */
 static int (*rio_osComplete)(const char *s, int n, int at, char *out, int cap, int *from);
 static char rio_osOffers[rio_OFFERS];
+
+/* A line's indent, kept as typing goes (main.c sets this, for the REPL: rio_replIndent's steps for what's
+   typed before the line, a step less for a line starting end, else or case): the spaces a line starting
+   with these n bytes of s should have. 0, as for a program's os.readLine: no indenting */
+static int (*rio_osIndent)(const char *s, int n);
+static int rio_osPasting; /* between a terminal's ESC [ 200 ~ and ESC [ 201 ~: pasted text, kept as it is */
 static int rio_osOfferCount;
 
 /* Tab: at a line's indent, a step more; after a word, the rest of it, as far as what fits there agrees
@@ -189,7 +199,7 @@ static void rio_osTab(rio_OsLine *e) {
   const char *s = rio_osOffers, *first = rio_osOffers;
   int i, from = e->pos, common = 0, word;
   for (i = 0; i < e->pos && (e->buf[i] == ' ' || e->buf[i] == '\t'); i++) {}
-  if (!rio_osComplete || i == e->pos) {
+  if (!rio_osComplete || rio_osPasting || i == e->pos) {
     rio_osInsert(e, "  ", 2);
     return;
   }
@@ -207,10 +217,50 @@ static void rio_osTab(rio_OsLine *e) {
   else if (rio_osOfferCount > 1) e->list = 1;
 }
 
+/* Backspace: in a line's indent (an indented REPL's), back a step of it; else a character */
+static void rio_osBackspace(rio_OsLine *e) {
+  int i = 0;
+  while (i < e->pos && e->buf[i] == ' ') i++;
+  if (rio_osIndent && !rio_osPasting && i == e->pos && i > 0) {
+    rio_osCut(e, (e->pos - 1) / 2 * 2, e->pos, 0);
+    return;
+  }
+  rio_osCut(e, rio_osLeft(e, e->pos), e->pos, 0);
+}
+
 /* the line, ready for another */
 static void rio_osLineBegin(rio_OsLine *e) {
   e->len = e->pos = e->draftLen = e->esc = e->clear = e->list = 0;
+  e->autoIndent = -1;
   e->hist = rio_osHistCount;
+}
+
+/* the line's own indent, to start (unless what's coming is pasted, as it was) */
+static void rio_osLineIndent(rio_OsLine *e) {
+  static const char spaces[] = "                                                                ";
+  int n;
+  if (!rio_osIndent || rio_osPasting) return;
+  n = rio_osIndent("", 0);
+  if (n > (int)sizeof spaces - 1) n = (int)sizeof spaces - 1;
+  rio_osInsert(e, spaces, n);
+  e->autoIndent = n;
+}
+
+/* the line's indent made what it should be now its first word is typed (end, else and case step out),
+   unless it was changed by hand */
+static void rio_osReindent(rio_OsLine *e) {
+  int lead = 0, want;
+  if (!rio_osIndent || rio_osPasting || e->autoIndent < 0) return;
+  while (lead < e->len && e->buf[lead] == ' ') lead++;
+  if (lead != e->autoIndent) return;
+  want = rio_osIndent(e->buf, e->len);
+  if (want < 0 || want == lead || e->len - lead + want >= rio_LINE) return;
+  memmove(e->buf + want, e->buf + lead, (size_t)(e->len - lead));
+  if (want > lead) memset(e->buf + lead, ' ', (size_t)(want - lead));
+  e->len += want - lead;
+  e->pos += want - lead;
+  if (e->pos < want) e->pos = want;
+  e->autoIndent = want;
 }
 
 /* a key (a byte) typed: 0 the line goes on, 1 it's done (Enter), -1 the end of the input (Ctrl+D on an
@@ -250,12 +300,15 @@ static int rio_osLineKey(rio_OsLine *e, int c) {
     else if (c == 'F') e->pos = e->len;
     else if (c == '~' && (e->esc0 == 1 || e->esc0 == 7)) e->pos = 0;
     else if (c == '~' && (e->esc0 == 4 || e->esc0 == 8)) e->pos = e->len;
+    else if (c == '~' && (e->esc0 == 200 || e->esc0 == 201)) rio_osPasting = e->esc0 == 200; /* (a paste starts, ends) */
     else if (c == '~' && e->esc0 == 3) rio_osCut(e, e->pos, ctrl ? rio_osWordRight(e, e->pos) : rio_osRight(e, e->pos), ctrl);
     return 0;
   }
   switch (c) {
   case 27: e->esc = 1; return 0;
-  case '\r': case '\n': return 1;
+  case '\r': case '\n':
+    rio_osReindent(e); /* (a line of just end) */
+    return 1;
   case 3: return -2;                                                 /* Ctrl+C */
   case 4:                                                            /* Ctrl+D: the end, on an empty line */
     if (!e->len) return -1;
@@ -265,7 +318,7 @@ static int rio_osLineKey(rio_OsLine *e, int c) {
   case 5: e->pos = e->len; return 0;                                 /* Ctrl+E */
   case 2: e->pos = rio_osLeft(e, e->pos); return 0;                  /* Ctrl+B */
   case 6: e->pos = rio_osRight(e, e->pos); return 0;                 /* Ctrl+F */
-  case 8: case 127: rio_osCut(e, rio_osLeft(e, e->pos), e->pos, 0); return 0; /* Backspace */
+  case 8: case 127: rio_osBackspace(e); return 0;                   /* Backspace */
   case 11: rio_osCut(e, e->pos, e->len, 1); return 0;                /* Ctrl+K */
   case 21: rio_osCut(e, 0, e->pos, 1); return 0;                     /* Ctrl+U */
   case 23: rio_osCut(e, rio_osWordLeft(e, e->pos), e->pos, 1); return 0; /* Ctrl+W */
@@ -277,6 +330,7 @@ static int rio_osLineKey(rio_OsLine *e, int c) {
   default: {
     char ch = (char)c;
     if (c >= 32 || c < 0) rio_osInsert(e, &ch, 1);
+    if (c == ' ') rio_osReindent(e); /* (its first word done: end, else, case) */
     return 0;
   }
   }
@@ -321,7 +375,7 @@ static int rio_osRaw(int on) {
   return 0;
 #else
   struct termios raw;
-  if (!on) return tcsetattr(0, TCSAFLUSH, &rio_osTerm);
+  if (!on) return tcsetattr(0, TCSADRAIN, &rio_osTerm); /* (DRAIN, not FLUSH: what's typed ahead, or pasted, waits) */
   if (tcgetattr(0, &rio_osTerm)) return -1;
   raw = rio_osTerm;
   raw.c_iflag &= ~(tcflag_t)(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
@@ -329,7 +383,25 @@ static int rio_osRaw(int on) {
   raw.c_lflag &= ~(tcflag_t)(ECHO | ICANON | IEXTEN | ISIG);
   raw.c_cc[VMIN] = 1;
   raw.c_cc[VTIME] = 0;
-  return tcsetattr(0, TCSAFLUSH, &raw);
+  return tcsetattr(0, TCSADRAIN, &raw);
+#endif
+}
+
+/* is more input there already (typed ahead, or pasted where the terminal doesn't say so)? */
+static int rio_osWaiting(void) {
+#ifdef _WIN32
+  INPUT_RECORD r[16];
+  DWORD n = 0, i;
+  if (!PeekConsoleInputW(rio_osIn, r, 16, &n)) return 0;
+  for (i = 0; i < n; i++)
+    if (r[i].EventType == KEY_EVENT && r[i].Event.KeyEvent.bKeyDown) return 1;
+  return 0;
+#else
+  struct pollfd p;
+  p.fd = 0;
+  p.events = POLLIN;
+  p.revents = 0;
+  return poll(&p, 1, 0) > 0;
 #endif
 }
 
@@ -466,7 +538,9 @@ static int rio_osLine(const char *prompt, int promptLen, char *out, int cap) {
     out[n] = 0;
     return c == EOF && !n ? -1 : n;
   }
+  fputs("\x1b[?2004h", stdout); /* (pastes marked: ESC [ 200 ~ ... ESC [ 201 ~) */
   rio_osLineBegin(&e);
+  if (!rio_osWaiting()) rio_osLineIndent(&e); /* (more already there: pasted, with its own indents) */
   rio_osLineDraw(&e, prompt, promptLen);
   while (!done) {
     if ((c = rio_osReadByte()) < 0) done = -1;
@@ -478,6 +552,7 @@ static int rio_osLine(const char *prompt, int promptLen, char *out, int cap) {
     if (!e.esc) rio_osLineDraw(&e, prompt, promptLen);
     e.clear = 0;
   }
+  fputs("\x1b[?2004l", stdout);
   rio_osRaw(0);
   fputs("\r\n", stdout);
   fflush(stdout);

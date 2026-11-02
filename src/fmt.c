@@ -16,6 +16,7 @@
    would run together, spaced (- >= as ->=), stays as written. */
 #include <string.h>
 #include "rio.h"
+#ifndef rio_NO_COMPILER /* (a vm that only runs images has no editor of code: like the compiler's files, nothing) */
 
 enum { rio_Fmt_comment = 1, rio_Fmt_string, rio_Fmt_char, rio_Fmt_number, rio_Fmt_name, rio_Fmt_op, rio_Fmt_other };
 
@@ -752,3 +753,4 @@ int rio_highlight(const char *src, uint32_t len, rio_HighlightFn fn, void *userD
     p = eol + 1;
   }
 }
+#endif
