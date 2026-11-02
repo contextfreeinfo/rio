@@ -15,7 +15,7 @@
   "categories": [
     "Programming Languages"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
   "activationEvents": [],
   "contributes": {
     "languages": [
@@ -50,5 +50,12 @@
   },
   "dependencies": {
     "vscode-languageclient": "9.0.1"
+  },
+  "scripts": {
+    "bundle": "esbuild extension.js --bundle --platform=node --format=cjs --external:vscode --minify --outfile=dist/extension.js",
+    "vscode:prepublish": "npm run bundle"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0"
   }
 }
