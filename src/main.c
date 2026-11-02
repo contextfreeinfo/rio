@@ -580,6 +580,7 @@ static struct {
   char uri[1024];
   char text[rio_LSP_TEXT];
   uint32_t len;
+  char includer[1024]; /* (a part's: the file that includes it, which checks compile instead; "" none) */
 } rio_lspDocs[rio_LSP_DOCS];
 static char rio_lspIn[2 * rio_LSP_TEXT + 65536], rio_lspOut[1 << 20];
 static uint8_t rio_lspMem[64 << 10]; /* (a check's vm: just the constants) */
@@ -766,10 +767,127 @@ static void rio_lspLoadConfig(const char *dir) {
 }
 
 /* a check of document d's first len bytes, its imports from its folder: 0, or -1 (rio_errorInfo says) */
+/* paths the same (slashes either way; on Windows, any case) */
+static int rio_lspSame(const char *a, const char *b) {
+  for (; *a && *b; a++, b++) {
+    int x = *a == '\\' ? '/' : (unsigned char)*a, y = *b == '\\' ? '/' : (unsigned char)*b;
+#ifdef _WIN32
+    if (x >= 'A' && x <= 'Z') x += 32;
+    if (y >= 'A' && y <= 'Z') y += 32;
+#endif
+    if (x != y) return 0;
+  }
+  return !*a && !*b;
+}
+
+/* the loader for a check of a part's includer: the part, as the editor has it (cut where the check is) */
+static const char *rio_lspPartPath, *rio_lspPartText;
+static uint32_t rio_lspPartLen;
+static int rio_lspLoad(void *userData, const char *path, int kind, rio_Source *out) {
+  int res = rio_loadFile(userData, path, kind, out);
+  if (!res && rio_lspPartPath && out->name && rio_lspSame(out->name, rio_lspPartPath)) {
+    out->src = rio_lspPartText;
+    out->len = rio_lspPartLen;
+  }
+  return res;
+}
+
+/* the .rio files of folder dir, through fn (until it says to stop: nonzero) */
+static int rio_lspEachFile(const char *dir, int (*fn)(const char *path, void *userData), void *userData) {
+  char path[1200];
+#ifdef _WIN32
+  WIN32_FIND_DATAA d;
+  HANDLE h;
+  snprintf(path, sizeof path, "%s/*.rio", dir);
+  if ((h = FindFirstFileA(path, &d)) == INVALID_HANDLE_VALUE) return 0;
+  do {
+    snprintf(path, sizeof path, "%s/%s", dir, d.cFileName);
+    if (!(d.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && fn(path, userData)) {
+      FindClose(h);
+      return 1;
+    }
+  } while (FindNextFileA(h, &d));
+  FindClose(h);
+#else
+  DIR *dd = opendir(dir);
+  struct dirent *ent;
+  size_t n;
+  if (!dd) return 0;
+  while ((ent = readdir(dd))) {
+    n = strlen(ent->d_name);
+    if (n < 5 || strcmp(ent->d_name + n - 4, ".rio")) continue;
+    snprintf(path, sizeof path, "%s/%s", dir, ent->d_name);
+    if (fn(path, userData)) {
+      closedir(dd);
+      return 1;
+    }
+  }
+  closedir(dd);
+#endif
+  return 0;
+}
+
+/* does file include part (userData: the part's path, then where the file's path goes)? */
+static int rio_lspIncludes(const char *file, void *userData) {
+  static char text[256 << 10];
+  char **paths = (char **)userData, *p, resolved[1400];
+  FILE *f;
+  size_t n, dir;
+  if (rio_lspSame(file, paths[0]) || !(f = fopen(file, "rb"))) return 0;
+  n = fread(text, 1, sizeof text - 1, f);
+  fclose(f);
+  text[n] = 0;
+  dir = (size_t)(strrchr(file, '/') ? strrchr(file, '/') - file : 0);
+  for (p = text; (p = strstr(p, "include \"")) != 0; p++) {
+    char *q = p + 9, *e = strchr(q, '"');
+    if (!e || (p > text && p[-1] != '\n' && p[-1] != ' ' && p[-1] != '\t')) continue;
+    snprintf(resolved, sizeof resolved, "%.*s/%.*s", (int)dir, file, (int)(e - q), q);
+    if (rio_lspSame(resolved, paths[0])) {
+      snprintf(paths[1], 1024, "%s", file);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* the file including document d, if it's a part: in its folder, or the one above */
+static void rio_lspFindIncluder(int d) {
+  char path[1024], dir[1024], *slash, *paths[2];
+  rio_lspPath(rio_lspDocs[d].uri, path, sizeof path);
+  rio_lspDocs[d].includer[0] = 0;
+  paths[0] = path;
+  paths[1] = rio_lspDocs[d].includer;
+  snprintf(dir, sizeof dir, "%s", path);
+  if (!(slash = strrchr(dir, '/'))) return;
+  *slash = 0;
+  if (rio_lspEachFile(dir, rio_lspIncludes, paths)) return;
+  if ((slash = strrchr(dir, '/')) != 0) {
+    *slash = 0;
+    rio_lspEachFile(dir, rio_lspIncludes, paths);
+  }
+}
+
 static int rio_lspCheck(int d, uint32_t len) {
+  static char mainText[rio_LSP_TEXT];
+  static char part[1024];
   char path[1024], *slash;
+  const char *src = rio_lspDocs[d].text;
   int i;
   rio_lspPath(rio_lspDocs[d].uri, path, sizeof path);
+  rio_lspPartPath = 0;
+  if (rio_lspDocs[d].includer[0]) { /* (a part: its includer, compiled, with the part from the editor) */
+    FILE *f = fopen(rio_lspDocs[d].includer, "rb");
+    if (f) {
+      snprintf(part, sizeof part, "%s", path);
+      rio_lspPartPath = part;
+      rio_lspPartText = rio_lspDocs[d].text;
+      rio_lspPartLen = len;
+      len = (uint32_t)fread(mainText, 1, sizeof mainText, f);
+      fclose(f);
+      src = mainText;
+      snprintf(path, sizeof path, "%s", rio_lspDocs[d].includer);
+    }
+  }
   rio_setBaseDir(path); /* (its folder, with its slash: where its includes and imports are) */
   if ((slash = strrchr(path, '/')) != 0 || (slash = strrchr(path, '\\')) != 0) *slash = 0;
   else strcpy(path, ".");
@@ -783,8 +901,16 @@ static int rio_lspCheck(int d, uint32_t len) {
   for (i = 0; i < rio_lspImportCount; i++)
     if (rio_addSource(&rio_vm, rio_lspImports[i].name, rio_lspImports[i].src, rio_lspImports[i].len) || rio_autoImport(&rio_vm, rio_lspImports[i].name))
       break;
-  rio_setLoader(&rio_vm, rio_loadFile, 0);
-  return rio_check(&rio_vm, rio_lspDocs[d].text, len, 0, 0, rio_scratch, sizeof rio_scratch);
+  rio_setLoader(&rio_vm, rio_lspLoad, 0);
+  return rio_check(&rio_vm, src, len, 0, 0, rio_scratch, sizeof rio_scratch);
+}
+
+/* is file (an error's, a declaration's: 0 the main source) document d's own? */
+static int rio_lspIsDoc(int d, const char *file) {
+  char path[1024];
+  if (!file || !*file) return !rio_lspDocs[d].includer[0];
+  rio_lspPath(rio_lspDocs[d].uri, path, sizeof path);
+  return rio_lspSame(file, path);
 }
 
 static void rio_lspDiagnose(int d) {
@@ -796,11 +922,11 @@ static void rio_lspDiagnose(int d) {
     rio_Error e = rio_errorInfo(&rio_vm);
     int line = e.line > 0 ? e.line - 1 : 0, col = e.col > 0 ? e.col - 1 : 0, w = e.len > 0 ? e.len : 1;
     char msg[rio_ERROR_BUF_SIZE + 1100];
-    if (e.file) { /* (in a file it imports: shown at the top of this one) */
-      snprintf(msg, sizeof msg, "%s:%d:%d: %s", e.file, e.line, e.col, e.msg);
+    if (!rio_lspIsDoc(d, e.file)) { /* (in another file: shown at the top of this one) */
+      snprintf(msg, sizeof msg, "%s:%d:%d: %s", e.file ? e.file : rio_lspDocs[d].includer, e.line, e.col, e.msg);
       line = col = 0;
       w = 1;
-    } else snprintf(msg, sizeof msg, "%s", e.msg ? e.msg : rio_error(&rio_vm));
+    } else snprintf(msg, sizeof msg, "%s", e.msg ? e.msg : rio_error(&rio_vm)); /* (its own) */
     snprintf(head, sizeof head, "{\"range\":{\"start\":{\"line\":%d,\"character\":%d},", line, col);
     rio_lspPut(head, -1);
     snprintf(head, sizeof head, "\"end\":{\"line\":%d,\"character\":%d}},", line, col + w);
@@ -866,9 +992,19 @@ static int rio_lspFindAt(int d, int line, int character) {
   while (end < rio_lspDocs[d].len && (rio_isAlpha(t[end]) || (t[end] >= '0' && t[end] <= '9'))) end++; /* (to the word's end) */
   if (end == lineStart || !(rio_isAlpha(t[end - 1]) || (t[end - 1] >= '0' && t[end - 1] <= '9'))) return 0;
   memset(&rio_lspFound, 0, sizeof rio_lspFound);
-  rio_lspCheck(d, lineStart);
-  rio_lookupAt(&rio_vm, t + lineStart, end - lineStart, rio_lspFind, 0);
+  { /* (through the line's end first: a name it declares is there then; else to its start, as completion) */
+    uint32_t lineEnd = end;
+    while (lineEnd < rio_lspDocs[d].len && t[lineEnd] != '\n') lineEnd++;
+    if (lineEnd < rio_lspDocs[d].len) lineEnd++;
+    rio_lspCheck(d, lineEnd);
+    rio_lookupAt(&rio_vm, t + lineStart, end - lineStart, rio_lspFind, 0);
+    if (!rio_lspFound.found) {
+      rio_lspCheck(d, lineStart);
+      rio_lookupAt(&rio_vm, t + lineStart, end - lineStart, rio_lspFind, 0);
+    }
+  }
   if (rio_lspFound.found && rio_lspFound.textAt >= 0) rio_lspFound.line = line + 1, rio_lspFound.file[0] = 0;
+  else if (rio_lspFound.found && rio_lspIsDoc(d, rio_lspFound.file)) rio_lspFound.file[0] = 0; /* (this document: its text) */
   return rio_lspFound.found && rio_lspFound.kind != rio_Item_keyword;
 }
 
@@ -881,6 +1017,20 @@ static long rio_lspSource(int d, const char *file, const char **text) {
   if (!*file) {
     *text = rio_lspDocs[d].text;
     return (long)rio_lspDocs[d].len;
+  }
+  if (!strcmp(file, "os.rio") || !strcmp(file, "os")) { /* (os: built into rio; its text, written out for an editor to open) */
+    const char *tmp = getenv("TEMP") ? getenv("TEMP") : getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp";
+    char path[1024];
+    FILE *w;
+    snprintf(path, sizeof path, "%s/rio-lsp-os.rio", tmp);
+    if ((w = fopen(path, "rb")) == 0 || fread(buf, 1, sizeof buf, w) != sizeof os_SOURCE - 1 || memcmp(buf, os_SOURCE, sizeof os_SOURCE - 1)) {
+      if (w) fclose(w);
+      if ((w = fopen(path, "wb")) != 0) fwrite(os_SOURCE, 1, sizeof os_SOURCE - 1, w);
+    }
+    if (w) fclose(w);
+    snprintf(rio_lspFound.file, sizeof rio_lspFound.file, "%s", path);
+    *text = os_SOURCE;
+    return (long)(sizeof os_SOURCE - 1);
   }
   for (i = 0; i < rio_lspImportCount; i++) /* (an auto-import's: its text, and its file, from now on) */
     if (!strcmp(file, rio_lspImports[i].name) || !strcmp(file, rio_lspImports[i].path) ||
@@ -974,7 +1124,20 @@ static void rio_lspDefinition(const char *id, int d, int line, int character) {
   long len, at;
   int col = 0, n = (int)strlen(rio_lspFound.name);
   char range[160];
-  if (!rio_lspFindAt(d, line, character) || rio_lspFound.line <= 0 || (len = rio_lspSource(d, rio_lspFound.file, &text)) < 0 ||
+  if (rio_lspFindAt(d, line, character) && rio_lspFound.kind == rio_Item_module && rio_vm.compiler) { /* (a module: its own file, not the import) */
+    rio_Compiler *c = rio_vm.compiler;
+    size_t n0 = strlen(rio_lspFound.name);
+    int m;
+    for (m = 2; m < c->moduleCount; m++) {
+      const char *f = c->names + c->modules[m].file, *base = strrchr(f, '/') ? strrchr(f, '/') + 1 : strrchr(f, '\\') ? strrchr(f, '\\') + 1 : f;
+      if (!strncmp(base, rio_lspFound.name, n0) && !strcmp(base + n0, ".rio")) {
+        snprintf(rio_lspFound.file, sizeof rio_lspFound.file, "%s", f);
+        rio_lspFound.line = 1;
+        break;
+      }
+    }
+  }
+  if (!rio_lspFound.found || rio_lspFound.kind == rio_Item_keyword || rio_lspFound.line <= 0 || (len = rio_lspSource(d, rio_lspFound.file, &text)) < 0 ||
       (at = rio_lspLineAt(text, len, rio_lspFound.line)) < 0) {
     rio_lspReply(id, "null");
     return;
@@ -1003,6 +1166,45 @@ static void rio_lspDefinition(const char *id, int d, int line, int character) {
   snprintf(range, sizeof range, ",\"range\":{\"start\":{\"line\":%d,\"character\":%d},\"end\":{\"line\":%d,\"character\":%d}}}}",
            rio_lspFound.line - 1, col, rio_lspFound.line - 1, col + n);
   rio_lspPut(range, -1);
+  rio_lspSend();
+}
+
+/* the outline: what document d declares at its top level (its procs, methods, types, constants and globals),
+   from a check of all of it */
+static void rio_lspSymbols(const char *id, int d) {
+  rio_Compiler *c;
+  int i, count = 0;
+  rio_lspCheck(d, rio_lspDocs[d].len);
+  rio_lspPut("{\"jsonrpc\":\"2.0\",\"id\":", -1);
+  rio_lspPut(id, (int)strcspn(id, ",}"));
+  rio_lspPut(",\"result\":[", -1);
+  for (c = rio_vm.compiler, i = 0; c && i < c->symCount; i++) {
+    rio_Symbol *y = &c->syms[i];
+    const char *file = y->file >= 2 && y->file < c->moduleCount ? c->names + c->modules[y->file].file : 0;
+    int kind = y->kind == rio_SymKind_proc || y->kind == rio_SymKind_ffi ? 12 : y->kind == rio_SymKind_method ? 6
+               : y->kind == rio_SymKind_const ? 14 : y->kind == rio_SymKind_var ? 13 : 0;
+    char name[300], loc[200];
+    if (y->kind == rio_SymKind_type) kind = rio_type(&rio_vm, y->type)->kind == rio_TypeKind_enum ? 10 : 23;
+    if (!kind || !y->line || !y->nameLen || y->module == 0 || (y->file == 1 ? rio_lspDocs[d].includer[0] != 0 : !rio_lspIsDoc(d, file))) continue;
+    snprintf(name, sizeof name, "%.*s", (int)y->nameLen, c->names + y->name);
+    if (y->kind == rio_SymKind_method) { /* (Type.name) */
+      int t;
+      for (t = 0; t < c->symCount; t++)
+        if (c->syms[t].kind == rio_SymKind_type && c->syms[t].type == y->type) {
+          snprintf(name, sizeof name, "%.*s.%.*s", (int)c->syms[t].nameLen, c->names + c->syms[t].name, (int)y->nameLen, c->names + y->name);
+          break;
+        }
+    }
+    if (count++) rio_lspPut(",", 1);
+    rio_lspPut("{\"name\":", -1);
+    rio_lspPutString(name, (int)strlen(name));
+    snprintf(loc, sizeof loc, ",\"kind\":%d,\"location\":{\"uri\":", kind);
+    rio_lspPut(loc, -1);
+    rio_lspPutString(rio_lspDocs[d].uri, (int)strlen(rio_lspDocs[d].uri));
+    snprintf(loc, sizeof loc, ",\"range\":{\"start\":{\"line\":%d,\"character\":0},\"end\":{\"line\":%d,\"character\":0}}}}", y->line - 1, y->line);
+    rio_lspPut(loc, -1);
+  }
+  rio_lspPut("]}", 2);
   rio_lspSend();
 }
 
@@ -1042,7 +1244,7 @@ static int rio_lspMain(void) {
     id = rio_jsonAt(rio_lspIn, "id");
     if (!strcmp(method, "initialize"))
       rio_lspReply(id, "{\"capabilities\":{\"textDocumentSync\":1,\"completionProvider\":{\"triggerCharacters\":[\".\"]},"
-                       "\"documentFormattingProvider\":true,\"hoverProvider\":true,\"definitionProvider\":true},\"serverInfo\":{\"name\":\"rio\"}}");
+                       "\"documentFormattingProvider\":true,\"hoverProvider\":true,\"definitionProvider\":true,\"documentSymbolProvider\":true},\"serverInfo\":{\"name\":\"rio\"}}");
     else if (!strcmp(method, "shutdown")) rio_lspReply(id, "null");
     else if (!strcmp(method, "exit")) return 0;
     else if ((!strcmp(method, "textDocument/didOpen") || !strcmp(method, "textDocument/didChange")) &&
@@ -1050,6 +1252,7 @@ static int rio_lspMain(void) {
       const char *text = !strcmp(method, "textDocument/didOpen") ? rio_jsonAt(rio_lspIn, "text") : rio_jsonAt(rio_jsonAt(rio_lspIn, "contentChanges"), "text");
       int n = rio_jsonString(text, rio_lspDocs[d].text, rio_LSP_TEXT);
       rio_lspDocs[d].len = n > 0 ? (uint32_t)n : 0;
+      if (!strcmp(method, "textDocument/didOpen")) rio_lspFindIncluder(d); /* (a part: what includes it) */
       rio_lspDiagnose(d);
     } else if (!strcmp(method, "textDocument/didClose") && (d = rio_lspDoc(rio_lspIn, 0)) >= 0) rio_lspDocs[d].uri[0] = 0;
     else if (!strcmp(method, "textDocument/completion") && id) {
@@ -1073,6 +1276,9 @@ static int rio_lspMain(void) {
       if ((d = rio_lspDoc(rio_lspIn, 0)) < 0 || !pos) rio_lspReply(id, "null");
       else if (method[13] == 'h') rio_lspHover(id, d, atoi(rio_jsonAt(pos, "line")), atoi(rio_jsonAt(pos, "character")));
       else rio_lspDefinition(id, d, atoi(rio_jsonAt(pos, "line")), atoi(rio_jsonAt(pos, "character")));
+    } else if (!strcmp(method, "textDocument/documentSymbol") && id) {
+      if ((d = rio_lspDoc(rio_lspIn, 0)) < 0) rio_lspReply(id, "[]");
+      else rio_lspSymbols(id, d);
     } else if (!strcmp(method, "textDocument/formatting") && id) {
       int32_t n;
       int lines = 0;
