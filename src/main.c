@@ -671,17 +671,116 @@ static void rio_lspPath(const char *uri, char *out, size_t cap) {
   out[n] = 0;
 }
 
+/* A project's auto-imports, from the rio.json in a document's folder or the nearest one above it:
+   {"autoImports": {"pc": "src/core/pc.rio"}} (paths from rio.json's folder), as a host (rinc) imports
+   them for every file. Their host procs, which nothing here runs, are registered with what their
+   declarations say (rio_hostHeader's sigs) and do nothing, so calls to them check as the host's would */
+#define rio_LSP_IMPORTS 4
+static char rio_lspConfig[1024]; /* (the rio.json loaded, "" none) */
+static struct {
+  char name[64];
+  const char *src;
+  uint32_t len;
+} rio_lspImports[rio_LSP_IMPORTS];
+static int rio_lspImportCount, rio_lspHostCount;
+static char rio_lspImportText[1 << 20], rio_lspHostNames[rio_MAX_FFI][96], rio_lspHostSigs[rio_MAX_FFI][512];
+static void rio_lspNoHost(rio_Vm *vm, rio_Val *a) {
+  (void)vm;
+  (void)a;
+}
+static void rio_lspLoadConfig(const char *dir) {
+  static char text[1 << 16], header[1 << 20], found[1024];
+  static uint8_t headerMem[256 << 10]; /* (rio_hostHeader compiles: its constants need room) */
+  char here[1024], *slash;
+  const char *p;
+  FILE *f = 0;
+  size_t used = 0;
+  snprintf(here, sizeof here, "%s", dir);
+  for (;;) { /* (rio.json: here, or the nearest folder above) */
+    snprintf(found, sizeof found, "%s/rio.json", here);
+    if ((f = fopen(found, "rb")) != 0) break;
+    if ((slash = strrchr(here, '/')) == 0 && (slash = strrchr(here, '\\')) == 0) break;
+    *slash = 0;
+  }
+  if (!f) found[0] = 0;
+  if (!strcmp(found, rio_lspConfig)) return; /* (the one loaded already) */
+  snprintf(rio_lspConfig, sizeof rio_lspConfig, "%s", found);
+  rio_lspImportCount = rio_lspHostCount = 0;
+  if (!f) return;
+  text[fread(text, 1, sizeof text - 1, f)] = 0;
+  fclose(f);
+  *strrchr(found, '/') = 0; /* (its folder: where its paths start) */
+  for (p = rio_jsonAt(text, "autoImports"); p && *p && *p != '}' && rio_lspImportCount < rio_LSP_IMPORTS;) {
+    char name[64], file[512], path[1600];
+    FILE *m;
+    uint32_t n, k;
+    while (*p && *p != '"' && *p != '}') p++;
+    if (*p != '"' || rio_jsonString(p, name, sizeof name) < 0) break;
+    p = strchr(p + 1, '"') + 1; /* (past the name, to its file) */
+    while (*p && *p != '"') p++;
+    if (rio_jsonString(p, file, sizeof file) < 0) break;
+    p = strchr(p + 1, '"') + 1;
+    snprintf(path, sizeof path, "%s/%s", found, file);
+    if (!(m = fopen(path, "rb"))) continue;
+    n = (uint32_t)fread(rio_lspImportText + used, 1, sizeof rio_lspImportText - used - 1, m);
+    fclose(m);
+    snprintf(rio_lspImports[rio_lspImportCount].name, sizeof rio_lspImports[0].name, "%s", name);
+    rio_lspImports[rio_lspImportCount].src = rio_lspImportText + used;
+    rio_lspImports[rio_lspImportCount++].len = n;
+    rio_init(&rio_vm, headerMem, sizeof headerMem, 0, 0); /* (its host procs' sigs: name_SIG "...", as rio -H writes them) */
+    if (rio_hostHeader(&rio_vm, rio_lspImportText + used, n, rio_scratch, sizeof rio_scratch, name, header, sizeof header)) {
+      const char *line = header;
+      size_t prefix = strlen(name);
+      while ((line = strstr(line, "#define ")) != 0 && rio_lspHostCount < rio_MAX_FFI) {
+        const char *q = line + 8, *sig = strstr(q, "_SIG \""), *end = strchr(q, '\n');
+        line = q;
+        if (!sig || (end && sig > end) || strncmp(q, name, prefix) || q[prefix] != '_') continue;
+        k = (uint32_t)(sig - q - prefix - 1); /* (pc_cls_SIG: pc.cls; pc_Color_rgb_SIG: pc.Color_rgb, the static one's) */
+        snprintf(rio_lspHostNames[rio_lspHostCount], sizeof rio_lspHostNames[0], "%s.%.*s", name, (int)k, q + prefix + 1);
+        { /* (its parts: "strings" and NAME_LAYOUT macros, each #defined as a string in the same header) */
+          char *out = rio_lspHostSigs[rio_lspHostCount];
+          const char *s = sig + 5;
+          int len = 0, cap = (int)sizeof rio_lspHostSigs[0];
+          out[0] = 0;
+          const char *stop = end ? end : s + strlen(s);
+          while (s < stop && *s != '\r') {
+            if (*s == '"') {
+              len += rio_jsonString(s, out + len, cap - len);
+              s = strchr(s + 1, '"') + 1;
+            } else if (rio_isAlpha(*s)) {
+              char macro[128];
+              const char *m = s, *def;
+              while (rio_isAlpha(*s) || (*s >= '0' && *s <= '9')) s++;
+              snprintf(macro, sizeof macro, "#define %.*s \"", (int)(s - m), m);
+              if ((def = strstr(header, macro)) != 0) len += rio_jsonString(def + strlen(macro) - 1, out + len, cap - len);
+            } else s++;
+          }
+        }
+        rio_lspHostCount++;
+      }
+    }
+    used += n + 1;
+  }
+}
+
 /* a check of document d's first len bytes, its imports from its folder: 0, or -1 (rio_errorInfo says) */
 static int rio_lspCheck(int d, uint32_t len) {
   char path[1024], *slash;
+  int i;
   rio_lspPath(rio_lspDocs[d].uri, path, sizeof path);
+  rio_setBaseDir(path); /* (its folder, with its slash: where its includes and imports are) */
   if ((slash = strrchr(path, '/')) != 0 || (slash = strrchr(path, '\\')) != 0) *slash = 0;
   else strcpy(path, ".");
-  snprintf(rio_baseDir, sizeof rio_baseDir, "%s", path);
+  rio_lspLoadConfig(path);
   rio_srcLen = rio_fileNamesLen = 0;
   rio_textCount = rio_window = 0;
   rio_init(&rio_vm, rio_lspMem, sizeof rio_lspMem, 0, 0);
   if (rio_addOs()) return -1;
+  for (i = 0; i < rio_lspHostCount; i++)
+    if (rio_addFfi(&rio_vm, rio_lspHostNames[i], rio_lspHostSigs[i], rio_lspNoHost)) break;
+  for (i = 0; i < rio_lspImportCount; i++)
+    if (rio_addSource(&rio_vm, rio_lspImports[i].name, rio_lspImports[i].src, rio_lspImports[i].len) || rio_autoImport(&rio_vm, rio_lspImports[i].name))
+      break;
   rio_setLoader(&rio_vm, rio_loadFile, 0);
   return rio_check(&rio_vm, rio_lspDocs[d].text, len, 0, 0, rio_scratch, sizeof rio_scratch);
 }

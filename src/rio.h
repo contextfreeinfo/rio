@@ -20,7 +20,7 @@
 #define rio_PICK(big, small) big
 #endif
 #ifndef rio_MAX_FFI
-#define rio_MAX_FFI rio_PICK(128, 16)
+#define rio_MAX_FFI rio_PICK(512, 16)
 #endif
 #ifndef rio_MAX_DEFINES
 #define rio_MAX_DEFINES rio_PICK(64, 8)
