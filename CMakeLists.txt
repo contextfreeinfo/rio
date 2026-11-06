@@ -148,6 +148,9 @@ add_test(NAME rio_docs_streamed COMMAND rio ${CMAKE_SOURCE_DIR}/tests/docs.rio $
 set_tests_properties(rio_docs_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
+  # rio lsp through the protocol (tests/lsp.py, its project tests/lsp/), and the VS Code extension's JSON
+  add_test(NAME rio_lsp COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/lsp.py $<TARGET_FILE:rio>)
+  set_tests_properties(rio_lsp PROPERTIES PASS_REGULAR_EXPRESSION "all lsp tests passed" FAIL_REGULAR_EXPRESSION "FAIL")
   if(NOT WIN32) # the REPL at a terminal (a pseudo-terminal): the line editor in raw mode, history, Ctrl+C and D
     add_test(NAME rio_tty COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/terminal.py $<TARGET_FILE:rio>)
     set_tests_properties(rio_tty PROPERTIES PASS_REGULAR_EXPRESSION "the REPL came through")

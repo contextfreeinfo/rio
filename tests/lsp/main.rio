@@ -1,0 +1,10 @@
+import .shapes
+# a point on the screen
+P :: struct
+  across: Int # from the left
+  down: Int
+end
+include "part.rio"
+p := P{across = 1, down = 2}
+log(p.across + far(p) + shapes.area(2, 3))
+gfx.cls(0)

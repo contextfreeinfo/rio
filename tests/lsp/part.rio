@@ -1,0 +1,6 @@
+# a part, included by main.rio
+
+# its distance, squared
+far :: proc(q: P) -> Int
+  return q.across * q.across
+end

@@ -1,0 +1,4 @@
+# a host module, as a host such as rinc has (pc): auto-imported through rio.json
+
+# fill the screen with color c
+cls* :: host proc(c: Int)

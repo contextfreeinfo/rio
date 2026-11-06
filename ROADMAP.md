@@ -136,6 +136,12 @@ In this order:
   covers only a change of size.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
+- **Host procs and callbacks, two marks, each on its minority (leaning yes now, for rinc):** (a) host
+  procs that call back into Rio (a sort with a comparison, a walk over a tree), marked as such: a call to
+  one counts as calling through a proc value (so recursion stays impossible) and takes only callback
+  procs; and (b) host procs that mustn't run from inside a callback (rinc's launch, rioEval, anything
+  that starts the vm over), marked `not callback`, as most are safe there. The vm side (a host proc
+  running Rio mid-call: frames, shared memory) wants a design note before code.
 - **Host procs calling back into Rio while they run, leaning no:** a sort with a comparison, a parser
   handing back each element, a physics step calling back on each collision. Leaning no, since Rio's
   own idioms cover most of it: pull (a `next()` struct, or `for p.next(&ev)`), batch (the host fills a
@@ -174,7 +180,19 @@ In this order:
   - **Making alignment:** today it keeps `::`, `:=` and `=` lined up where they already are (and
     comments' columns), but never lines them up itself. Decide whether it should.
 - **Tooling, soon:** before too many weeks:
-  - **A language server,** and an extension for VS Code (and Codium) that uses it.
+  - **A language server,** and an extension for VS Code (and Codium) that uses it: in, basic (`rio lsp`
+    in src/main.c; editors/vscode, platform packages with rio in them from CI's release job). It has
+    errors as you type, completion, hover (with a declaration's comments), go to definition (into
+    other files, parts, auto-imports and `os`), an outline and formatting; `rio.json` names a project's
+    auto-imports (rinc's `pc`), whose host procs check as the host's would. Next:
+    - **Tests, all of it:** a `tests/lsp.py` that ctest runs (as tests/terminal.py), speaking the
+      protocol to `rio lsp`: diagnostics (an error's range, one in another file, in a part), completion
+      (members, `Type.`, `module.`, words by place, a part's names), hover and definition (fields,
+      methods, locals, a name on its own declaration's line, into a part, into `pc` through `rio.json`,
+      into `os`, a module), the outline, formatting, and a stress run of edits and requests that
+      the server survives; and for the extension, its JSON files valid and its package building.
+    - References and renames (a check that reports every use of a name), signature help, and a
+      `rio.json` setting for a part whose including file is further up than its folder's parent.
   - **A web playground:** riocore in the browser (the core alone: no `os`).
   - **Signed releases:** macOS (notarized, so Gatekeeper lets it run) and Windows (so SmartScreen
     doesn't warn) binaries signed in CI: which certificates, what they cost, and how the keys stay safe.

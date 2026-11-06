@@ -1003,6 +1003,29 @@ static int rio_lspFindAt(int d, int line, int character) {
       rio_lookupAt(&rio_vm, t + lineStart, end - lineStart, rio_lspFind, 0);
     }
   }
+  if (!rio_lspFound.found) { /* (a name its line declares, first on it, not compiled yet: P :: struct, x := 1) */
+    uint32_t w = at;
+    const char *after, *e;
+    while (w > lineStart && (rio_isAlpha(t[w - 1]) || (t[w - 1] >= '0' && t[w - 1] <= '9'))) w--;
+    for (after = t + lineStart; after < t + w && (*after == ' ' || *after == '\t'); after++) {}
+    if (after == t + w) {
+      for (after = t + end; *after == ' ' || *after == '\t'; after++) {}
+      if (after[0] == ':' && (after[1] == ':' || after[1] == '=' || after[1] == ' ')) {
+        int decl = after[1] == ':';
+        after += decl || after[1] == '=' ? 2 : 1;
+        while (*after == ' ' || *after == '\t') after++;
+        for (e = after; e < t + rio_lspDocs[d].len && *e != '\n' && *e != '\r' && *e != '#'; e++) {}
+        while (e > after && e[-1] == ' ') e--;
+        rio_lspFound.found = 1;
+        rio_lspFound.kind = !decl ? rio_Item_var : !strncmp(after, "proc", 4) || !strncmp(after, "static", 6) || !strncmp(after, "callback", 8) ? rio_Item_proc
+                            : !strncmp(after, "struct", 6) || !strncmp(after, "enum", 4) || !strncmp(after, "union", 5) ? rio_Item_type
+                                                                                                                       : rio_Item_const;
+        rio_lspFound.line = line + 1;
+        snprintf(rio_lspFound.name, sizeof rio_lspFound.name, "%.*s", (int)(end - w), t + w);
+        snprintf(rio_lspFound.detail, sizeof rio_lspFound.detail, "%.*s", (int)(after[0] == '=' || !decl ? 0 : e - after), after);
+      }
+    }
+  }
   if (rio_lspFound.found && rio_lspFound.textAt >= 0) rio_lspFound.line = line + 1, rio_lspFound.file[0] = 0;
   else if (rio_lspFound.found && rio_lspIsDoc(d, rio_lspFound.file)) rio_lspFound.file[0] = 0; /* (this document: its text) */
   return rio_lspFound.found && rio_lspFound.kind != rio_Item_keyword;

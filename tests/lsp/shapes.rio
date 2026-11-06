@@ -1,0 +1,6 @@
+# a module, imported
+
+# the area of a w by h rectangle
+area* :: proc(w, h: Int) -> Int
+  return w * h
+end
