@@ -216,7 +216,7 @@ typedef enum {
                c: a proc value's type; ffi: argument words placed so far (punAt: past the slots kept, with
                a struct argument: rio_ffiRoom); fromInt and has: the enum;
                format: the byte builder's slots; offsetOf and bitOffsetOf: the field path's bit offset + 1
-     literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
+     literal   a: the field being filled in (-1: punned, decided by its value; -2: ...x, all of them); b: the struct type;
                c: the struct's address. op 1: an array or builder literal instead (b: its type; its
                values go in order, argCount so far, or by name: punAt 2, a the element named); op 2,
                [_]T{...}, and 3, []T{...}: one sized by its values, growing as they come (b: the
@@ -224,6 +224,7 @@ typedef enum {
 typedef struct {
   uint8_t kind, prec;
   int16_t op;           /* binary, unary: the operator token */
+  uint8_t spread;       /* literal: it started as a copy, {...x, ...}: fields left out aren't zeroed */
   int32_t a, b, c;
   int32_t argCount;     /* call, literal: the arguments done so far */
   int32_t punAt;        /* literal: where a value standing for its field starts, in the source ({x});
@@ -298,6 +299,11 @@ typedef struct {
 
 typedef struct rio_Compiler {
   int failed;         /* a compile error happened: the rest of the source reads as its end */
+  /* going on after errors (rio_setErrorFn): the tokens an error stopped at, how many errors so far, the
+     first (rio_error's at the end), and the names whose declarations failed */
+  rio_Token failTok, failPeek;
+  int errorsKept, firstErrorAt[5], failedNameCount;
+  char firstError[rio_ERROR_BUF_SIZE], failedNames[8][32];
   int lexingNegative; /* lexing a -D value that had a minus sign */
   /* reading: the current file's text (src to srcEnd, which starts at srcAt in the file), where the
      next token's read from, and where its line starts; the token and the one after it, and where the
@@ -358,6 +364,7 @@ typedef struct rio_Compiler {
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
   int namingType;         /* parsing Name :: ...: a generic proc type may be named, proc[T](...) */
+  int hostType;           /* parsing a host proc's type: a & parameter may be optional (left out, the host gets 0s) */
   int hostStatic;         /* in Type.name :: static host proc: a static host proc, the host's Type_name */
   int hostTypeParams;     /* in ([..]T).push :: host proc[T](...): its Ts already stand for types, so [T] is skipped */
   struct {

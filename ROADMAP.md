@@ -23,13 +23,13 @@ Rinc's and Studio's apps, would change with it.
 
 In this order:
 
-- **Host procs' builders and places:** a `Blob[..]` parameter (`B` in a sig: where its length is, where
-  its bytes start, its capacity), so pc's reads add to a builder (in progress, with rinc's builder
-  pass). Next: `&` for arrays as for structs (`&[2]Int`, by address and size), so a host proc can fill
-  in an optional size: `imageRead(path, pixels, size?: &[2]Int)`.
-- **More than one compile error:** recover after an error (skip to the next statement or declaration)
-  and keep several, in a bigger buffer, for the editor, `rio lsp` and the command line, rather than
-  stopping at the first.
+- **Host procs' builders and places:** done (2026-11-06): a `Blob[..]` parameter (`B` in a sig), so
+  pc's reads add to a builder; `&` for points and sizes as for structs (`&[2]Int`, `&(ii)` in a sig);
+  and a host proc's `&` parameter may be optional (left out: address and size 0, nothing written).
+- **More than one compile error:** done (2026-11-06) for the command line and `rio lsp`
+  (`rio_setErrorFn`: on from the next line at column 1, a failed declaration's "undefined name"s left
+  out). Not yet: rinc's editor (one error, from its check), and errors in imported or included files
+  (the first stops it).
 - **In rinc, points and sizes:** tried (notes/pc-points.md): Rio passes `[2]Int` parameters as words,
   and `pc.rect`, `pset`, `pget` and `print` take them. Left: deciding the names, `Blit`, the pointer,
   and a `Rect` with helpers, then the rest of `pc`.
@@ -66,8 +66,6 @@ In this order:
   `pc.Image`), counted as viewing what went in, as a Rio proc's is. Until then a Rio proc wraps the host
   one (pc.rio's `imageRead` around `imageLoad`); for `rio -H`, a call to a host proc the host doesn't
   have yet compiles (checked, never run).
-- **Struct spreading:** `{...b, a = 1}`, a struct literal that starts as a copy of `b` (a value of
-  the same type), then the fields named after it. Wanted (2026-11-06).
 - **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
   only through `&T` and `[]T`, like C's `void*` with its size, but typed. Left, if wanted:
   - **Generic host procs:** a host module declaring `sortBy* :: host proc[T](xs: []T, less: proc(a, b:

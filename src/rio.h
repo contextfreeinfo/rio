@@ -318,6 +318,12 @@ typedef struct {
   const char *msg, *file;
 } rio_Error;
 rio_Error rio_errorInfo(rio_Vm *vm);
+/* every compile error, for a host that shows them all (rio lsp, the command line): with fn set, a compile
+   goes on after an error in a top-level statement of the main source, from the next line starting at
+   column 1, and fn gets each error as it's found (e's text only lasts the call). It still fails, with
+   the first as rio_error. "undefined name" for something whose own declaration failed isn't one */
+typedef void (*rio_ErrorFn)(void *userData, rio_Error e);
+void rio_setErrorFn(rio_Vm *vm, rio_ErrorFn fn, void *userData);
 int rio_pcLine(rio_Vm *vm, uint32_t pc); /* source line of a bytecode position (0 = unknown) */
 
 /* ------------------------------------------------------------------ native code */
@@ -386,6 +392,8 @@ struct rio_Vm {
   uint32_t hostCodeCap;
   rio_LogFn logFn;
   void *logData;
+  rio_ErrorFn errorFn;     /* rio_setErrorFn's */
+  void *errorData;
   int logLen, trapped, ready, procCount, ffiCount, defineCount, inRepl, running;
   int checking;            /* compiling for rio_check: not to run */
   volatile int interrupted; /* set by rio_interrupt */

@@ -87,7 +87,7 @@ int rio_parseType(rio_Vm *vm) {
     t = rio_parseValueType(vm);
     for (j = 0; j < (names ? names : 1); j++) {
       if (n >= 16) rio_FAIL(0, "too many parameters");
-      if (ref && (opt >> j & 1)) rio_FAIL(0, "a & parameter can't be optional: it needs a place");
+      if (ref && (opt >> j & 1) && !c->hostType) rio_FAIL(0, "a & parameter can't be optional: it needs a place");
       refs |= ref << n;
       if (opt >> j & 1) optional++;
       else if (optional) rio_FAIL(0, rio_msgOptionalLast);

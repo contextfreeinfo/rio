@@ -111,8 +111,11 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   module's source, which makes C structs and sigs to match: see the
   [embedding guide](../guide/embedding.md#structs).
 - **`&T` parameters:** as for a proc, a host proc may take a place, `&T`, and change it: an `Int`, a
-  `Float` or a struct (`&i`, `&f`, `&{...}` in its sig). Calls pass `&x`. The host writes no more than
-  the place holds, so a struct an older image made with fewer fields stays as it was past them:
+  `Float`, a struct, or a point or size (`[N]Int` or `[N]Float`, N up to 8) (`&i`, `&f`, `&{...}`,
+  `&(ii)` in its sig). Calls pass `&x`. Unlike a proc's, a host proc's `&` parameter may be optional
+  (`size?: &[2]Int`): left out, the host gets 0 for its address and size, and writes nothing. The host
+  writes no more than the place holds, so a struct an older image made with fewer fields stays as it
+  was past them:
 
   ```rio fragment
   Mouse* :: struct            # in pc.rio

@@ -257,12 +257,18 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
         f->resultWords = 0;
         break;
       }
-      if (ref) { /* &i, &f, &{...}: a place, by its address and size (rio_putStruct writes it) */
-        int t;
+      if (ref) { /* &i, &f, &{...}, &(ii): a place, by its address and size (rio_putStruct writes it) */
+        int t, n = 1;
         if (g[1] == '{') g++; /* (as a struct, below) */
         else {
+          if (g[1] == '(') { /* (&(ii): a [2]Int, its letters, all i or all f) */
+            for (n = 0; g[2 + n] == g[2]; n++) {}
+            if (g[2 + n] != ')' || n < 1 || n > 8) rio_FAIL(, "bad ffi signature: &( takes 1 to 8 of i or of f, then )");
+            g++;
+          }
           t = g[1] == 'i' ? rio_TypeId_int : g[1] == 'f' ? rio_TypeId_float : -1;
-          if (t < 0) rio_FAIL(, "bad ffi signature: & takes i, f or {...}");
+          if (t < 0) rio_FAIL(, "bad ffi signature: & takes i, f, {...} or (ii)");
+          if (*g == '(') { t = rio_arrayOf(vm, t, (uint32_t)n); g += n; } /* (to the ')': the g++ below passes it) */
           if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
           c->params[c->paramCount].refType = (uint16_t)t;
           c->params[c->paramCount].addr = 0;
@@ -366,11 +372,82 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
   c->modules[1].state = rio_ModuleState_compiling;
 }
 
+/* the error just made, to rio_setErrorFn's fn (unless it's an undefined name whose declaration failed),
+   and kept if it's the first */
+static void rio_keepError(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  rio_Error e = rio_errorInfo(vm);
+  int i;
+  for (i = 0; i < c->failedNameCount; i++) { /* (undefined name near 'name') */
+    size_t n = strlen(c->failedNames[i]);
+    if (!strncmp(e.msg, "undefined name near '", 21) && !strncmp(e.msg + 21, c->failedNames[i], n) && !strcmp(e.msg + 21 + n, "'")) return;
+  }
+  if (!c->errorsKept++) {
+    memcpy(c->firstError, vm->errorText, sizeof c->firstError);
+    c->firstErrorAt[0] = vm->errorKind; c->firstErrorAt[1] = vm->errorLine; c->firstErrorAt[2] = vm->errorCol;
+    c->firstErrorAt[3] = vm->errorLen; c->firstErrorAt[4] = vm->errorMsgAt;
+  }
+  vm->errorFn(vm->errorData, e);
+}
+
+/* after an error in a top-level statement that started on line: back at the top level, from the next
+   line that starts at column 1 with something other than end, else or case (a failed proc's end is its
+   own). 0 if it can't go on */
+static int rio_recover(rio_Vm *vm, int line, const char *name, int nameLen) {
+  rio_Compiler *c = vm->compiler;
+  int tries = 0;
+  rio_keepError(vm);
+  if (name && c->failedNameCount < 8 && nameLen < 32) {
+    memcpy(c->failedNames[c->failedNameCount], name, (size_t)nameLen);
+    c->failedNames[c->failedNameCount++][nameLen] = 0;
+  }
+  c->tok = c->failTok;
+  c->peek = c->failPeek;
+  for (;;) {
+    c->failed = 0;
+    vm->errorKind = rio_ErrorKind_none;
+    c->failMessage = 0;
+    if (c->tok.kind == rio_Tok_eof) break;
+    if (c->tok.newline && c->tok.col == 1 && c->tok.line > line && c->tok.kind != rio_Tok_end && c->tok.kind != rio_Tok_else &&
+        c->tok.kind != rio_Tok_case)
+      break;
+    rio_next(vm);
+    if (rio_failed(vm)) { /* (a token that doesn't lex: past it, if it can be) */
+      if (++tries > 64) return 0;
+      c->tok = c->failTok;
+      c->peek = c->failPeek;
+      if (c->tok.line <= line) line = c->tok.line; /* (the next line still starts over) */
+      rio_lex(vm, &c->peek);
+      rio_next(vm);
+      if (rio_failed(vm)) return 0;
+    }
+  }
+  c->blockCount = c->valueCount = c->opCount = c->switchCount = c->valueBlockCount = c->unreachable = 0;
+  c->afterOneLine = 0;
+  c->curProc = -1;
+  c->targetType = -1;
+  c->lineOverride = 0;
+  c->exporting = 0;
+  c->literalCount = 0;
+  c->keepUsed = 0;
+  return 1;
+}
+
 /* statements until the source ends, going back to each file that imported or included one */
 void rio_compileAll(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
+  uint32_t live = c->liveSlots, symCount = c->symCount; /* (as the top-level statement now going began: rio_recover's) */
+  int line = 0, nameLen = 0;
+  char name[32];
   while (!rio_failed(vm)) {
     if (c->tok.kind != rio_Tok_eof) {
+      if (!c->blockCount && c->curProc < 0) { /* (a top-level statement: what it'd go back to, its name if it declares one) */
+        live = c->liveSlots;
+        symCount = c->symCount;
+        line = c->tok.line;
+        nameLen = c->tok.kind == rio_Tok_id && c->peek.kind == rio_Tok_colonColon && c->tok.len < 32 ? c->tok.len : 0;
+        if (nameLen) memcpy(name, c->tok.text, (size_t)nameLen);
+      }
       c->keepUsed = 0; /* (names kept through the statement before: done with) */
       if (vm->checking && !c->blockCount && c->curProc < 0) { /* (a check: the code so far, its lines and strings, aren't needed) */
         vm->codeLen = 0;
@@ -380,14 +457,32 @@ void rio_compileAll(rio_Vm *vm) {
         c->lineCount = c->lastLine = c->lastLinePc = 0;
       }
       rio_statement(vm);
+      if (rio_failed(vm) && vm->errorFn && !c->resumeCount && c->curFile == 1 && rio_recover(vm, c->failTok.newline && c->failTok.col == 1 ? c->failTok.line - 1 : c->failTok.line, nameLen ? name : 0, nameLen)) {
+        c->liveSlots = c->freeSlot = live; /* (what the top-level statement had going: gone, its names too) */
+        c->symCount = symCount;
+      }
       continue;
     }
-    if (c->blockCount) rio_FAIL(, rio_msgMissingEnd);
+    if (c->blockCount) rio_fail(vm, rio_msgMissingEnd);
+    if (rio_failed(vm)) break;
     if (!c->resumeCount) {
       rio_makeThunks(vm); /* (host procs used as proc values: each one's proc, now nothing else is open) */
       break;
     }
     rio_endFile(vm);
+  }
+  if (rio_failed(vm) && vm->errorFn) { /* (the last error, then the first, as rio_error's) */
+    rio_keepError(vm);
+    if (c->errorsKept) {
+      memcpy(vm->errorText, c->firstError, sizeof c->firstError);
+      vm->errorKind = c->firstErrorAt[0]; vm->errorLine = c->firstErrorAt[1]; vm->errorCol = c->firstErrorAt[2];
+      vm->errorLen = c->firstErrorAt[3]; vm->errorMsgAt = c->firstErrorAt[4]; vm->errorFile = 0;
+    }
+  } else if (c->errorsKept) { /* (errors before, none since: it fails, with the first) */
+    memcpy(vm->errorText, c->firstError, sizeof c->firstError);
+    vm->errorKind = c->firstErrorAt[0]; vm->errorLine = c->firstErrorAt[1]; vm->errorCol = c->firstErrorAt[2];
+    vm->errorLen = c->firstErrorAt[3]; vm->errorMsgAt = c->firstErrorAt[4]; vm->errorFile = 0;
+    c->failed = 1;
   }
 }
 

@@ -15,6 +15,8 @@ const char rio_msgExpectedExpr[] = "expected expression";
 static void rio_stopReading(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   c->failed = 1;
+  c->failTok = c->tok; /* (for going on after it: rio_setErrorFn) */
+  c->failPeek = c->peek;
   c->tok.kind = c->peek.kind = rio_Tok_eof;
   c->tok.len = c->peek.len = 0;
 }

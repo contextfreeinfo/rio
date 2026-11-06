@@ -42,6 +42,7 @@ static rio_PendingOp *rio_pushOp(rio_Vm *vm, int kind, int prec, int op) {
   o->op = (int16_t)op;
   o->a = o->b = o->c = o->argCount = o->punAt = 0;
   o->fieldsSet = 0;
+  o->spread = 0;
   o->valueBase = (uint16_t)c->valueCount;
   o->freeAtStart = (uint16_t)c->freeSlot;
   return o;
@@ -622,6 +623,15 @@ static void rio_literalField(rio_Vm *vm, rio_PendingOp *lit) {
     rio_arrayElement(vm, lit);
     return;
   }
+  if (c->tok.kind == '.' && c->peek.kind == '.') { /* {...x, f = v}: a copy of x, then the fields named after it */
+    if (lit->argCount || lit->fieldsSet) rio_FAIL(, "...x goes first: the fields after it change the copy");
+    rio_next(vm);
+    rio_next(vm);
+    if (c->tok.kind != '.') rio_FAIL(, "a copy to start from is ...x");
+    rio_next(vm);
+    lit->a = -2;
+    return;
+  }
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "struct literal fields must be named: Type{field = value}");
   if (c->peek.kind == '=') {
     rio_setField(vm, lit, c->tok.text, c->tok.len);
@@ -741,7 +751,7 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
     rio_literalDone(vm, lit);
     return;
   }
-  while (st->fieldCount <= 64 && !rio_hasBitfields(vm, lit->b) && i < st->fieldCount) { /* (structs with more fields, or bitfields, were zeroed up front) */
+  while (!lit->spread && st->fieldCount <= 64 && !rio_hasBitfields(vm, lit->b) && i < st->fieldCount) { /* (structs with more fields, or bitfields, were zeroed up front) */
     if (lit->fieldsSet >> i & 1) {
       i++;
       continue;
@@ -904,6 +914,14 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     e = rio_popValue(vm);
     dst = rio_exprOf(rio_ExprKind_static, at->elem, m->c + base + i * size);
     rio_store(vm, &dst, &e);
+    c->freeSlot = (uint32_t)(m->c / 4 + rio_typeWords(vm, m->b));
+  } else if (m->kind == rio_Pending_literal && m->a == -2) { /* ...x: all of it copied in, at once */
+    rio_Expr dst;
+    e = rio_popValue(vm);
+    if (rio_valueType(e.type) != m->b) rio_FAIL(, "type mismatch: ...x copies a value of the literal's own type");
+    dst = rio_exprOf(rio_ExprKind_static, m->b, m->c);
+    rio_store(vm, &dst, &e);
+    m->spread = 1;
     c->freeSlot = (uint32_t)(m->c / 4 + rio_typeWords(vm, m->b));
   } else if (m->kind == rio_Pending_literal) { /* stored into the struct at once */
     rio_Type *st;
@@ -1306,7 +1324,7 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   rio_PendingOp *m;
   if (c->opCount == x->opBase) return x->whole;
   m = rio_opTop(vm);
-  if (m->kind == rio_Pending_literal) return m->op ? rio_literalElem(vm, m) : rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
+  if (m->kind == rio_Pending_literal) return m->op ? rio_literalElem(vm, m) : m->a == -2 ? m->b : rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
   if (m->kind == rio_Pending_index && m->valueBase > 0 && c->valueCount <= m->valueBase + 1) { /* counts[.east], counts[.a..<.b]: an [Enum]T takes its enum */
     rio_Type *array = rio_type(vm, c->values[m->valueBase - 1].type);
     if (array->kind == rio_TypeKind_array && array->firstField) return array->firstField;

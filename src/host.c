@@ -553,7 +553,9 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
     return;
   }
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after host");
+  c->hostType = 1;
   procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int (and &T parameters) */
+  c->hostType = 0;
   if (rio_failed(vm)) return;
   if (isStatic) {
     if (receiver < 0) rio_FAIL(, "static is for a proc on a type");

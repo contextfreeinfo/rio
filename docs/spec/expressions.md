@@ -383,6 +383,24 @@ log(a.x, b.x, b.y, s.pos.y, s.hp)
 
 `v := {x = 1}` is an error: nothing says which struct it is.
 
+`...x` first in a struct literal starts it as a copy of `x`, a value of the same struct type, and the
+fields named after it change the copy; the ones left out keep `x`'s values. It's a copy, so `x` itself
+is untouched, and `p = {...p, x = 1}` changes just `p.x`:
+
+```rio
+Vec :: struct
+  x, y: Float
+end
+a := Vec{x = 1, y = 2}
+b := Vec{...a, y = 5}
+a = {...a, x = a.x + 10}
+log(a, b)
+```
+
+```output
+Vec{x = 11.0, y = 2.0} Vec{x = 1.0, y = 5.0}
+```
+
 ## Array literals
 
 `[N]T{a, b, ...}` makes an array: its values in order, and zero for the elements after them. More

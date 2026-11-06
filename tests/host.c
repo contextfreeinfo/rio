@@ -101,6 +101,25 @@ static void count(rio_Vm *v, rio_Val *a) { /* (n: &Int) */
   k++;
   rio_putStruct(v, a, &k, sizeof k);
 }
+static void grow(rio_Vm *v, rio_Val *a) { /* (s: &[2]Int, by) */
+  int32_t s[2];
+  rio_getStruct(v, a, s, sizeof s);
+  s[0] += a[2].i; s[1] += a[2].i;
+  rio_putStruct(v, a, s, sizeof s);
+}
+static void measure(rio_Vm *v, rio_Val *a) { /* (n, size?: &[2]Int -> Int: size left out, its address and size 0) */
+  int32_t s[2];
+  s[0] = a[0].i; s[1] = a[0].i + 1;
+  rio_putStruct(v, a + 1, s, sizeof s);
+  a[0].i *= 2;
+}
+/* rio_setErrorFn's: each error's line, and how many */
+static int errorLines[16], errorCount;
+static void oneError(void *userData, rio_Error e) {
+  (void)userData;
+  if (errorCount < 16) errorLines[errorCount] = e.line;
+  errorCount++;
+}
 
 /* compile and run src (auto: a module to auto-import, or NULL); expect output (NULL: don't check), or
    an error: kind, file (NULL = main), line, message */
@@ -342,12 +361,39 @@ int main(int argc, char **argv) {
       fails++;
     }
   }
+  { /* every error (rio_setErrorFn): on after each, in a proc too; a failed declaration's name not one */
+    const char *s = "x := 1\ny := nope\nf :: proc(a: Int) -> Int\n  b := a + \"s\"\n  return b\nend\nlog(f(2))\n"
+                    "P :: struct\n  q: Intt\nend\nz: Int = \"no\"\ng :: proc() -> Int\n  return 3\nend\nlog(g(), x)\nw := what + 1\n";
+    static const int want[] = {2, 4, 9, 11, 16};
+    int k, ok;
+    rio_init(&vm, mem, sizeof mem, code, 8192);
+    errorCount = 0;
+    rio_setErrorFn(&vm, oneError, 0);
+    ok = rio_compile(&vm, s, (uint32_t)strlen(s)) != 0 && errorCount == 5 && rio_errorInfo(&vm).line == 2;
+    for (k = 0; ok && k < 5; k++) ok = errorLines[k] == want[k];
+    if (!ok) {
+      printf("FAIL: rio_setErrorFn: %d errors, the first at %d: %s\n", errorCount, errorCount ? errorLines[0] : 0, rio_error(&vm));
+      fails++;
+    }
+    n++;
+    rio_init(&vm, mem, sizeof mem, code, 8192); /* (without it: just the first, as before) */
+    errorCount = 0;
+    if (!rio_compile(&vm, s, (uint32_t)strlen(s)) || errorCount || rio_errorInfo(&vm).line != 2) {
+      printf("FAIL: no rio_setErrorFn: %s\n", rio_error(&vm));
+      fails++;
+    }
+    n++;
+  }
   /* &T: the host changes the caller's place (rio_putStruct): a local, a global, an element, a field, an Int */
   OK("import hst\np := hst.Pos{x = 1, y = 2}\nhst.fill(&p, 10)\nlog(p)\n", "Pos{x = 11, y = 22}\n");
   OK("import hst\nf :: proc() -> Int\n  ps: [3]hst.Pos\n  o: hst.Opts\n  i := 2\n  hst.fill(&ps[i], 1)\n  hst.fill(&o.at, 3)\n  n := 5\n"
      "  hst.count(&n)\n  hst.count(&n)\n  return ps[2].y * 1000 + o.at.y * 10 + n\nend\nlog(f())\n", "2067\n");
   BAD("import hst\np: hst.Pos\nhst.fill(p, 1)\n", 0, 3, "this parameter is a reference: pass &x");
   BAD("import hst\nn := 1\nhst.fill(&n, 1)\n", 0, 3, "type mismatch");
+  OK("import hst\ns: [2]Int = {1, 2}\nss: [3][2]Int\nhst.grow(&s, 3)\nhst.grow(&ss[1], 5)\nlog(s, ss[1])\n", "[4, 5] [5, 5]\n"); /* (&[2]Int: &(ii)) */
+  OK("import hst\ns: [2]Int\nlog(hst.measure(5, &s), s, hst.measure(6))\n", "10 [5, 6] 12\n"); /* (optional: left out, nothing written) */
+  BAD("import hst\ns: [2]Int\nhst.grow(s, 1)\n", 0, 3, "this parameter is a reference: pass &x");
+  BAD("import hst\ns: [3]Int\nhst.grow(&s, 1)\n", 0, 3, "type mismatch");
   BAD("import hsr\n", "hsr.rio", 1, "doesn't match the host's hsr.f: proc(&Int)");
   /* an enum by its values' names (Enum{...}): one, or a struct's field, in another order doesn't match */
   OK("import hst\nlog(hst.paint(.box), hst.paint(hst.Shape.dot))\n", "10 0\n");

@@ -122,6 +122,19 @@ rio_Error e = rio_errorInfo(&vm); // after a failed rio_compile / rio_run / rio_
   that has code). `rio_pcLine(vm, pc)` exposes the same lookup.
 - Code from `rio -c` reports the same lines, through `#line` directives.
 
+A compile stops at its first error, unless the host asks for all of them, as an editor's list of
+problems would: with `rio_setErrorFn(vm, fn, userData)` set, it goes on after an error in a top-level
+statement of the main source, or in a proc's body, from the next line that starts at column 1 (not an
+`end`), and calls `fn` with each error as it's found (`e.msg` lasts only the call). It still fails, with
+the first as `rio_error`. An "undefined name" for a name whose own declaration failed isn't reported,
+since it only repeats that one. The command line and `rio lsp` both show every error this way.
+
+```c
+static void show(void *userData, rio_Error e) { printf("%d:%d: %s\n", e.line, e.col, e.msg); }
+rio_setErrorFn(&vm, show, NULL);
+if (rio_compile(&vm, src, len)) return 1; // (each already shown)
+```
+
 ## The REPL
 
 ```c

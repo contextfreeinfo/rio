@@ -255,9 +255,12 @@ static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procTy
       open = 0;
       any = 1;
     } else if (k == rio_TypeKind_enum && i < ty->fieldCount && !rio_field(vm, ty->firstField + i)->offset) rio_layoutOf(vm, type, 0, o); /* (a parameter, by name) */
-    else if (k == rio_TypeKind_array) { /* (a point or size, [2]Int: its words, i i; as a result too) */
+    else if (k == rio_TypeKind_array) { /* (a point or size, [2]Int: its words, i i; as a result too; a &[2]Int: &(ii)) */
       uint32_t w;
+      int ref = i < ty->fieldCount && rio_field(vm, ty->firstField + i)->offset;
+      if (ref) rio_hostPut(o, "(", 1);
       for (w = 0; w < rio_type(vm, type)->count; w++) rio_hostPut(o, rio_type(vm, type)->elem == rio_TypeId_float ? "f" : "i", 1);
+      if (ref) rio_hostPut(o, ")", 1);
     }
     else if (k == rio_TypeKind_slice && type != rio_TypeId_string && type != rio_TypeId_blob) { /* (a []T: [x], x its element's letter) */
       int e = rio_type(vm, type)->elem, ek = rio_type(vm, e)->kind;

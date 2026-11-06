@@ -17,6 +17,10 @@ int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t 
   return 0;
 }
 
+void rio_setErrorFn(rio_Vm *vm, rio_ErrorFn fn, void *userData) {
+  vm->errorFn = fn;
+  vm->errorData = userData;
+}
 void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData) {
   vm->logFn = fn;
   vm->logData = userData;

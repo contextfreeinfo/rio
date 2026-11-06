@@ -230,6 +230,14 @@ static void rio_report(const char *where) {
   fprintf(stderr, "%s\n", rio_error(&rio_vm));
 }
 
+/* each compile error, as it's found (rio_setErrorFn), after the file it's in (userData: the main one's) */
+static int rio_errorsPrinted;
+static void rio_printError(void *userData, rio_Error e) {
+  fflush(stdout);
+  fprintf(stderr, "%s:%d:%d: %s\n", e.file ? e.file : (const char *)userData, e.line, e.col, e.msg);
+  rio_errorsPrinted++;
+}
+
 /* the REPL's colors (os.h's line editor: rio_osColors): rio_highlight's kind for each byte of a line */
 static unsigned char *rio_colorKinds;
 static void rio_colorToken(void *userData, uint32_t at, uint32_t len, int kind) {
@@ -867,6 +875,23 @@ static void rio_lspFindIncluder(int d) {
   }
 }
 
+/* the errors a check found, for diagnostics (rio_lspAll: going on after each) */
+#define rio_LSP_ERRORS 32
+static int rio_lspAll, rio_lspErrorCount;
+static struct {
+  int line, col, len;
+  char file[256], msg[rio_ERROR_BUF_SIZE];
+} rio_lspErrors[rio_LSP_ERRORS];
+static void rio_lspOneError(void *userData, rio_Error e) {
+  (void)userData;
+  if (rio_lspErrorCount >= rio_LSP_ERRORS) return;
+  rio_lspErrors[rio_lspErrorCount].line = e.line;
+  rio_lspErrors[rio_lspErrorCount].col = e.col;
+  rio_lspErrors[rio_lspErrorCount].len = e.len;
+  snprintf(rio_lspErrors[rio_lspErrorCount].file, sizeof rio_lspErrors[0].file, "%s", e.file ? e.file : "");
+  snprintf(rio_lspErrors[rio_lspErrorCount].msg, sizeof rio_lspErrors[0].msg, "%s", e.msg ? e.msg : "");
+  rio_lspErrorCount++;
+}
 static int rio_lspCheck(int d, uint32_t len) {
   static char mainText[rio_LSP_TEXT];
   static char part[1024];
@@ -902,6 +927,8 @@ static int rio_lspCheck(int d, uint32_t len) {
     if (rio_addSource(&rio_vm, rio_lspImports[i].name, rio_lspImports[i].src, rio_lspImports[i].len) || rio_autoImport(&rio_vm, rio_lspImports[i].name))
       break;
   rio_setLoader(&rio_vm, rio_lspLoad, 0);
+  rio_lspErrorCount = 0;
+  if (rio_lspAll) rio_setErrorFn(&rio_vm, rio_lspOneError, 0);
   return rio_check(&rio_vm, src, len, 0, 0, rio_scratch, sizeof rio_scratch);
 }
 
@@ -918,16 +945,22 @@ static void rio_lspDiagnose(int d) {
   rio_lspPut("{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/publishDiagnostics\",\"params\":{\"uri\":", -1);
   rio_lspPutString(rio_lspDocs[d].uri, (int)strlen(rio_lspDocs[d].uri));
   rio_lspPut(",\"diagnostics\":[", -1);
-  if (rio_lspCheck(d, rio_lspDocs[d].len)) {
-    rio_Error e = rio_errorInfo(&rio_vm);
-    int line = e.line > 0 ? e.line - 1 : 0, col = e.col > 0 ? e.col - 1 : 0, w = e.len > 0 ? e.len : 1;
+  int failed, k;
+  rio_lspAll = 1;
+  failed = rio_lspCheck(d, rio_lspDocs[d].len);
+  rio_lspAll = 0;
+  if (failed && !rio_lspErrorCount) rio_lspOneError(0, rio_errorInfo(&rio_vm)); /* (one the check made without going on) */
+  for (k = 0; failed && k < rio_lspErrorCount; k++) { /* (each error, in order) */
+    const char *file = rio_lspErrors[k].file[0] ? rio_lspErrors[k].file : 0;
+    int line = rio_lspErrors[k].line > 0 ? rio_lspErrors[k].line - 1 : 0, col = rio_lspErrors[k].col > 0 ? rio_lspErrors[k].col - 1 : 0;
+    int w = rio_lspErrors[k].len > 0 ? rio_lspErrors[k].len : 1;
     char msg[rio_ERROR_BUF_SIZE + 1100];
-    if (!rio_lspIsDoc(d, e.file)) { /* (in another file: shown at the top of this one) */
-      snprintf(msg, sizeof msg, "%s:%d:%d: %s", e.file ? e.file : rio_lspDocs[d].includer, e.line, e.col, e.msg);
+    if (!rio_lspIsDoc(d, file)) { /* (in another file: shown at the top of this one) */
+      snprintf(msg, sizeof msg, "%s:%d:%d: %s", file ? file : rio_lspDocs[d].includer, rio_lspErrors[k].line, rio_lspErrors[k].col, rio_lspErrors[k].msg);
       line = col = 0;
       w = 1;
-    } else snprintf(msg, sizeof msg, "%s", e.msg ? e.msg : rio_error(&rio_vm)); /* (its own) */
-    snprintf(head, sizeof head, "{\"range\":{\"start\":{\"line\":%d,\"character\":%d},", line, col);
+    } else snprintf(msg, sizeof msg, "%s", rio_lspErrors[k].msg); /* (its own) */
+    snprintf(head, sizeof head, "%s{\"range\":{\"start\":{\"line\":%d,\"character\":%d},", k ? "," : "", line, col);
     rio_lspPut(head, -1);
     snprintf(head, sizeof head, "\"end\":{\"line\":%d,\"character\":%d}},", line, col + w);
     rio_lspPut(head, -1);
@@ -1451,6 +1484,7 @@ int main(int argc, char **argv) {
       rio_usageText(&u, text, sizeof text);
       printf("compiled in place (%s):\n%s\n", failed ? rio_error(&probe) : "fits", text);
     }
+    rio_setErrorFn(&rio_vm, rio_printError, (void *)path); /* (every error, not just the first) */
     if (cOut || memReport) failed = rio_compileScratch(&rio_vm, rio_src, (uint32_t)n, rio_scratch, sizeof rio_scratch);
     else if (rio_window) { /* (read a part at a time) */
       static rio_MemText main;
@@ -1458,8 +1492,9 @@ int main(int argc, char **argv) {
       main.len = (uint32_t)n;
       failed = rio_compileStream(&rio_vm, rio_readText, &main);
     } else failed = rio_compile(&rio_vm, rio_src, (uint32_t)n);
+    rio_setErrorFn(&rio_vm, 0, 0);
     if (failed) {
-      rio_report(path);
+      if (!rio_errorsPrinted) rio_report(path);
       return 1;
     }
     if (memReport) {
