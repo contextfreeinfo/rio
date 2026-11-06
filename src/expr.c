@@ -177,6 +177,8 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
     }
     return e;
   case rio_SymKind_ffi:
+    if (y->value < 0 && vm->hostHeader) return rio_exprOf(rio_ExprKind_const, y->type, 0); /* (for rio_hostHeader, calls are
+                                                                                              checked, never run: a proc value of its type) */
     if (y->value < 0) rio_FAIL(rio_voidExpr(), "the host doesn't have this proc (it's declared for rio_hostHeader)");
     return rio_exprOf(rio_ExprKind_ffi, 0, y->value);
   case rio_SymKind_builtin:
@@ -948,9 +950,11 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
       m->argCount++;
       return;
     }
-    if (rio_type(vm, type)->kind == rio_TypeKind_array) { /* a point or size, [2]Int: its words, one after another */
+    if (rio_type(vm, type)->kind == rio_TypeKind_array || rio_type(vm, type)->kind == rio_TypeKind_builderView) {
+      /* a point or size, [2]Int: its words, one after another; a Blob[..]: the view's 3 words, as a proc's
+         parameter gets them */
       rio_Expr dst;
-      if (rio_valueType(e.type) != type) rio_FAIL(, "type mismatch");
+      if (rio_type(vm, type)->kind == rio_TypeKind_array && rio_valueType(e.type) != type) rio_FAIL(, "type mismatch");
       words = rio_typeWords(vm, type);
       c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
       d = rio_allocSlots(vm, words);

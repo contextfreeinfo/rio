@@ -294,6 +294,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
         continue;
       }
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;
+      if (ch == 'B' && !isResult) t = rio_builderViewOf(vm, rio_TypeId_byte); /* (a Blob[..], 3 words: where its length is, where its bytes start, its capacity) */
       if (ch == '[' && !isResult) { /* [x]: a slice of x (i, f, s or b), 2 words: where its elements start, how many */
         int e = g[1] == 'i' ? rio_TypeId_int : g[1] == 'f' ? rio_TypeId_float : g[1] == 's' ? rio_TypeId_string : g[1] == 'b' ? rio_TypeId_blob : -1;
         if (e < 0 || g[2] != ']') rio_FAIL(, "bad ffi signature: [ takes i, f, s or b, then ]");

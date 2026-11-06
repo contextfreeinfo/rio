@@ -257,10 +257,19 @@ static void header(void) {
   }
   n++;
   rio_init(&vm, mem, sizeof mem, code, 8192);
-  if (rio_hostHeader(&vm, "g* :: host proc()\ng()\n", 22, scratch, sizeof scratch, "m", text, sizeof text) ||
-      !strstr(rio_error(&vm), "the host doesn't have this proc")) {
-    printf("FAIL: rio_hostHeader: a call to a proc only declared: %s\n", rio_error(&vm));
-    fails++;
+  { /* a call to a proc only declared: checked, never run (a Rio proc wrapping a host one) */
+    const char *s = "g :: host proc(x: Int) -> Int\nh* :: proc() -> Int\n  return g(1) + 1\nend\n";
+    if (!rio_hostHeader(&vm, s, (uint32_t)strlen(s), scratch, sizeof scratch, "m", text, sizeof text) || !strstr(text, "m_g_SIG")) {
+      printf("FAIL: rio_hostHeader: a call to a proc only declared: %s\n", rio_error(&vm));
+      fails++;
+    }
+    n++;
+    rio_init(&vm, mem, sizeof mem, code, 8192);
+    s = "g :: host proc(x: Int) -> Int\nh* :: proc() -> Int\n  return g(\"no\")\nend\n";
+    if (rio_hostHeader(&vm, s, (uint32_t)strlen(s), scratch, sizeof scratch, "m", text, sizeof text) || !strstr(rio_error(&vm), "mismatch")) {
+      printf("FAIL: rio_hostHeader: a call to a proc only declared, its arguments checked: %s\n", rio_error(&vm));
+      fails++;
+    }
   }
   n++;
   rio_init(&vm, mem, sizeof mem, code, 8192);

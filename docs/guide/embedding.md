@@ -27,7 +27,9 @@ int *score = rio_findGlobal(&vm, "score"); // direct access to globals (score* :
 ## Host procs
 
 `rio_addFfi(vm, name, sig, fn)` registers a host proc. `sig` is the parameter types, then optionally
-`>` and the result's: `i` Int, `f` Float, `s` String, `b` Blob, and a struct parameter as its layout
+`>` and the result's: `i` Int, `f` Float, `s` String, `b` Blob, `B` a byte builder view, `Blob[..]` (a
+parameter only: 3 words, where its length is, where its bytes start, and its capacity, so the host can
+add to it and set its length; calls pass a `Blob[..N]` or a view), and a struct parameter as its layout
 in braces (see [structs](#structs)). `name` and `sig` must stay valid until `rio_compile` (or
 `rio_loadImage`) returns.
 

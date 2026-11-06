@@ -265,6 +265,7 @@ static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procTy
       rio_hostPut(o, ek == rio_TypeKind_float ? "f" : e == rio_TypeId_string ? "s" : e == rio_TypeId_blob ? "b" : ek == rio_TypeKind_int || ek == rio_TypeKind_bool || ek == rio_TypeKind_enum ? "i" : "?", 1);
       rio_hostPut(o, "]", 1);
     }
+    else if (k == rio_TypeKind_builderView && rio_type(vm, type)->elem == rio_TypeId_byte) rio_hostPut(o, "B", 1); /* (a Blob[..]) */
     else rio_hostPut(o, k == rio_TypeKind_float ? "f" : type == rio_TypeId_string ? "s" : type == rio_TypeId_blob ? "b" : "i", 1);
   }
   rio_hostPut(o, open ? "\"" : any ? "" : "\"\"", -1);
