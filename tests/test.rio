@@ -54,11 +54,11 @@ c /= 4
 check(c == 7, "compound assign")
 check(1 < 2 and 2 <= 2 and 3 > 2 and 3 >= 3 and 1 != 2, "compare")
 pa := true
-pb := false
+pb2 := false
 px := 5
 check(not px == 4 and not (px == 4), "not binds looser than ==: not x == 4 is not (x == 4)")
-check((not pa and pb) == false and (pa or pb and false) == true, "or < and < not, like Python")
-check(not not pa and not (pa and pb), "not stacks and takes parentheses")
+check((not pa and pb2) == false and (pa or pb2 and false) == true, "or < and < not, like Python")
+check(not not pa and not (pa and pb2), "not stacks and takes parentheses")
 check(false or true, "or")
 check(not (true and false), "and")
 
@@ -196,8 +196,8 @@ add :: proc(a: Vec, b: Vec) -> Vec
   return Vec{x = a.x + b.x, y = a.y + b.y}
 end
 check(dot(v, Vec{x = 1, y = 1}) == 7, "struct params")
-r := add(v, add(v, v))
-check(r.x == 9 and r.y == 12, "struct return nested")
+rv := add(v, add(v, v))
+check(rv.x == 9 and rv.y == 12, "struct return nested")
 check(add(v, v).y == 8, "field of call")
 
 # ---- slices, blobs, strings
@@ -215,8 +215,8 @@ end
 check(total(data) == 140, "array to slice")
 check(total(data[2..<4]) == 13, "slice range")
 check(total(data[..<3]) == 5 and total(data[6..]) == 85, "open slices")
-mid := data[1..<7]
-check(mid.len() == 6 and mid[0] == 1, "slice var")
+midSlice := data[1..<7]
+check(midSlice.len() == 6 and midSlice[0] == 1, "slice var")
 buf: Blob[16]
 for i in 0..<buf.len()
   buf[i] = 'a' + i
@@ -748,9 +748,9 @@ check(cnt == 3, "& to an Int")
 trio: [3]Int
 fill3(&trio, 7)
 check(trio[0] == 7 and trio[2] == 7, "& to an array")
-label := "old"
-rename(&label)
-check(label == "renamed", "& to a String variable")
+labelText := "old"
+rename(&labelText)
+check(labelText == "renamed", "& to a String variable")
 passon(&crew[0])
 check(crew[0].hp == 109, "passing a reference on")
 cr := &crew[3]
@@ -891,8 +891,8 @@ rgba: [4]Int
 rgba.r = 255
 rgba.a = 9
 rgba.g += 7
-sq := rgba.bgra
-check(rgba.g == 7 and sq.r == 0 and sq.a == 9, "rgba")
+swz := rgba.bgra
+check(rgba.g == 7 and swz.r == 0 and swz.a == 9, "rgba")
 Spr :: struct
   pos: [2]Float
 end
@@ -1988,7 +1988,7 @@ check(hexBlob("").len() == 0, "hexBlob of nothing")
 
 # ---- views passed in are borrowed: copied to be kept; a call's result may view what went in
 keptName: Blob[..16]
-rename :: proc(s: String)
+keepName :: proc(s: String)
   keptName.clear()
   ok := keptName.pushAll(s)
 end
@@ -2003,7 +2003,7 @@ viewsPassed :: proc()
   b: Blob[8]
   b[0] = 'h'
   b[1] = 'i'
-  rename(b[0..<2].asString())
+  keepName(b[0..<2].asString())
   check(keptName.asString() == "hi", "a view passed in, copied to be kept")
   check(viewLen(b.asString()) == 8, "a view of a local, passed in")
   rest := viewRest(b.asString())
@@ -2082,21 +2082,21 @@ end
 whereAt := 2
 storedAt[whereAt] = 7
 check(storedAt[0] is Int and storedAt[3] is Int, "unions stored at running indexes")
-seen := 0
+seenNarrowed := 0
 seenSum := 0
 for m in storedAt # (a loop's element narrows, by if and by case)
   if m is Int
-    seen += 1
+    seenNarrowed += 1
     seenSum += m
   end
   switch m
   case nil
-    seen -= 100
+    seenNarrowed -= 100
   case Int
     seenSum += m
   end
 end
-check(seen == 4 and seenSum == 2 * (0 + 10 + 7 + 30), "loop elements narrowed")
+check(seenNarrowed == 4 and seenSum == 2 * (0 + 10 + 7 + 30), "loop elements narrowed")
 plusOne :: proc(n: &?Int) -> Int # (a & parameter narrows too)
   if n is Int
     return n + 1

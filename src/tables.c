@@ -18,6 +18,27 @@ void rio_addSymbol(rio_Vm *vm, const char *s, int n, int kind, int type, int32_t
   rio_Compiler *c = vm->compiler;
   rio_Symbol *y;
   if (n == 1 && s[0] == '_') rio_FAIL(, rio_msgUnderscore);
+  if (n && !c->blockCount && c->curProc < 0 && kind != rio_SymKind_method && kind != rio_SymKind_narrowed && !vm->inRepl) {
+    /* (a module's top level: each name declared once there; a REPL's pieces may declare one again, a
+       narrowed name is the same one, known better for a while, and an unnamed proc has no name to clash) */
+    int i;
+    int hosted = kind == rio_SymKind_ffi || kind == rio_SymKind_builtin || kind == rio_SymKind_module;
+    for (i = c->symCount - 1; i >= c->coreSymCount; i--) {
+      rio_Symbol *was = &c->syms[i];
+      if (hosted && (was->kind == rio_SymKind_ffi || was->kind == rio_SymKind_builtin || was->kind == rio_SymKind_module))
+        continue; /* (a host proc's other types, or the builtin it is; a module imported again) */
+      if (was->module == c->curModule && was->kind != rio_SymKind_method && was->kind != rio_SymKind_narrowed && rio_nameIs(vm, was->name, was->nameLen, s, n)) {
+        int k = 0, j;
+        rio_failAt(vm, c->stmtLine, 1, 0, "declared already, at this module's top level (a name is declared once there)");
+        while (vm->errorText[k]) k++;
+        k = rio_appendText(vm->errorText, k, ": '"); /* (which name) */
+        for (j = 0; j < n && j < 24 && k < rio_ERROR_BUF_SIZE - 2; j++) vm->errorText[k++] = s[j];
+        vm->errorText[k++] = '\'';
+        vm->errorText[k] = 0;
+        return;
+      }
+    }
+  }
   if (c->symCount >= (int)c->limits.symbols) rio_FAIL(, "too many symbols");
   y = &c->syms[c->symCount++];
   if ((uint32_t)c->symCount > c->high.symbols) c->high.symbols = (uint32_t)c->symCount;

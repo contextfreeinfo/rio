@@ -44,6 +44,8 @@ int main(void) {
   eval("f :: proc(n: Int) -> Int\n  return n * x\n", rio_ReplResult_more, "", 0);
   eval("f :: proc(n: Int) -> Int\n  return n * x\nend\n", 0, "", 0);
   eval("f(2)\n", 0, "80\n", 0);
+  eval("x := \"again\"\nx\n", 0, "again\n", 0);                             /* a name declared again: fine here, not in a file */
+  eval("x := 40\n", 0, "", 0);
   eval("x := 1 +\n", rio_ReplResult_more, "", 0);
   eval("v := (1 + 2\n", rio_ReplResult_more, "", 0);
   eval("log(\"open\n", rio_ReplResult_more, "", 0);

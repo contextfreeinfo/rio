@@ -60,6 +60,10 @@ static const Case cases[] = {
   {"if true do log(1); log(2)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 18, -1, "a one-line block holds one statement"},
   {"f :: proc() -> Int do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 20, -1, "missing return"},
   {"do\n  x := 1\nend\nlog(x)\n", 0, 0, 0, rio_ErrorKind_compile, 4, 5, -1, "undefined name"},
+  /* a module's top level: each name declared once (procs may hide a global, and blocks a name) */
+  {"a := 1\nb := 2\na := 3\n", 0, 0, 0, rio_ErrorKind_compile, 3, 1, -1, "declared already, at this module's top level"},
+  {"f :: proc()\nend\nf := 1\n", 0, 0, 0, rio_ErrorKind_compile, 3, 1, -1, "declared already, at this module's top level"},
+  {"N :: 4\nT :: struct\n  a: Int\nend\nN :: struct\n  b: Int\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 1, -1, "declared already, at this module's top level"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
   {"L :: struct\n  t: [9]String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "a big value (over 16 words) goes by reference"},
   /* maybes: ?T */
