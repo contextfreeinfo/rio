@@ -833,6 +833,17 @@ vstep :: proc(v: V2, k: Float) -> V2
 end
 vo := vstep(u2, 2)
 check(vo.x == -3 and vo.y == -6, "inside a proc, and returned")
+vsizes: [4][2]Int
+vsizes[0] = {8, 6}
+voffs: [4][2]Int
+vat := 0
+vcell := {1, 0}
+vgot := {0, 0}
+vindexed :: proc() # (an element by a variable index: its address in a temporary, read for each element)
+  vgot = voffs[vat] + vcell * vsizes[vat]
+end
+vindexed()
+check(vgot.x == 8 and vgot.y == 0, "an element of an array of arrays, by a variable index, in a proc")
 vr := &mv.vel
 vr *= 2.0
 check(mv.vel.x == 4, "through a reference")

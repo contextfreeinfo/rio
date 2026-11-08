@@ -719,13 +719,21 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
   if (n <= 4) { /* a point, a color: an instruction an element, as for numbers (so native loops have them too) */
     rio_Expr lone = *l, rone = *r, dst;
     int i, base = (int)c->freeSlot, scratch;
+    uint32_t live = c->liveSlots, above = c->liveSlots;
     if (!lElem) lone = rio_exprOf(rio_ExprKind_static, elem, rio_toSlot(vm, l, 1) * 4); /* (a number: read once) */
     if (!rElem) rone = rio_exprOf(rio_ExprKind_static, elem, rio_toSlot(vm, r, 1) * 4);
-    if (!into) { /* at or below every operand's temporaries: safe, since elements are done in order */
+    /* an operand at an address in a temporary (a[i]): every element reads from it, so nothing before the
+       last may write that temporary: not the result, and no element's load (rio_toSlot reuses it, or
+       fuses its idx). Above is what's kept live till then */
+    if (lElem && lone.kind == rio_ExprKind_indirect && lone.value + 1 > (int)above) above = (uint32_t)lone.value + 1;
+    if (rElem && rone.kind == rio_ExprKind_indirect && rone.value + 1 > (int)above) above = (uint32_t)rone.value + 1;
+    if (!into) { /* at or below every operand's temporaries (but an address's): safe, since elements are done in order */
       c->freeSlot = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+      if (c->freeSlot < above) c->freeSlot = above;
       d = rio_allocSlots(vm, n);
     }
     scratch = (int)c->freeSlot > base ? (int)c->freeSlot : base;
+    c->liveSlots = above;
     for (i = 0; i < 2; i++) { /* a number in the result's slots: moved above them first (each element reads it) */
       rio_Expr *one = i ? &rone : &lone;
       if ((i ? rElem : lElem) || into || one->kind != rio_ExprKind_static || one->value / 4 < d || one->value / 4 >= d + n) continue;
@@ -746,6 +754,7 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
       } else dst = rio_exprOf(rio_ExprKind_static, elem, (d + i) * 4);
       rio_store(vm, &dst, &le);
     }
+    c->liveSlots = live;
     c->freeSlot = (uint32_t)scratch;
     if (!into) {
       c->freeSlot = (uint32_t)(d + n);
