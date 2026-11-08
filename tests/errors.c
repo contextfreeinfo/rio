@@ -64,6 +64,11 @@ static const Case cases[] = {
   {"a := 1\nb := 2\na := 3\n", 0, 0, 0, rio_ErrorKind_compile, 3, 1, -1, "declared already, at this module's top level"},
   {"f :: proc()\nend\nf := 1\n", 0, 0, 0, rio_ErrorKind_compile, 3, 1, -1, "declared already, at this module's top level"},
   {"N :: 4\nT :: struct\n  a: Int\nend\nN :: struct\n  b: Int\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 1, -1, "declared already, at this module's top level"},
+  /* a local can't hide another still in scope (a parameter too); a global or builtin, it may */
+  {"f :: proc()\n  x := 1\n  x := 2\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 3, -1, "declared already, as a local still in scope"},
+  {"f :: proc(n: Int)\n  if n > 0\n    n := 2\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 5, -1, "declared already, as a local still in scope"},
+  {"for i in 0..<2\n  for i in 0..<2\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 3, -1, "declared already, as a local still in scope"},
+  {"x := 1\nf :: proc()\n  x := 2\n  max := 3\n  for i in 0..<x do log(i)\n  for i in 0..<max do log(i)\nend\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
   {"L :: struct\n  t: [9]String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "a big value (over 16 words) goes by reference"},
   /* maybes: ?T */

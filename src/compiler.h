@@ -333,6 +333,7 @@ typedef struct rio_Compiler {
   int moduleCount, curModule, curFile, resumeCount, exporting;
   int afterOneLine; /* the statement before was a one-line case or else: case, else or end comes next */
   int stmtLine;     /* the line the statement being compiled starts on: where its names are declared */
+  int stmtCol;      /* and its column */
   int autoSources[rio_MAX_AUTO_IMPORTS], autoSourceCount; /* auto-imports the loader has sources for */
   rio_Resume resume[rio_MAX_IMPORT_DEPTH];
   /* slots: liveSlots hold variables, temporaries start at freeSlot; slotHigh is the most used */

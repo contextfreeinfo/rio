@@ -52,24 +52,32 @@ log(count, speed, grid[3][3])
 
 A variable at the top level is a global, living as long as the program. One in a proc is a local; it
 starts again each time its declaration runs. A declaration is visible from there to the end of its
-block. At a module's top level (its parts included), each name is declared once: a second variable,
-constant, proc or type of the same name there is an error, which keeps a part's globals from quietly
-clashing with another's. In a proc or a block, declaring a name again, in the same block or an inner
-one, makes a new variable that hides the old one from then on, a global or builtin too:
+block. A name is declared once where it's seen:
+
+- At a module's top level (its parts included), a second variable, constant, proc or type of the same
+  name is an error, which keeps a part's globals from quietly clashing with another's.
+- A local (a parameter too) can't hide another local still in scope: declaring it again in the same
+  block or an inner one is an error, so `x := 5` written for `x = 5` can't quietly make a new `x`. A
+  block that's ended frees its names: two loops one after another can each have an `i`.
+- A local may hide a global or a builtin, which a proc's author needn't know all of:
 
 ```rio
 x := 1
 f :: proc()
   x := 2.5               # a local x, in f only
-  x := "two"             # a new x, hiding that one
-  log(x)
+  for i in 0..<2
+    x += 1.0
+  end
+  for i in 0..<1         # (the first i's loop has ended)
+    log(x)
+  end
 end
 f()
 log(x)
 ```
 
 ```output
-two
+4.5
 1
 ```
 

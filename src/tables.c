@@ -14,27 +14,37 @@ int rio_addName(rio_Vm *vm, const char *s, int n) {
   return c->nameBytes - n;
 }
 
+/* name s declared again where it can't be (at col; 0: the statement's): why, and which name */
+static void rio_failDeclared(rio_Vm *vm, const char *s, int n, int col, const char *why) {
+  rio_Compiler *c = vm->compiler;
+  int k = 0, j;
+  rio_failAt(vm, c->stmtLine, col ? col : c->stmtCol, 0, why);
+  while (vm->errorText[k]) k++;
+  k = rio_appendText(vm->errorText, k, ": '");
+  for (j = 0; j < n && j < 24 && k < rio_ERROR_BUF_SIZE - 2; j++) vm->errorText[k++] = s[j];
+  vm->errorText[k++] = '\'';
+  vm->errorText[k] = 0;
+}
+
 void rio_addSymbol(rio_Vm *vm, const char *s, int n, int kind, int type, int32_t value) {
   rio_Compiler *c = vm->compiler;
   rio_Symbol *y;
   if (n == 1 && s[0] == '_') rio_FAIL(, rio_msgUnderscore);
-  if (n && !c->blockCount && c->curProc < 0 && kind != rio_SymKind_method && kind != rio_SymKind_narrowed && !vm->inRepl) {
-    /* (a module's top level: each name declared once there; a REPL's pieces may declare one again, a
-       narrowed name is the same one, known better for a while, and an unnamed proc has no name to clash) */
-    int i;
+  if (n && kind != rio_SymKind_method && kind != rio_SymKind_narrowed) {
+    /* each name declared once at a module's top level (a REPL's pieces may declare one again); and a
+       local can't hide another still in scope (in a proc, or a top-level block), though it may hide a
+       global or a builtin. (A narrowed name is the same one, known better for a while; an unnamed proc
+       has no name to clash) */
+    int i, local = c->blockCount > 0, from = local ? c->blocks[0].symCount : c->coreSymCount;
     int hosted = kind == rio_SymKind_ffi || kind == rio_SymKind_builtin || kind == rio_SymKind_module;
-    for (i = c->symCount - 1; i >= c->coreSymCount; i--) {
+    if (!local && (c->curProc >= 0 || vm->inRepl)) from = c->symCount;
+    for (i = c->symCount - 1; i >= from; i--) {
       rio_Symbol *was = &c->syms[i];
       if (hosted && (was->kind == rio_SymKind_ffi || was->kind == rio_SymKind_builtin || was->kind == rio_SymKind_module))
         continue; /* (a host proc's other types, or the builtin it is; a module imported again) */
       if (was->module == c->curModule && was->kind != rio_SymKind_method && was->kind != rio_SymKind_narrowed && rio_nameIs(vm, was->name, was->nameLen, s, n)) {
-        int k = 0, j;
-        rio_failAt(vm, c->stmtLine, 1, 0, "declared already, at this module's top level (a name is declared once there)");
-        while (vm->errorText[k]) k++;
-        k = rio_appendText(vm->errorText, k, ": '"); /* (which name) */
-        for (j = 0; j < n && j < 24 && k < rio_ERROR_BUF_SIZE - 2; j++) vm->errorText[k++] = s[j];
-        vm->errorText[k++] = '\'';
-        vm->errorText[k] = 0;
+        if (local) rio_failDeclared(vm, s, n, 0, "declared already, as a local still in scope (a local can't hide another)");
+        else rio_failDeclared(vm, s, n, 1, "declared already, at this module's top level (a name is declared once there)");
         return;
       }
     }

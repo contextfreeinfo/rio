@@ -162,7 +162,7 @@ class Gen:
       self.emit(f"if {self.r.choice(conds)}")
       self.block(scope, budget - 1)
     elif roll < 0.84 and budget > 1:
-      self.emit("for i in 0..<2")
+      self.emit(f"for i{self.depth} in 0..<2") # (each depth its own: a local can't hide another)
       self.block(scope, budget - 1)
     elif self.procs:
       proc = self.r.choice(self.procs)
