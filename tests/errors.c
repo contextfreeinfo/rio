@@ -572,6 +572,28 @@ int main(void) {
       if (e.kind != rio_ErrorKind_runtime || e.line != 4) { printf("FAIL long line: kind %d line %d \"%s\"\n", e.kind, e.line, e.msg); fails++; }
     }
   }
+  { /* code compiled into mem outgrows the eighth it starts with: it takes the string pool's free room, the strings moving
+       up as it does, string literals (in the pool) right where it grows, and each one still right */
+    static char src[200000];
+    static unsigned char room[256 << 10];
+    int k, len = sprintf(src, "count :: proc(a: Int, s: String) -> Int\n  n := a\n  for ch in s do n += ch\n  return n\nend\n"
+                              "total := 0\nx := 1\ny := 2\n");
+    long want = 0, x = 1;
+    for (k = 0; k < 250; k++) {
+      len += sprintf(src + len, "total += count(%d + total %% 7, \"s%dx\") + count(1, \"q%dr\")\n"
+                                "x = (x + y * 3) %% 1000 + x * y %% 9\nx = (x + y * 3) %% 1000 + x * y %% 9\n"
+                                "x = (x + y * 3) %% 1000 + x * y %% 9\n", k, k, k); /* (more code, no more constants) */
+      want = want + k + want % 7 + 's' + 'x' + 1 + 'q' + 'r';
+      { int d = k; do { want += 2 * ('0' + d % 10); d /= 10; } while (d); }
+      { int r; for (r = 0; r < 3; r++) x = (x + 6) % 1000 + x * 2 % 9; }
+    }
+    len += sprintf(src + len, "assert(total == %ld and x == %ld, \"the strings, after the code took their room\")\n", want, x);
+    rio_init(&vm, room, sizeof room, 0, 0);
+    n++;
+    if (rio_compile(&vm, src, (uint32_t)len)) { printf("FAIL code outgrowing its room: %s\n", rio_error(&vm)); fails++; }
+    else if (rio_run(&vm)) { printf("FAIL code outgrowing its room, run: %s\n", rio_error(&vm)); fails++; }
+    else if (vm.codeLen <= rio_limitsFor(sizeof room).code / 2) { /* (it starts with an eighth) */ printf("FAIL code outgrowing its room: only %u instructions\n", vm.codeLen); fails++; }
+  }
   { /* explicit limits: tiny tables fail cleanly, and a scratch buffer too small for them is refused */
     static unsigned char scratch[1 << 16];
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";

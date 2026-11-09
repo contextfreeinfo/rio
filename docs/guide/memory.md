@@ -6,7 +6,8 @@ The library has no static RAM of its own. Everything lives in three buffers the 
 ## Code and data share one buffer
 
 Unless the host passes a code buffer, the code lives in `mem` too. While compiling, it grows in the
-compiler's working memory (a quarter of it by default, `rio_Limits.code`), and when compiling ends it
+compiler's working memory: it starts with an eighth of it (`rio_Limits.code`), and takes more from the
+string pool's free room as it needs it, so code and strings share their room. When compiling ends it
 moves to just below the strings and tables at the top of memory, taking exactly its own size (8 bytes an
 instruction). So one buffer is the whole budget, split between code and data however each program needs.
 A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
@@ -118,21 +119,23 @@ uint32_t need = rio_limitsSize(&lim);       // bytes those tables take (strings 
 ```
 
 `rio_limitsFor(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals.
+Compiling without a `rio_Limits` scales the tables to half the room, and the code and the strings share
+the rest.
 Running out of anything is a clean compile error ("too many symbols", "scratch too small for these
 limits", "not enough memory for the compiler").
 
 The tables are fixed shares of the room, scaled from how many symbols fit: as many params as symbols
 (host procs take many: a host module of declarations can have more params than names), half as many
-fields, a quarter as many types and procs, twice as many constants. A program unlike that runs out of
+fields, a third as many procs, a quarter as many types, twice as many constants. A program unlike that runs out of
 one table with room left in the others. The compiler's fixed state comes first, and some tables have
 floors, so small budgets get the floors:
 
 | budget | symbols | procs | params | constants |
 |---|---|---|---|---|
-| 8 KB | 64 | 16 | 64 | 128 |
-| 16 KB | 64 | 16 | 64 | 128 |
-| 64 KB | 424 | 106 | 424 | 848 |
-| 512 KB | 4,345 | 1,086 | 4,345 | 8,690 |
+| 8 KB | 64 | 21 | 64 | 128 |
+| 16 KB | 64 | 21 | 64 | 128 |
+| 64 KB | 350 | 116 | 350 | 700 |
+| 512 KB | 4,212 | 1,404 | 4,212 | 8,424 |
 
 The only build-time caps are for what the host registers: `rio_MAX_FFI`, `rio_MAX_DEFINES`,
 `rio_MAX_AUTO_IMPORTS`, and the log and error buffers. `-Drio_SMALL` shrinks those.

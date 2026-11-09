@@ -39,9 +39,40 @@ uint32_t rio_compiledLine(rio_Vm *vm, uint32_t pc) {
 
 /* ------------------------------------------------------------------ instructions */
 
+/* a string token's bytes, after the strings moved (rio_moreCode): at its pool offset */
+void rio_repointToken(rio_Compiler *c, rio_Token *t) {
+  if (t->kind == rio_Tok_string) t->text = (const char *)c->pool + t->val.u;
+}
+
+/* Code compiled into scratch sits just below the string pool, so when it's full it takes room from the
+   pool's free middle (between the strings growing up and the line table growing down), half of it at
+   most, and the strings move up. Everything holds them by pool offset but a string token's text. Returns
+   whether there's more room. */
+static int rio_moreCode(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t gap, k, cap;
+  int i;
+  if (!c || vm->code != c->scratchCode || vm->codeCap >= 65535) return 0;
+  gap = c->poolCap - c->poolUsed;
+  k = (gap / 2 < 8192 ? gap / 2 : 8192) & ~15u;
+  if (k < 16) return 0;
+  memmove(c->pool + k, c->pool, c->poolUsed);
+  c->pool += k;
+  c->poolCap -= k;
+  c->lineTableTop -= k;
+  for (i = 0; i < c->literalCount && i < (int)(sizeof c->literals / sizeof c->literals[0]); i++) c->literals[i].poolCap -= k;
+  rio_repointToken(c, &c->tok);
+  rio_repointToken(c, &c->peek);
+  rio_repointToken(c, &c->failTok);
+  rio_repointToken(c, &c->failPeek);
+  cap = (uint32_t)(c->pool - (uint8_t *)c->scratchCode) / (uint32_t)sizeof(rio_Instr);
+  vm->codeCap = cap > 65535 ? 65535 : cap;
+  return 1;
+}
+
 int rio_emit(rio_Vm *vm, int op, int a, int b, int c) {
   rio_Instr *in;
-  if (vm->codeLen >= vm->codeCap) rio_FAIL(0, "code too large");
+  if (vm->codeLen >= vm->codeCap && !rio_moreCode(vm)) rio_FAIL(0, "code too large");
   rio_markLine(vm);
   in = &vm->code[vm->codeLen];
   in->op = (uint8_t)op;

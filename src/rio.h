@@ -182,7 +182,8 @@ void rio_setLoader(rio_Vm *vm, rio_LoadFn fn, void *userData);
 
 /* Compiler capacities. consts is also how many words of mem are kept for constants, and slots (at
    most 65536, counting the constants) caps the register-addressable part of mem. code: room for
-   instructions while compiling, when the code lives in mem (a REPL keeps that much for good). */
+   instructions while compiling, when the code lives in mem, to start with: it takes more from the string
+   pool's free room as it needs it (a REPL keeps that much for good, and no more). */
 typedef struct {
   uint32_t symbols, nameBytes, types, fields, procs, params, consts, slots, blocks, exprDepth, modules, code;
 } rio_Limits;

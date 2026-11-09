@@ -104,7 +104,9 @@ In this order:
   - A check that makes no code: `rio_check` still generates code (a statement at a time); with
     emitting stubbed (jump lists and patches need care) it could skip much of codegen.
   - A module's tables kept between compiles, copied in rather than compiled again (an auto-import
-    like pc first, then any module whose source hasn't changed).
+    like pc first, then any module whose source hasn't changed). With it, its code kept too, outside
+    the program's memory: a second, read-only code segment calls can reach, so a host can keep a
+    library's compiled code in flash (rinc's roadmap: libraries in its firmware).
 - **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
   already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
   backfilling a commit again could add samples to its row rather than a second row, so a jump in the

@@ -283,8 +283,8 @@ int main(void) {
     rio_init(&cv, small, sizeof small, 0, 0);
     r = rio_compileScratch(&cv, src, (uint32_t)len, many, sizeof many);
     n++;
-    if (r != -1 || !strstr(rio_error(&cv), "code too large")) {
-      printf("FAIL %d: a long program's code should outgrow scratch when compiled: %d %s\n", n, r, rio_error(&cv));
+    if (r != -1 || !strstr(rio_error(&cv), "out of memory")) { /* (the code fits scratch, taking the string pool's room, but not mem) */
+      printf("FAIL %d: a long program's code should outgrow mem when compiled: %d %s\n", n, r, rio_error(&cv));
       fails++;
     }
     rio_init(&cv, small, sizeof small, 0, 0);

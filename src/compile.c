@@ -32,7 +32,7 @@ rio_Limits rio_limitsFor(uint32_t bytes) {
   l.nameBytes = rio_clamp(l.symbols * 12, 512, 65535);
   l.fields = rio_clamp(l.symbols / 2, 16, 65535);
   l.types = rio_clamp(l.symbols / 4, 16, 65535); /* (a host module of enums and structs, as Rinc's pc, takes a good share in a small session) */
-  l.procs = rio_clamp(l.symbols / 4, 8, 65535);
+  l.procs = rio_clamp(l.symbols / 3, 8, 65535); /* (a third, from a quarter's share: the rest from the string pool) */
   l.params = rio_clamp(l.symbols, 16, 65535); /* (host procs take many: Rinc's pc has more params than symbols) */
   l.modules = rio_clamp(l.symbols / 32, 8, 1024);
   l.code = rio_clamp(bytes / 32, 256, 65535); /* a quarter of the bytes, when the code lives in mem */
@@ -128,10 +128,11 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
       if (l.slots < l.consts + 1024) l.slots = l.consts + 1024;
       if (rio_limitsSize(&l) + room + 64 <= size) break;
     }
-  } else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
+  } else { /* the tables scale to half the room; the code (when it's compiled into scratch) starts with an
+              eighth, and takes more from the string pool's free room as it needs it (rio_moreCode) */
     uint32_t n = inMem ? below : size;
-    l = rio_limitsFor(codeInScratch ? n - n / 4 : n);
-    l.code = rio_limitsFor(n).code;
+    l = rio_limitsFor(codeInScratch ? n / 2 : n);
+    l.code = rio_limitsFor(n).code / 2;
   }
   if (!codeInScratch) l.code = 0;
   if (vm->checking && l.consts * 4 + 256 > vm->memSize) l.consts = vm->memSize > 512 ? (vm->memSize - 256) / 4 : 16; /* (a check: its constants are all mem holds) */
@@ -715,6 +716,10 @@ static void rio_noteCompile(rio_Vm *vm) {
   u->used.slots = c->slotHigh;
   u->used.modules = (uint32_t)c->moduleCount;
   u->used.code = vm->code == c->scratchCode ? vm->codeLen : 0;
+  if (u->used.code) { /* (the most it could have had: what it has, and the pool's free middle, which it shares) */
+    uint32_t most = vm->codeCap + (c->poolCap - c->poolUsed) / (uint32_t)sizeof(rio_Instr);
+    u->cap.code = most > 65535 ? 65535 : most;
+  }
   u->room = c->room;
   u->source = c->source;
   u->window = c->carved;

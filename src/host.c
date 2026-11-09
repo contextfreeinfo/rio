@@ -424,6 +424,8 @@ static rio_Expr rio_parseExprFrom(rio_Vm *vm, const char *text, int len, int lin
   c->prevWidth = prevWidth;
   c->tok = tok;
   c->peek = peek;
+  rio_repointToken(c, &c->tok); /* (its code may have moved the strings) */
+  rio_repointToken(c, &c->peek);
   if (rio_failed(vm)) { /* (the rest of the source reads as its end, as after any error) */
     c->tok.kind = c->peek.kind = rio_Tok_eof;
     c->tok.len = c->peek.len = 0;

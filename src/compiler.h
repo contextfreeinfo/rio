@@ -528,6 +528,7 @@ int rio_isViewKind(int kind);
 /* ------------------------------------------------------------------ codegen.c */
 
 uint32_t rio_compiledLine(rio_Vm *vm, uint32_t pc);
+void rio_repointToken(rio_Compiler *c, rio_Token *t);
 int rio_emit(rio_Vm *vm, int op, int a, int b, int c);
 void rio_emitX(rio_Vm *vm, int op, int x, int a);
 void rio_emitData(rio_Vm *vm, int a, uint32_t size);
