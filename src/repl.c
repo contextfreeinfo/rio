@@ -173,9 +173,10 @@ int rio_replEval(rio_Vm *vm, const char *src, uint32_t len) {
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
   if (!rio_failed(vm)) rio_commit(vm, mark.constCount, mark.procCount);
   if (rio_failed(vm)) return rio_rollback(vm, &mark);
+  rio_codeFrames(vm, 1); /* (this piece's slots from each proc's frame, its calls by proc number) */
   if (vm->jitHook) vm->jitHook(vm);
   vm->interrupted = 0;
-  return rio_start(vm, mark.codeLen) ? rio_ReplResult_error : rio_ReplResult_ok;
+  return rio_start(vm, mark.codeLen, 0) ? rio_ReplResult_error : rio_ReplResult_ok;
 }
 
 /* REPL lookups go to the live compiler tables: the value of the newest name of this kind, or -1 */

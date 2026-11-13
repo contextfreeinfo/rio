@@ -543,7 +543,16 @@ static void rio_writeProc(rio_Aot *a, FILE *out) {
   fprintf(out, "}\n");
 }
 
+static int rio_aotOf(rio_Vm *vm, FILE *out, const char *hostFfi);
+/* (it reads slots from mem's start and calls by pc: the code turned back while it works) */
 int rio_aot(rio_Vm *vm, FILE *out, const char *hostFfi) {
+  int r;
+  rio_codeFrames(vm, 0);
+  r = rio_aotOf(vm, out, hostFfi);
+  rio_codeFrames(vm, 1);
+  return r;
+}
+static int rio_aotOf(rio_Vm *vm, FILE *out, const char *hostFfi) {
   static rio_Aot aot; /* (big tables: not on the stack) */
   rio_Aot *a = &aot;
   int pc, i, mainProc;

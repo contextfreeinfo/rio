@@ -389,6 +389,7 @@ struct rio_Vm {
   uint32_t modulesAt, moduleCount; /* code ranges of modules, for naming files in errors */
   rio_Instr *code;         /* where the code is now: in mem, or the host's buffer */
   uint32_t codeCap, codeLen;
+  uint32_t framedAt;        /* the code before this names its procs' slots from their frames (rio_codeFrames) */
   rio_Instr *hostCode;     /* the host's code buffer, or NULL: the code lives in mem */
   uint32_t hostCodeCap;
   rio_LogFn logFn;

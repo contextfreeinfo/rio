@@ -164,7 +164,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   vm->constCap = l.consts;
   vm->top = vm->checking ? 0x10000000u : vm->memSize; /* (a check's program has no memory: just addresses, 256 MB of them) */
   vm->constCount = 1; /* word 0 stays 0 */
-  vm->codeLen = 0;
+  vm->codeLen = vm->framedAt = 0; /* (none of it named from frames yet: rio_codeFrames) */
   vm->procCount = 0;
   ((rio_Val *)vm->mem)[0].u = 0;
   if (codeInScratch) {
@@ -451,7 +451,7 @@ void rio_compileAll(rio_Vm *vm) {
       }
       c->keepUsed = 0; /* (names kept through the statement before: done with) */
       if (vm->checking && !c->blockCount && c->curProc < 0) { /* (a check: the code so far, its lines and strings, aren't needed) */
-        vm->codeLen = 0;
+        vm->codeLen = vm->framedAt = 0;
         c->lastLabel = 0;
         c->poolCap = c->lineTableTop;
         c->poolUsed = 0; /* (its strings too: nothing reads them, but by where they were) */
@@ -505,17 +505,6 @@ void rio_fillRuntimeProc(rio_Vm *vm, rio_Proc *out, int proc) {
   out->resultWords = (uint8_t)(p->resultType ? rio_typeWords(vm, p->resultType) : 0);
 }
 
-/* which operands of an instruction are slots: bit 1 a, 2 b, 4 c (unused ones are 0, which never moves) */
-static int rio_slotOperands(int op) {
-  switch (op) {
-  case rio_Op_ldw: case rio_Op_ldb: case rio_Op_lea: case rio_Op_ldw2: case rio_Op_stw: case rio_Op_stb: case rio_Op_stw2:
-  case rio_Op_copy: case rio_Op_movn: return 3;
-  case rio_Op_zero: case rio_Op_ffi: return 1;
-  case rio_Op_call: return 0;
-  case rio_Op_calli: case rio_Op_getret: return 3;
-  default: return rio_isJump(op) ? 3 : 7;
-  }
-}
 
 /* the proc whose code starts at pc: one defined before proc `before` */
 static int rio_procAt(rio_Vm *vm, int pc, int before) {
@@ -740,7 +729,7 @@ static void rio_finish(rio_Vm *vm) {
   int k;
   rio_noteCompile(vm);
   c->freeSlot = c->slotHigh;
-  vm->callStackAt = (uint32_t)rio_allocSlots(vm, depth + 1) * 4; /* the return stack: the longest chain of calls */
+  vm->callStackAt = (uint32_t)rio_allocSlots(vm, 2 * (depth + 1)) * 4; /* the return stack: the longest chain of calls (each: where it returns, its caller's frame) */
   vm->freeAt = c->slotHigh * 4;
   /* the block, built in the pool after the strings: exported names, then module file names */
   p = c->poolUsed;
@@ -844,6 +833,7 @@ static void rio_finish(rio_Vm *vm) {
   memset(vm->mem + firstFree, 0, (codeAt ? codeAt : base) - firstFree);
   if (codeAt) memset(vm->mem + codeAt + codeSize, 0, base - codeAt - codeSize);
   memset(vm->mem + base + size, 0, vm->memSize - base - size);
+  rio_codeFrames(vm, 1); /* (slots from each proc's frame, calls by proc number) */
 }
 
 /* ------------------------------------------------------------------ compiling */

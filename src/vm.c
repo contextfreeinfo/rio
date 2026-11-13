@@ -99,7 +99,7 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
   case rio_Op_logv: { /* a struct, array, builder, union, ...: by its descriptor, as much as the line holds */
     rio_Out o;
     o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0; o.spec = 0;
-    rio_printValue(M, &o, ip->b, R[ip->a].u, R[ip->a + 1].u, R[ip->a + 2].u);
+    rio_printValue(M, &o, (uint32_t)(R + ip->b - (const rio_Val *)M), R[ip->a].u, R[ip->a + 1].u, R[ip->a + 2].u); /* (its descriptor's slot, from mem's start) */
     vm->logLen = (int)o.len;
     break;
   }
@@ -121,14 +121,18 @@ void rio_jitOp(rio_Val *R, rio_Vm *vm, const rio_Instr *ip) {
 
 /* the word at byte address p of mem */
 #define rio_WORD(p) (*(rio_Val *)(M + (p)))
+/* slot s counted from mem's start (a data word's: they don't move with the frame) */
+#define rio_ABS(s) (((rio_Val *)(void *)M)[s])
 /* the current pc, for errors */
 #define rio_PC ((uint32_t)(ip - code))
 
-rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
+/* from pc, in the frame starting at slot frame (R: the running proc's slots, an instruction's operands
+   counted from there: rio_codeFrames) */
+rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
   const rio_Instr *code = vm->code, *ip = code + pc;
-  uint32_t *callStack = (uint32_t *)(void *)(vm->mem + vm->callStackAt);
+  uint32_t *callStack = (uint32_t *)(void *)(vm->mem + vm->callStackAt); /* (each call: where it returns, and its caller's frame) */
   uint8_t *M = vm->mem;
-  rio_Val *R = (rio_Val *)M;
+  rio_Val *R = (rio_Val *)M + frame - rio_FRAME_BIAS;
   int depth = 0;
 
 #ifdef rio_CGOTO
@@ -303,7 +307,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_NEXT2();
   }
   rio_CASE(slice) {
-    int32_t lo = R[ip->c].i, hi = R[ip[1].a].i, n = R[ip->b + 1].i;
+    int32_t lo = R[ip->c].i, hi = rio_ABS(ip[1].a).i, n = R[ip->b + 1].i;
     if (lo < 0 || hi < lo || hi > n) return rio_runtimeError(vm, "slice out of bounds", rio_PC);
     R[ip->a].i = R[ip->b].i + lo * (int32_t)rio_dataSize(ip + 1);
     R[ip->a + 1].i = hi - lo;
@@ -327,8 +331,8 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   rio_CASE(enumname) { /* a, a+1 = the name of value b (values 0 to n - 1): their names at data a */
     uint32_t n = rio_dataSize(ip + 1), i = R[ip->b].u, names = ip[1].a;
     if (i < n) {
-      R[ip->a] = R[names + 2 * i];
-      R[ip->a + 1] = R[names + 2 * i + 1];
+      R[ip->a] = rio_ABS(names + 2 * i); /* (a data word's slots: from mem's start) */
+      R[ip->a + 1] = rio_ABS(names + 2 * i + 1);
     } else {
       R[ip->a].u = 0;
       R[ip->a + 1].u = 0;
@@ -379,7 +383,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
    never above its capacity */
 #define rio_LIST_LEN(s) (rio_WORD(R[s].u).u < R[(s) + 2].u ? rio_WORD(R[s].u).u : R[(s) + 2].u)
   /* (a builder's element size: its data's, or a slot's when the data names one, for a generic proc's T) */
-#define rio_ELEM_SIZE(ip) ((ip)[1].a ? R[(ip)[1].a].u : rio_dataSize((ip) + 1))
+#define rio_ELEM_SIZE(ip) ((ip)[1].a ? rio_ABS((ip)[1].a).u : rio_dataSize((ip) + 1))
   rio_CASE(lidx) {
     uint32_t i = R[ip->c].u;
     if (i >= rio_LIST_LEN(ip->b)) return rio_runtimeError(vm, "index out of bounds", rio_PC);
@@ -410,7 +414,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_Out o;
     uint32_t lenAt = R[ip->b].u, n = rio_LIST_LEN(ip->b);
     o.out = M + R[ip->b + 1].u; o.len = n; o.cap = R[ip->b + 2].u; o.capped = 0; o.full = 0;
-    o.spec = ip[1].a ? R[ip[1].a].u : 0;
+    o.spec = ip[1].a ? rio_ABS(ip[1].a).u : 0;
     rio_printValue(M, &o, rio_dataSize(ip + 1), R[ip->c].u, R[ip->c + 1].u, R[ip->c + 2].u);
     if (o.full) R[ip->a].i = 0;
     else {
@@ -423,7 +427,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_Out o;
     uint32_t lenAt = R[ip->b].u, n = rio_LIST_LEN(ip->b);
     o.out = M + R[ip->b + 1].u; o.len = n; o.cap = R[ip->b + 2].u; o.capped = 0; o.full = 0; o.spec = 0;
-    rio_outFormatted(M, &o, R[rio_dataSize(ip + 1)].u, ip->x, R[ip->c].u, ip->x == 3 ? R[ip->c + 1].u : 0);
+    rio_outFormatted(M, &o, rio_ABS(rio_dataSize(ip + 1)).u, ip->x, R[ip->c].u, ip->x == 3 ? R[ip->c + 1].u : 0);
     if (o.full) R[ip->a].i = 0;
     else {
       rio_WORD(lenAt).u = o.len;
@@ -490,7 +494,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   rio_CASE(bchk) {
     uint32_t at = R[ip->a].u, n = R[ip->a + 1].u, size = R[ip->c].u, i;
     for (i = 0; size && i + size <= n; i += size)
-      if (!rio_holdsOk(M, ip->b, at + i)) return rio_runtimeError(vm, "unpacked a value its type doesn't have", rio_PC);
+      if (!rio_holdsOk(M, (uint32_t)(R + ip->b - (rio_Val *)M), at + i)) return rio_runtimeError(vm, "unpacked a value its type doesn't have", rio_PC);
     rio_NEXT();
   }
   rio_CASE(geti) {
@@ -550,23 +554,34 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_NEXT();
   }
 
-  rio_CASE(call) callStack[depth++] = (uint32_t)(ip + 1 - code); rio_JUMP();
+  rio_CASE(call) { /* proc c */
+    const rio_Proc *p = &vm->procs[ip->c];
+    callStack[depth++] = (uint32_t)(ip + 1 - code);
+    callStack[depth++] = (uint32_t)(R - (rio_Val *)M);
+    if (vm->interrupted) goto interrupted;
+    R = (rio_Val *)M + p->frameStart - rio_FRAME_BIAS;
+    ip = code + p->entry;
+    rio_DISPATCH();
+  }
   rio_CASE(ret) {
     if (!depth) return 0;
+    R = (rio_Val *)M + (int32_t)callStack[--depth];
     ip = code + callStack[--depth];
     rio_DISPATCH();
   }
   rio_CASE(calli) { /* call proc value a: its c argument words, at b, go to its parameters */
     uint32_t proc = R[ip->a].u - 1u;
     if (proc >= (uint32_t)vm->procCount) return rio_runtimeError(vm, "this proc value isn't set", rio_PC);
-    if (ip->c) memmove(R + vm->procs[proc].frameStart, R + ip->b, ip->c * sizeof(rio_Val));
+    if (ip->c) memmove((rio_Val *)M + vm->procs[proc].frameStart, R + ip->b, ip->c * sizeof(rio_Val));
     if (vm->interrupted) goto interrupted;
     callStack[depth++] = (uint32_t)(ip + 1 - code);
+    callStack[depth++] = (uint32_t)(R - (rio_Val *)M);
+    R = (rio_Val *)M + vm->procs[proc].frameStart - rio_FRAME_BIAS;
     ip = code + vm->procs[proc].entry;
     rio_DISPATCH();
   }
   rio_CASE(getret) { /* proc value b's result */
-    memmove(R + ip->a, R + vm->procs[R[ip->b].u - 1u].result, ip->c * sizeof(rio_Val));
+    memmove(R + ip->a, (rio_Val *)M + vm->procs[R[ip->b].u - 1u].result, ip->c * sizeof(rio_Val));
     rio_NEXT();
   }
   rio_CASE(ffi) {
@@ -580,12 +595,12 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   }
   rio_CASE(logi) rio_CASE(logf) rio_CASE(logs) rio_CASE(logb) rio_CASE(logv) rio_CASE(loge) rio_logOp(vm, R, ip); rio_NEXT();
   rio_CASE(logn) rio_logOp(vm, R, ip); rio_NEXT2();
-  rio_CASE(fail) return rio_assertFailed(vm, ip->a, ip->x, rio_PC);
+  rio_CASE(fail) return rio_assertFailed(vm, (uint32_t)(R + ip->a - (rio_Val *)M), ip->x, rio_PC); /* (no message: slot 0, a constant 0) */
   rio_CASE(halt) return 0;
   rio_CASE(jit) { /* a loop compiled to native code: it says where to carry on, or what failed where */
     uint32_t to;
     if (vm->interrupted) goto interrupted;
-    to = vm->jitFns[ip->a](R, vm);
+    to = vm->jitFns[ip->a]((rio_Val *)M, vm); /* (native code names slots from mem's start) */
     switch (to >> 16) {
     case 0: break;
     case rio_JitFail_div: return rio_runtimeError(vm, "division by zero", to & 0xFFFF);
@@ -621,20 +636,21 @@ interrupted:
 #undef rio_R
 #undef rio_LIST_LEN
 #undef rio_WORD
+#undef rio_ABS
 #undef rio_PC
 
 /* ------------------------------------------------------------------ entry points */
 
 /* Frames are shared by procs that can't run at the same time: starting rio again from inside an FFI
    function would break that, so it isn't allowed. */
-int rio_start(rio_Vm *vm, uint32_t pc) {
+int rio_start(rio_Vm *vm, uint32_t pc, uint32_t base) {
   int result;
   if (vm->running) {
     rio_setError(vm, rio_ErrorKind_runtime, 0, 0, 0, "rio is already running (called from an FFI function?)");
     return -1;
   }
   vm->running = 1;
-  result = rio_interpret(vm, pc);
+  result = rio_interpret(vm, pc, base);
   vm->running = 0;
   return result;
 }
@@ -642,11 +658,11 @@ int rio_start(rio_Vm *vm, uint32_t pc) {
 int rio_run(rio_Vm *vm) {
   if (!vm->running) vm->errorKind = rio_ErrorKind_none;
   vm->interrupted = 0;
-  return vm->ready ? rio_start(vm, 0) : -1;
+  return vm->ready ? rio_start(vm, 0, 0) : -1;
 }
 
 int rio_call(rio_Vm *vm, int proc) {
   if (!vm->running) vm->errorKind = rio_ErrorKind_none;
   vm->interrupted = 0;
-  return vm->ready && proc >= 0 && proc < vm->procCount ? rio_start(vm, vm->procs[proc].entry) : -1;
+  return vm->ready && proc >= 0 && proc < vm->procCount ? rio_start(vm, vm->procs[proc].entry, vm->procs[proc].frameStart) : -1;
 }

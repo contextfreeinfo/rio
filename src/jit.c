@@ -394,14 +394,26 @@ static void rio_spillSlot(rio_Jit *g, uint32_t s) {
   if (r >= 0 && s >= g->constCap) rio_storeSlot(g, r, s);
 }
 
-/* rio_jitOp(slots, vm, the instruction at pc), with r0 and r1 kept */
+/* rio_jitOp(slots, vm, the instruction at pc), with r0 and r1 kept. Native code's r0 is mem's start (its
+   slots counted from there); the instruction at pc, once compiling's done, names them from its proc's
+   frame (rio_codeFrames), so r0 moves to match for the call: but not for the first instruction's copy,
+   made now, as it is */
 static void rio_callJitOp(rio_Jit *g, const rio_Instr *code, uint32_t pc, uint32_t first) {
   rio_put16(g, 0xB403); /* push {r0, r1} */
   if (pc == first) { /* (filled in once the copy has a place) */
     g->copyAt = g->len;
     rio_movw(g, rio_Reg_r2, 0);
     rio_movt(g, rio_Reg_r2, 0);
-  } else rio_loadImm(g, rio_Reg_r2, (uint32_t)(uintptr_t)(code + pc));
+  } else {
+    const rio_Vm *vm = g->vm;
+    int32_t base = 0;
+    int k;
+    for (k = 0; k < vm->procCount; k++)
+      if (vm->procs[k].entry <= pc && pc < vm->procs[k].end) base = vm->procs[k].frameStart;
+    rio_loadImm(g, rio_Reg_r2, (uint32_t)(uintptr_t)(code + pc));
+    rio_loadImm(g, rio_Reg_r12, (uint32_t)((base - rio_FRAME_BIAS) * 4));
+    rio_put16(g, 0x4460); /* add r0, r12 */
+  }
   rio_loadImm(g, rio_Reg_r12, (uint32_t)(uintptr_t)rio_jitOp);
   rio_put16(g, 0x47E0); /* blx r12 */
   rio_put16(g, 0xBC03); /* pop {r0, r1} */
@@ -855,7 +867,16 @@ static int rio_addNative(rio_Jit *g, uint32_t first, uint32_t last, int isProc) 
    host's buffer, else the vm's free memory (vm->freeAt up to vm->top, which nothing else uses once the
    program's laid out). The code goes at its start, the scratch at its end; then the entry points move
    to just after the code, the scratch is zeroed again, and (in the vm's memory) freeAt moves past them. */
+static int rio_jitAllOf(rio_Vm *vm);
+/* (the JIT reads slots from mem's start and calls by pc: the code turned back while it works) */
 static int rio_jitAll(rio_Vm *vm) {
+  int r;
+  rio_codeFrames(vm, 0);
+  r = rio_jitAllOf(vm);
+  rio_codeFrames(vm, 1);
+  return r;
+}
+static int rio_jitAllOf(rio_Vm *vm) {
   rio_Instr *code = vm->code;
   uint8_t *room, *scratch, *s;
   uint32_t at = 0, size, used, pc, k, first, last;

@@ -1,0 +1,17 @@
+# run with -M 256K (as Rinc gives an app): statics placed high in memory, past the slots an operand
+# names from a frame (rio_SLOTS_END, 128 KB), read and written all the same: a builder's length word,
+# an array's elements, from top-level code and from a proc
+text: Blob[..300]
+big: [2000]Int
+text.clear()
+fine := text.pushAll("abc")
+big[1999] = 7
+assert(text.len() == 3 and big[1999] == 7, "high statics, from the top level")
+f :: proc() -> Int
+  text.clear()
+  fine = text.pushAll("hello")
+  big[0] = big[1999] + text.len()
+  return big[0]
+end
+assert(f() == 12 and text.len() == 5, "high statics, from a proc")
+log("high statics came through")

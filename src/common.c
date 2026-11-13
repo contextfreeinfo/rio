@@ -136,3 +136,35 @@ int rio_setError(rio_Vm *vm, int kind, int line, int col, int len, const char *m
   out[n] = 0;
   return n;
 }
+
+/* ------------------------------------------------------------------ frames (internal.h) */
+
+void rio_codeFrames(rio_Vm *vm, int relative) {
+  uint32_t from = relative ? vm->framedAt : 0, pc, base;
+  int k = 0, j;
+  if (!relative && !vm->framedAt) return;
+  for (pc = from; pc < vm->codeLen; pc++) {
+    rio_Instr *in = &vm->code[pc];
+    int which = rio_slotOperands(in->op);
+    uint16_t shift;
+    while (k < vm->procCount && vm->procs[k].end <= pc) k++; /* (procs are in the code's order) */
+    base = k < vm->procCount && vm->procs[k].entry <= pc ? vm->procs[k].frameStart : 0;
+    shift = (uint16_t)(rio_FRAME_BIAS - base);
+    if (relative) {
+      if (which & 1) in->a = (uint16_t)(in->a + shift);
+      if (which & 2) in->b = (uint16_t)(in->b + shift);
+      if (which & 4) in->c = (uint16_t)(in->c + shift);
+    } else {
+      if (which & 1) in->a = (uint16_t)(in->a - shift);
+      if (which & 2) in->b = (uint16_t)(in->b - shift);
+      if (which & 4) in->c = (uint16_t)(in->c - shift);
+    }
+    if (in->op != rio_Op_call) continue; /* calls: by proc number, or by pc */
+    if (!relative) in->c = vm->procs[in->c].entry;
+    else {
+      for (j = 0; j < vm->procCount && vm->procs[j].entry != in->c; j++) {}
+      in->c = (uint16_t)j;
+    }
+  }
+  vm->framedAt = relative ? vm->codeLen : 0;
+}

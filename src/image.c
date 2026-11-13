@@ -14,7 +14,7 @@ typedef enum {
   rio_Image_procCount, rio_Image_procsAt, rio_Image_ffiCount, rio_Image_codeAt, rio_Image_freeAt,
   rio_Image_sourceCount, rio_Image_headerWords
 } rio_ImageHeader;
-#define rio_IMAGE_VERSION 15 /* (14: idxv, copyv, swapv; 15: scmp) (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors; 11: host module sources' hashes; 12: ushr; 13: pnum) */
+#define rio_IMAGE_VERSION 16 /* (16: slots from each proc's frame, calls by proc number) (14: idxv, copyv, swapv; 15: scmp) (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors; 11: host module sources' hashes; 12: ushr; 13: pnum) */
 
 #define rio_IMAGE_MAGIC 0x494F4952u /* "RIOI" */
 
@@ -326,7 +326,7 @@ static int rio_loadEnd(rio_Vm *vm, const uint32_t *h, const rio_Ffi *ffi) {
   memcpy(vm->ffi, ffi, h[rio_Image_ffiCount] * sizeof *ffi);
   vm->ffiCount = (int)h[rio_Image_ffiCount];
   vm->memSize = h[rio_Image_memSize];
-  vm->codeLen = h[rio_Image_codeLen];
+  vm->codeLen = vm->framedAt = h[rio_Image_codeLen]; /* (its slots from each proc's frame already) */
   vm->constCount = h[rio_Image_constCount];
   vm->constCap = h[rio_Image_constCap];
   vm->callStackAt = h[rio_Image_callStackAt];

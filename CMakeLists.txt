@@ -61,6 +61,8 @@ set_tests_properties(rio_tests_streamed PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL
 
 # a hash map in plain Rio, as user code would write one
 add_test(NAME rio_map COMMAND rio ${CMAKE_SOURCE_DIR}/tests/map.rio)
+add_test(NAME rio_high_statics COMMAND rio -M 256K ${CMAKE_SOURCE_DIR}/tests/highstatic.rio) # (statics past the slots a frame's operands name)
+set_tests_properties(rio_high_statics PROPERTIES PASS_REGULAR_EXPRESSION "high statics came through")
 set_tests_properties(rio_map PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "all map tests passed")
 
 # -D overrides of top-level constants

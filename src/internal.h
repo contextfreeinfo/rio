@@ -148,6 +148,28 @@ static inline uint32_t rio_dataSize(const rio_Instr *in) { return (uint32_t)in->
 
 static inline int rio_isJump(int op) { return op >= rio_Op_jmp && op <= rio_Op_forby; }
 
+/* which operands of an instruction are slots: bit 1 a, 2 b, 4 c (unused ones are 0, which never moves).
+   (A data word's slot, a slice's or a builder op's, isn't among them: the vm reads it from mem's start.) */
+static inline int rio_slotOperands(int op) {
+  switch (op) {
+  case rio_Op_ldw: case rio_Op_ldb: case rio_Op_lea: case rio_Op_ldw2: case rio_Op_stw: case rio_Op_stb: case rio_Op_stw2:
+  case rio_Op_copy: case rio_Op_movn: return 3;
+  case rio_Op_zero: case rio_Op_ffi: return 1;
+  case rio_Op_call: case rio_Op_data: case rio_Op_jit: return 0;
+  case rio_Op_calli: case rio_Op_getret: return 3;
+  default: return rio_isJump(op) ? 3 : 7;
+  }
+}
+/* A proc's code names its slots from its frame's start, biased: an operand is slot - frameStart +
+   rio_FRAME_BIAS (16 bits), so R moves with the running proc (the vm's R is mem + frameStart -
+   rio_FRAME_BIAS) and its own slots are small numbers either side of the bias; code outside every proc
+   (top level) counts from mem's start the same way (its base 0). A call names its proc by number.
+   rio_codeFrames(vm, 1) makes the code from vm->framedAt on so (the compiler, once frames are placed);
+   rio_codeFrames(vm, 0) turns all of it back, slots counted from mem's start and calls by pc, for the
+   JIT and the C backend, which read it that way (and 1 again after). */
+#define rio_FRAME_BIAS 32768
+void rio_codeFrames(rio_Vm *vm, int relative);
+
 /* math builtins, by the index in rio_Op_m1 / rio_Op_m2's x */
 typedef enum {
   rio_Math1_sqrt, rio_Math1_sin, rio_Math1_cos, rio_Math1_tan, rio_Math1_asin, rio_Math1_acos, rio_Math1_atan,
@@ -251,7 +273,7 @@ int rio_setError(rio_Vm *vm, int kind, int line, int col, int len, const char *m
 typedef enum { rio_JitFail_div = 1, rio_JitFail_index = 2, rio_JitFail_trap = 3, rio_JitFail_interrupt = 4 } rio_JitFail;
 
 /* vm.c: runs from pc, unless rio is already running; and a log instruction (the JIT shares it) */
-int rio_start(rio_Vm *vm, uint32_t pc);
+int rio_start(rio_Vm *vm, uint32_t pc, uint32_t base); /* (base: the running proc's frame, 0 for top-level code) */
 void rio_logOp(rio_Vm *vm, const rio_Val *slots, const rio_Instr *ip);
 
 #endif

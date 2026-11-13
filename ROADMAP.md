@@ -62,6 +62,11 @@ In this order:
 
 ## Leaning yes
 
+- **Smaller instructions** (2026-11-09): 8 bytes each now (Rinc's Cloudlamp: 4,845 of them, 38.8 KB of
+  code, most of it tilemap's). A denser encoding (4 bytes for the common ones, a wider form for the
+  rest) would fit about twice the code in the same space, if it doesn't slow the VM much: measured
+  first on the Fruit Jam, against today's dispatch. Rinc keeps its limits small on purpose: this is
+  for doing more within them. The plan, with what today's code measures: plans/smaller-instructions.md.
 - **Host procs returning views:** a host proc's struct result holding a view (`pc.imageRead` giving a
   `pc.Image`), counted as viewing what went in, as a Rio proc's is. Until then a Rio proc wraps the host
   one (pc.rio's `imageRead` around `imageLoad`); for `rio -H`, a call to a host proc the host doesn't
