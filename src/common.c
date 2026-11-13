@@ -175,9 +175,124 @@ void rio_codeFrames(rio_Vm *vm, int run) {
   }
 }
 
-uint32_t rio_instrAt(const rio_Vm *vm, uint32_t pc, rio_Instr *out) {
-  uint32_t i = rio_unitIndex(pc);
+/* ------------------------------------------------------------------ short forms (internal.h) */
+
+#define rio_SHORT_WIDE(o, k) rio_Op_##o,
+#define rio_SHORT_WIDE_MORE(o, w, k) rio_Op_##w,
+#define rio_SHORT_KINDS(o, k) k,
+#define rio_SHORT_KINDS_MORE(o, w, k) k,
+#define rio_SHORT_OF(o, k) [rio_Op_##o] = rio_Op_s_##o,
+const uint8_t rio_wideOf[rio_Op_s_end - 128] = {rio_SHORT_OPS(rio_SHORT_WIDE) rio_SHORT_MORE(rio_SHORT_WIDE_MORE)};
+const char rio_shortKinds[rio_Op_s_end - 128][4] = {rio_SHORT_OPS(rio_SHORT_KINDS) rio_SHORT_MORE(rio_SHORT_KINDS_MORE)};
+const uint8_t rio_shortOf[rio_Op_count] = {rio_SHORT_OPS(rio_SHORT_OF)};
+
+/* where operand k (0 a, 1 b, 2 c) of a short instruction is: its byte (0 a, 1 b, 2 c), or 1 for a G (b and
+   c together), whose other operand is in a */
+int rio_shortField(const char *kinds, int k) {
+  if (!strchr(kinds, 'G')) return k;
+  return kinds[k] == 'G' ? 1 : 0;
+}
+
+/* the frame start of the proc whose code pc is in (procs in the code's order; entry and end as the code
+   counts), or 0 (top-level code) */
+static uint32_t rio_frameAtPc(const rio_Vm *vm, uint32_t pc) {
+  int lo = 0, hi = vm->procCount;
+  while (lo < hi) { /* (the first proc ending past pc) */
+    int m = (lo + hi) / 2;
+    if (vm->procs[m].end <= pc) lo = m + 1;
+    else hi = m;
+  }
+  return lo < vm->procCount && vm->procs[lo].entry <= pc ? vm->procs[lo].frameStart : 0;
+}
+
+uint32_t rio_unitIndex(const rio_Vm *vm, uint32_t pc) {
+  const uint32_t *units = (const uint32_t *)(const void *)vm->code;
+  uint32_t at = 0, i = 0, n;
+  while (at < pc && at < vm->codeLen) {
+    n = rio_unitsAt(units, at, vm->codeLen);
+    i += n == 4 ? 2 : 1; /* (a data word is an instruction of the compiler's) */
+    at += n;
+  }
+  return i;
+}
+
+/* rio_instrAt, for code in a proc whose frame starts at base */
+static uint32_t rio_instrIn(const rio_Vm *vm, uint32_t pc, uint32_t base, rio_Instr *out) {
+  const uint32_t *units = (const uint32_t *)(const void *)vm->code;
+  uint32_t n, k;
   if (pc >= vm->codeLen) return 0;
-  *out = vm->code[i];
-  return i + 1 < rio_unitIndex(vm->codeLen) && vm->code[i + 1].op == rio_Op_data ? 4 : 2; /* (every instruction two units, for now) */
+  n = rio_unitsAt(units, pc, vm->codeLen);
+  if (n > 1) { memcpy(out, units + pc, sizeof *out); return n; }
+  { /* a short one, in the wide form: slots biased as wide ones are (K and G from mem's start, so from
+       the frame's too), a jump's target absolute */
+    uint8_t sh[4];
+    const char *kinds;
+    uint16_t v[3];
+    memcpy(sh, units + pc, sizeof sh);
+    kinds = rio_shortKinds[sh[0] - 128];
+    for (k = 0; k < 3; k++) {
+      int f = rio_shortField(kinds, (int)k);
+      uint32_t x = kinds[k] == 'G' ? (uint32_t)sh[2] | (uint32_t)sh[3] << 8 : sh[f + 1];
+      v[k] = (uint16_t)(kinds[k] == 'S' ? x - rio_SHORT_BIAS + rio_FRAME_BIAS : kinds[k] == 'K' || kinds[k] == 'G' ? x - base + rio_FRAME_BIAS :
+                        kinds[k] == 'J' ? pc + (uint32_t)(int8_t)x : kinds[k] == '-' ? 0 : x);
+    }
+    out->op = rio_wideOf[sh[0] - 128]; out->x = 0; out->a = v[0]; out->b = v[1]; out->c = v[2];
+  }
+  return 1;
+}
+
+uint32_t rio_instrAt(const rio_Vm *vm, uint32_t pc, rio_Instr *out) { return rio_instrIn(vm, pc, rio_frameAtPc(vm, pc), out); }
+
+/* the instruction whose first unit is pc (unitOf ascending: n of them) */
+static uint32_t rio_indexOfUnit(const uint16_t *unitOf, uint32_t n, uint32_t pc) {
+  uint32_t lo = 0, hi = n;
+  while (lo < hi) {
+    uint32_t m = (lo + hi) / 2;
+    if (unitOf[m] < pc) lo = m + 1;
+    else hi = m;
+  }
+  return lo;
+}
+
+uint32_t rio_unpackInto(rio_Vm *vm, rio_Instr *buf, uint16_t *unitOf, uint16_t (*kept)[2]) {
+  uint32_t pc, k, n = 0, i;
+  int j;
+  for (pc = 0, j = 0; pc < vm->codeLen; pc = k) { /* each instruction, wide, as the vm runs it; then its data word */
+    while (j < vm->procCount && vm->procs[j].end <= pc) j++;
+    k = pc + rio_instrIn(vm, pc, j < vm->procCount && vm->procs[j].entry <= pc ? vm->procs[j].frameStart : 0, &buf[n]);
+    unitOf[n++] = (uint16_t)pc;
+    if (k - pc == 4) {
+      memcpy(&buf[n], (const uint32_t *)(const void *)vm->code + pc + 2, sizeof *buf);
+      unitOf[n++] = (uint16_t)(pc + 2);
+    }
+  }
+  unitOf[n] = (uint16_t)vm->codeLen;
+  for (j = 0; j < vm->procCount; j++) {
+    rio_Proc *p = &vm->procs[j];
+    kept[j][0] = p->entry;
+    kept[j][1] = p->end;
+    p->entry = (uint16_t)rio_indexOfUnit(unitOf, n + 1, p->entry);
+    p->end = (uint16_t)rio_indexOfUnit(unitOf, n + 1, p->end);
+  }
+  for (i = 0, j = 0; i < n; i++) { /* slots from mem's start, jumps by instruction, calls by entry (procs in the code's order) */
+    rio_Instr *in = &buf[i];
+    int which = rio_slotOperands(in->op);
+    uint16_t shift;
+    uint32_t base;
+    if (in->op == rio_Op_data) continue;
+    while (j < vm->procCount && vm->procs[j].end <= i) j++;
+    base = j < vm->procCount && vm->procs[j].entry <= i ? vm->procs[j].frameStart : 0;
+    shift = (uint16_t)(rio_FRAME_BIAS - base);
+    if (which & 1) in->a = (uint16_t)(in->a - shift);
+    if (which & 2) in->b = (uint16_t)(in->b - shift);
+    if (which & 4) in->c = (uint16_t)(in->c - shift);
+    if (rio_isJump(in->op)) in->c = (uint16_t)rio_indexOfUnit(unitOf, n + 1, in->c);
+    if (in->op == rio_Op_call) in->c = vm->procs[in->c].entry;
+  }
+  return n;
+}
+
+void rio_procsInUnits(rio_Vm *vm, const uint16_t (*kept)[2]) {
+  int j;
+  for (j = 0; j < vm->procCount; j++) { vm->procs[j].entry = kept[j][0]; vm->procs[j].end = kept[j][1]; }
 }

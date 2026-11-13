@@ -547,10 +547,39 @@ static int rio_aotOf(rio_Vm *vm, FILE *out, const char *hostFfi);
 /* (it reads slots from mem's start and calls by pc: the code turned back while it works) */
 int rio_aot(rio_Vm *vm, FILE *out, const char *hostFfi) {
   int r;
-  rio_codeFrames(vm, 0);
+  if (rio_unpacked(vm, 1)) return -1;
   r = rio_aotOf(vm, out, hostFfi);
-  rio_codeFrames(vm, 1);
+  rio_unpacked(vm, 0);
   return r;
+}
+
+/* the code as compiled (internal.h: rio_unpackInto), in a buffer of its own while on is 1; the packed code,
+   and the procs' entries and ends in units, as they were again with on 0 */
+int rio_unpacked(rio_Vm *vm, int on) {
+  static rio_Instr *buf, *packed;
+  static uint16_t *unitOf, (*kept)[2];
+  static uint32_t packedLen;
+  if (!on) {
+    if (!packed) return 0;
+    rio_procsInUnits(vm, (const uint16_t (*)[2])kept);
+    vm->code = packed;
+    vm->codeLen = vm->framedAt = packedLen;
+    vm->framedProcs = vm->procCount;
+    free(buf); free(unitOf); free(kept);
+    buf = packed = 0; unitOf = 0; kept = 0;
+    return 0;
+  }
+  buf = (rio_Instr *)malloc((vm->codeLen + 1) * sizeof *buf);
+  unitOf = (uint16_t *)malloc((vm->codeLen + 1) * sizeof *unitOf);
+  kept = (uint16_t (*)[2])malloc(((size_t)vm->procCount + 1) * sizeof *kept);
+  if (!buf || !unitOf || !kept) { free(buf); free(unitOf); free(kept); buf = 0; unitOf = 0; kept = 0; return -1; }
+  packed = vm->code;
+  packedLen = vm->codeLen;
+  vm->codeLen = rio_unpackInto(vm, buf, unitOf, kept);
+  vm->code = buf;
+  vm->framedAt = 0;
+  vm->framedProcs = 0;
+  return 0;
 }
 static int rio_aotOf(rio_Vm *vm, FILE *out, const char *hostFfi) {
   static rio_Aot aot; /* (big tables: not on the stack) */

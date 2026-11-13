@@ -44,6 +44,7 @@ typedef struct {
   uint8_t *isTarget;       /* which are jump targets, its branches and its exits */
   struct rio_JitFix *fixes;
   uint32_t *exitPcs, *exitAts;
+  const uint16_t *unitOf;  /* each instruction's pc in units, as the vm counts them (rio_unpackInto) */
 } rio_Jit;
 
 /* where the native code finds things in rio_Vm (r1 holds the vm) */
@@ -394,25 +395,28 @@ static void rio_spillSlot(rio_Jit *g, uint32_t s) {
   if (r >= 0 && s >= g->constCap) rio_storeSlot(g, r, s);
 }
 
-/* rio_jitOp(slots, vm, the instruction at pc), with r0 and r1 kept. Native code's r0 is mem's start (its
-   slots counted from there); the instruction at pc, once compiling's done, names them from its proc's
-   frame (rio_codeFrames), so r0 moves to match for the call: but not for the first instruction's copy,
-   made now, as it is */
+/* rio_jitOp(slots, vm, the instruction at pc), with r0 and r1 kept. The instruction it reads is a copy, as
+   it was compiled (slots from mem's start, as r0 is): the first's after the code (rio_Op_jit takes its
+   place in the bytecode), any other's here, branched over (the bytecode's own is packed, its slots
+   named from its proc's frame) */
 static void rio_callJitOp(rio_Jit *g, const rio_Instr *code, uint32_t pc, uint32_t first) {
-  rio_put16(g, 0xB403); /* push {r0, r1} */
-  if (pc == first) { /* (filled in once the copy has a place) */
-    g->copyAt = g->len;
+  if (pc != first) {
+    rio_Instr two[2];
+    uint32_t n, addr;
+    if (g->len & 1) rio_put16(g, 0xBF00); /* (nop: the copy 4-byte aligned) */
+    rio_put16(g, 0xE007); /* b over the 16 bytes */
+    addr = (uint32_t)(uintptr_t)(g->out + g->len);
+    two[0] = code[pc];
+    two[1] = code[pc + 1];
+    for (n = 0; n < sizeof two / 2; n++) rio_put16(g, ((const uint16_t *)(const void *)two)[n]);
+    rio_put16(g, 0xB403); /* push {r0, r1} */
+    rio_movw(g, rio_Reg_r2, addr & 0xFFFF);
+    rio_movt(g, rio_Reg_r2, addr >> 16);
+  } else {
+    rio_put16(g, 0xB403); /* push {r0, r1} */
+    g->copyAt = g->len; /* (filled in once the copy has a place) */
     rio_movw(g, rio_Reg_r2, 0);
     rio_movt(g, rio_Reg_r2, 0);
-  } else {
-    const rio_Vm *vm = g->vm;
-    int32_t base = 0;
-    int k;
-    for (k = 0; k < vm->procCount; k++)
-      if (vm->procs[k].entry <= pc && pc < vm->procs[k].end) base = vm->procs[k].frameStart;
-    rio_loadImm(g, rio_Reg_r2, (uint32_t)(uintptr_t)(code + pc));
-    rio_loadImm(g, rio_Reg_r12, (uint32_t)((base - rio_FRAME_BIAS) * 4));
-    rio_put16(g, 0x4460); /* add r0, r12 */
   }
   rio_loadImm(g, rio_Reg_r12, (uint32_t)(uintptr_t)rio_jitOp);
   rio_put16(g, 0x47E0); /* blx r12 */
@@ -820,7 +824,7 @@ static int rio_compileRegion(rio_Jit *g, const rio_Instr *code, uint32_t first, 
         for (k = 0; k < rio_regCount; k++)
           if (rio_regSlot[k] >= g->constCap) rio_storeSlot(g, 4 + k, rio_regSlot[k]);
         if (to == rio_JIT_PASS) rio_movReg(g, rio_Reg_r0, rio_Reg_r12);
-        else rio_loadImm(g, rio_Reg_r0, to);
+        else rio_loadImm(g, rio_Reg_r0, (to & 0xFFFF0000u) | g->unitOf[to & 0xFFFF]); /* (the vm's pcs: units) */
         rio_put32(g, 0xE8BD, 0x8FF8); /* r0 = to; pop.w {r3-r11, pc} */
       }
       at = exitAts[j];
@@ -867,17 +871,10 @@ static int rio_addNative(rio_Jit *g, uint32_t first, uint32_t last, int isProc) 
    host's buffer, else the vm's free memory (vm->freeAt up to vm->top, which nothing else uses once the
    program's laid out). The code goes at its start, the scratch at its end; then the entry points move
    to just after the code, the scratch is zeroed again, and (in the vm's memory) freeAt moves past them. */
-static int rio_jitAllOf(rio_Vm *vm);
-/* (the JIT reads slots from mem's start and calls by pc: the code turned back while it works) */
 static int rio_jitAll(rio_Vm *vm) {
-  int r;
-  rio_codeFrames(vm, 0);
-  r = rio_jitAllOf(vm);
-  rio_codeFrames(vm, 1);
-  return r;
-}
-static int rio_jitAllOf(rio_Vm *vm) {
-  rio_Instr *code = vm->code;
+  rio_Instr *code, *packed = vm->code;
+  uint16_t *unitOf, (*kept)[2];
+  uint32_t packedLen = vm->codeLen, copy;
   uint8_t *room, *scratch, *s;
   uint32_t at = 0, size, used, pc, k, first, last;
   rio_JitFn *fns;
@@ -893,8 +890,17 @@ static int rio_jitAllOf(rio_Vm *vm) {
     room = vm->mem + at;
     size = vm->top - at;
   }
-  if (size < rio_JIT_SCRATCH + 256) return 0;
+  /* the code as compiled (rio_unpackInto), unpacked below the scratch while the JIT works: its instructions,
+     each one's pc in units, the procs' entries and ends in units */
+  copy = packedLen * (uint32_t)sizeof(rio_Instr) + (packedLen + 1) * 2 + (uint32_t)vm->procCount * 4 + 16;
+  if (size < rio_JIT_SCRATCH + copy + 256) return 0;
   scratch = s = (uint8_t *)((uintptr_t)(room + size - rio_JIT_SCRATCH) & ~(uintptr_t)7);
+  code = (rio_Instr *)(void *)((uintptr_t)(scratch - copy) & ~(uintptr_t)7);
+  unitOf = (uint16_t *)(void *)(code + packedLen);
+  kept = (uint16_t (*)[2])(void *)(((uintptr_t)(unitOf + packedLen + 1) + 3) & ~(uintptr_t)3);
+  vm->codeLen = rio_unpackInto(vm, code, unitOf, kept);
+  vm->code = code;
+  g.unitOf = unitOf;
   g.fns = (rio_JitFn *)(void *)s;
   s += rio_JIT_MAX_NATIVE * sizeof(rio_JitFn);
   g.ranges = (uint16_t(*)[2])(void *)s;
@@ -907,7 +913,7 @@ static int rio_jitAllOf(rio_Vm *vm) {
   g.labels = (uint16_t *)(void *)s;
   g.isTarget = s + rio_JIT_MAX_LEN * 2;
   g.out = (uint16_t *)(void *)room;
-  g.cap = (uint32_t)(scratch - room) / 2;
+  g.cap = (uint32_t)((uint8_t *)code - room) / 2; /* (up to the copy) */
   g.len = 0;
   if (g.cap > 65535) g.cap = 65535; /* (labels are 16-bit) */
   g.consts = (const rio_Val *)(const void *)vm->mem;
@@ -950,6 +956,19 @@ static int rio_jitAllOf(rio_Vm *vm) {
     if (!best) break;
     if (rio_addNative(&g, bestFirst, bestLast, 0)) break; /* out of room: the rest stays bytecode */
     count++;
+  }
+  /* back to the packed code: each native entry's first instruction becomes rio_Op_jit (short, if it was) */
+  rio_procsInUnits(vm, (const uint16_t (*)[2])kept);
+  vm->code = packed;
+  vm->codeLen = packedLen;
+  for (k = 0; k < (uint32_t)vm->jitCount; k++) {
+    uint32_t *u = (uint32_t *)(void *)packed + unitOf[g.ranges[k][0]];
+    if ((*u & 255) >= 128) *u = rio_Op_s_jit | k << 8; /* (op, a: rio_Short) */
+    else {
+      rio_Instr *in = (rio_Instr *)(void *)u;
+      in->op = rio_Op_jit;
+      in->a = (uint16_t)k;
+    }
   }
   used = (g.len * 2 + 3) & ~3u;
   fns = (rio_JitFn *)(void *)(room + used);

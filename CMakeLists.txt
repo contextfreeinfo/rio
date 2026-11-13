@@ -160,6 +160,9 @@ if(Python3_FOUND)
   # random programs passing views of local and global memory around: none rio accepts keeps a view of a
   # proc's own memory past the call, and every one that keeps to the rules compiles
   add_test(NAME rio_views COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/viewtest.py $<TARGET_FILE:rio> 400)
+  # the short forms reading constants and globals: each chosen by the packer (read from the image), and run
+  add_test(NAME rio_short_forms COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/shortforms.py $<TARGET_FILE:rio> ${CMAKE_BINARY_DIR}/shortforms.img)
+  set_tests_properties(rio_short_forms PROPERTIES PASS_REGULAR_EXPRESSION "short forms came through")
 endif()
 
 # host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin

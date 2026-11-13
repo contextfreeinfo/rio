@@ -71,3 +71,5 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-11-09,2114858+,puddle,31680,231601,19153,446464,24.5,90648,0.614,0.008,0.568,0.007,0.484,0.015,0.629,0.137,15602,3551,""
 2026-11-13,8158967+,puddle,33004,231849,19246,448000,24.1,90648,0.59,0.006,0.593,0.007,0.353,0.013,0.538,0.113,15686,3560,"operands from each proc's frame (plans/smaller-instructions.md, step 1)"
 2026-11-13,3f4acbc+,puddle,33156,231785,19281,448512,30.0,90648,0.607,0.005,0.617,0.006,0.444,0.017,0.601,0.117,15719,3562,"pcs count 4-byte units (smaller instructions, step 2.1: every instruction still 8 bytes)"
+2026-11-13,3f12532+,puddle,38064,235549,19662,455168,38.3,83848,0.809,0.008,0.703,0.004,0.543,0.015,0.626,0.128,16069,3593,"short instructions (step 2.2: S3 packed, 24% smaller apps)"
+2026-11-13,3f12532+,puddle,39388,236001,19757,456704,26.7,78376,0.555,0.007,0.578,0.006,0.348,0.014,0.584,0.125,16164,3593,"short forms reading constants and globals (step 2.3a: SG and SK, 35% smaller apps)"

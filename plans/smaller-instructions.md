@@ -1,6 +1,6 @@
 # Smaller instructions: a plan, for review
 
-Status: step 1 done (2026-11-13: operands from each proc's frame); step 2 (4-byte instructions) next. ROADMAP: "Leaning yes: Smaller
+Status: step 1 done (2026-11-13: operands from each proc's frame); step 2 (4-byte instructions) through 2.3a (35% smaller). ROADMAP: "Leaning yes: Smaller
 instructions".
 
 ## Why
@@ -181,6 +181,65 @@ pcs (jumps, proc entries and ends, lines) are remapped once, when a packer rewri
 in place (the compiler keeps emitting 8-byte instructions, so its fusing and patching don't change).
 The REPL's pieces stay wide (two units each, so its pcs just double). The JIT and the C backend read
 the code through a decoder (or, for the C backend on the computer, an unpacked copy).
+
+## Milestones measured (2026-11-13)
+
+Seven apps' code (Cloudlamp, Maps, Paint, Sound, Music, the editor, Files; tools/packstats.py), and
+bench.rio on the Fruit Jam (seconds; the bytecode alone with RINC_NO_JIT; the same in both runs):
+
+| | code | loop | calls | particles | sin | pset |
+|---|---|---|---|---|---|---|
+| before (8158967) | 100% | 0.2969 | 0.1768 | 0.0442 | 0.0935 | 0.0429 |
+| step 1: frames | 100% | 0.2930 | 0.1881 | 0.0445 | 0.0943 | 0.0429 |
+| 2.1: units | 100% | 0.2972 | 0.1893 | 0.0447 | 0.0939 | 0.0432 |
+| 2.2: S3 packed | 76% (24% smaller; Maps 100 KB to 76) | 0.3511 | 0.2091 | 0.0478 | 0.0981 | 0.0477 |
+| 2.3a: SG and SK | 65% (35% smaller; Maps 100 KB to 66) | 0.3388 | 0.2045 | 0.0473 | 0.0993 | 0.0474 |
+
+With the JIT (what apps run on the board), every step: loop 0.0897, calls 0.0896, particles 0.0157,
+sin 0.0793 to 0.0797, pset 0.0197: the same.
+
+What 2.2 found:
+- Short handlers in the interpreter made every wide one 15% slower, even with no short code running:
+  GCC's global common subexpressions merged the handlers' computed gotos into one shared dispatch (a
+  branch more an instruction) once the function grew. optimize("no-gcse") on rio_interpret, GCC's own
+  advice for interpreters, took that back to within 2%.
+- A second base pointer for short operands (S) cost registers: wide operands now take the same bias
+  as short ones (rio_FRAME_BIAS 128), read as signed 16 bits, so R serves both.
+- What's left (loop +18%, calls +18%, pset +11% over before) is in running packed code: the same
+  three instructions a loop, short handlers the same ARM instructions as wide ones, so most likely
+  code and data layout in the shared SRAM (aligning the handlers' labels moved it about 3% either way,
+  sin the other way): unexplained yet.
+- The vm's RAM: 11.8 KB of interpreter and a 1 KB dispatch table (2.5 + 0.5 KB more); 812 bytes of
+  the firmware's RAM left, not enough for step 2.3's handlers (SK, SG) without finding more.
+- RAM found for 2.3 (rinc's src/rp2350/link, through the SDK's linker-script overrides): PIO-USB's
+  setup (run once) and libgcc's code (64-bit division, doubles) kept in flash, not RAM: 3.3 KB, so
+  about 4.1 KB free. Bench, sprites and USB the same. (newlib's malloc stays: PIO-USB's timer pool is
+  made with it, and changing that would touch USB's timing.)
+
+What 2.3a found and did (2026-11-13):
+- Why the 48% still wide were wide (packed images, each wide instruction's operands sorted): 25% of all
+  instructions held a constant (almost always one under 256), 15% a global, 10% an op with no short
+  form (slice, lview, pushs, ldxb, idx, not, div...); far jumps 0.7%.
+- Two more layouts, as more forms of existing ops (internal.h: rio_SHORT_MORE; the packer tries an
+  op's forms in order, and swaps a commuting op's operands to reach one): SG, a frame slot and any slot
+  (16 bits from mem's start), for mov and mov2 either way (globals, and constants of any size); SK, the
+  last operand a constant under 256, for 16 ops (add, sub, mul, and, or, eq, ne, lt, le, imin, imax,
+  fadd, fsub, fmul, flt, fle). 74% of instructions short now: code 35% smaller than all wide.
+- The interpreter's M (mem's start) was a register already, so a K or G operand is one load, no new
+  base. Bytecode alone came out a little faster than 2.2 (more of it short). The vm's RAM: 856 bytes
+  more, about 3.3 KB of the firmware's left. With the JIT, the same as ever.
+- tests/shortforms.rio and .py: each form chosen (read from the image) and its results checked (worked
+  out apart); the test pads globals so a proc's frame is past the constants' and globals' reach.
+- Left, measured: the constant as the second operand (lt and le as gt and ge, compare-and-jumps,
+  ldw/stw from a constant base) would make about 1,500 more short (3.7% of instructions), about 2.5%
+  smaller again, for perhaps 16 more handlers (some 700 bytes of RAM). jz and jnz on a global: 100.
+
+Decided (2026-11-13): 2.2's speed accepted for its size (Maps 24 KB smaller), since apps on the board
+run hot code through the JIT. Drawing barely depends on the vm: on the Fruit Jam (rinc's
+apps/drawbench.rio; rinc's docs/guide/fruit-jam.md has the table), 8x8 rectangles drew as many
+with the JIT as without it (2,960 in 10 ms), and sprites came within 4% on 2.2's bytecode and before
+step 1. Logic does:
+falling sand on a 240x240 grid steps in 13.4 ms with the JIT, 54.7 ms on bytecode alone.
 
 ## Next steps
 

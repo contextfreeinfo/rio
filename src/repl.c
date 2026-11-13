@@ -155,7 +155,7 @@ int rio_replEval(rio_Vm *vm, const char *src, uint32_t len) {
   vm->errorKind = rio_ErrorKind_none;
   vm->errorText[0] = 0;
   rio_replMark(vm, &mark);
-  vm->codeLen = rio_unitIndex(vm->codeLen); /* (the compiler counts instructions: the run form's units after, rio_codeFrames) */
+  vm->codeLen = rio_unitIndex(vm, vm->codeLen); /* (the compiler counts instructions: the run form's units after, rio_codeFrames) */
   c->text.src = src;
   c->text.len = len;
   rio_readFrom(vm, 0, 0, c->line);

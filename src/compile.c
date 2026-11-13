@@ -721,6 +721,116 @@ static void rio_noteCompile(rio_Vm *vm) {
   u->left = c->bigLeft;
 }
 
+/* Packs the finished code into the run form (internal.h: rio_codeFrames): each instruction short, 4 bytes,
+   when its op has a short form and its operands fit (rio_SHORT_OPS), else wide, 8 (two units), then its
+   data word (two more); pcs count units, a proc's slots are named from its frame, a call names its proc
+   by number. A short jump whose target turns out too far is made wide, and the pcs worked out again,
+   until none is (a wide one never goes back, so it ends). In place, front to back: an instruction goes
+   no later than it was. Each instruction's new pc goes in the slot map (done with, once frames are
+   shared), or the pool's free middle; without room for it, every instruction is wide. Which are short:
+   x 1, while it works (no op with a short form uses x). */
+static void rio_pack(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t n = vm->codeLen, i, k, pc = 0, from = (c->poolUsed + 1) & ~1u, changed;
+  uint32_t *units = (uint32_t *)(void *)vm->code;
+  uint16_t *at = n + 1 <= c->limits.slots ? c->slotMap : from + (n + 1) * 2 <= c->poolCap ? (uint16_t *)(void *)(c->pool + from) : 0;
+  int p, wide = !at; /* (no room for the table: all of it wide, its pcs doubled) */
+#define rio_AT_OF(i) (wide ? (uint32_t)(i) * 2 : (uint32_t)at[i])
+#define rio_SHORT_NOW(i) (vm->code[i].op != rio_Op_data && rio_shortOf[vm->code[i].op] && vm->code[i].x) /* (x: its short op) */
+  if (wide) {
+    if (n * 2 > 65535) rio_FAIL(, "the program's code is too long");
+    pc = n * 2;
+  }
+  for (i = 0, p = 0; i < n && !wide; i++) { /* the form its operands allow (a jump's target taken as near, for now) */
+    rio_Instr *in = &vm->code[i];
+    int32_t base;
+    int s, tries;
+    while (p < vm->procCount && c->procDefs[p].end <= i) p++;
+    base = p < vm->procCount && c->procDefs[p].entry <= i ? c->procDefs[p].frameStart : 0;
+    if (in->op == rio_Op_data || in->x || !rio_shortOf[in->op] || (i + 1 < n && in[1].op == rio_Op_data)) continue;
+    for (tries = 0; tries < 2 && !in->x; tries++) { /* (then, an op whose operands commute, them swapped) */
+      if (tries) {
+        uint16_t t = in->b;
+        if (!rio_commutes(in->op)) break;
+        in->b = in->c, in->c = t;
+      }
+      for (s = rio_shortOf[in->op]; s < rio_Op_s_end && !in->x; s = s < rio_Op_s_more ? rio_Op_s_more : s + 1) { /* each form */
+        const char *kinds = rio_shortKinds[s - 128];
+        int ok = rio_wideOf[s - 128] == in->op;
+        for (k = 0; k < 3 && ok; k++) {
+          int32_t v = k == 0 ? in->a : k == 1 ? in->b : in->c;
+          if (kinds[k] == 'S') ok = v - base >= -rio_SHORT_BIAS && v - base < rio_SHORT_BIAS;
+          else if (kinds[k] == 'I' || kinds[k] == 'K') ok = v < 256;
+          else if (kinds[k] == 'P') ok = rio_procAt(vm, v, vm->procCount) < 256;
+        }
+        if (ok) in->x = (uint8_t)s;
+      }
+      if (tries && !in->x) {
+        uint16_t t = in->b;
+        in->b = in->c, in->c = t;
+      }
+    }
+  }
+  if (!wide) do { /* the pcs; a short jump too far made wide */
+    for (i = 0, pc = 0; i < n; i++) {
+      at[i] = (uint16_t)pc;
+      pc += rio_SHORT_NOW(i) ? 1 : 2;
+      if (pc > 65535) rio_FAIL(, "the program's code is too long"); /* (pcs are 16 bits) */
+    }
+    at[n] = (uint16_t)pc;
+    changed = 0;
+    for (i = 0; i < n; i++)
+      if (rio_SHORT_NOW(i) && rio_isJump(vm->code[i].op)) {
+        int32_t d = (int32_t)at[vm->code[i].c] - (int32_t)at[i];
+        if (d < -128 || d > 127) vm->code[i].x = 0, changed = 1;
+      }
+  } while (changed);
+  for (i = 0, p = 0; i < n; i++) { /* written, front to back */
+    rio_Instr in = vm->code[i];
+    uint32_t base;
+    while (p < vm->procCount && c->procDefs[p].end <= i) p++;
+    base = p < vm->procCount && c->procDefs[p].entry <= i ? c->procDefs[p].frameStart : 0;
+    if (in.op == rio_Op_data) { /* (its slot, if it names one, stays counted from mem's start) */
+      memcpy(units + rio_AT_OF(i), &in, sizeof in);
+      continue;
+    }
+    if (!wide && rio_shortOf[in.op] && in.x) {
+      const char *kinds = rio_shortKinds[in.x - 128];
+      uint32_t v[3];
+      uint8_t out[4] = {0, 0, 0, 0};
+      v[0] = in.a; v[1] = in.b; v[2] = in.c;
+      out[0] = in.x;
+      for (k = 0; k < 3; k++) {
+        int f = rio_shortField(kinds, (int)k) + 1;
+        if (kinds[k] == 'G') out[2] = (uint8_t)v[k], out[3] = (uint8_t)(v[k] >> 8); /* (from mem's start) */
+        else if (kinds[k] != '-')
+          out[f] = (uint8_t)(kinds[k] == 'S' ? v[k] - base + rio_SHORT_BIAS : kinds[k] == 'J' ? (uint32_t)(at[v[k]] - at[i]) :
+                             kinds[k] == 'P' ? (uint32_t)rio_procAt(vm, (int)v[k], vm->procCount) : v[k]); /* (I, K: as they are) */
+      }
+      memcpy(units + at[i], out, 4);
+      continue;
+    }
+    {
+      int which = rio_slotOperands(in.op);
+      uint16_t shift = (uint16_t)(rio_FRAME_BIAS - base);
+      if (which & 1) in.a = (uint16_t)(in.a + shift);
+      if (which & 2) in.b = (uint16_t)(in.b + shift);
+      if (which & 4) in.c = (uint16_t)(in.c + shift);
+      if (rio_isJump(in.op)) in.c = (uint16_t)rio_AT_OF(in.c);
+      if (in.op == rio_Op_call) in.c = (uint16_t)rio_procAt(vm, in.c, vm->procCount);
+      memcpy(units + rio_AT_OF(i), &in, sizeof in);
+    }
+  }
+  for (p = 0; p < vm->procCount; p++) {
+    c->procDefs[p].entry = (uint16_t)rio_AT_OF(c->procDefs[p].entry);
+    c->procDefs[p].end = (uint16_t)rio_AT_OF(c->procDefs[p].end);
+  }
+#undef rio_AT_OF
+#undef rio_SHORT_NOW
+  vm->codeLen = vm->framedAt = pc;
+  vm->framedProcs = vm->procCount;
+}
+
 static void rio_finish(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Val *R = (rio_Val *)vm->mem;
@@ -730,6 +840,7 @@ static void rio_finish(rio_Vm *vm) {
   uint32_t moduleCount = (uint32_t)(c->moduleCount - 2), fileNamesAt;
   int k;
   rio_noteCompile(vm);
+  rio_pack(vm); /* (into the run form: rio_codeFrames) */
   c->freeSlot = c->slotHigh;
   vm->callStackAt = (uint32_t)rio_allocSlots(vm, 2 * (depth + 1)) * 4; /* the return stack: the longest chain of calls (each: where it returns, its caller's frame) */
   vm->freeAt = c->slotHigh * 4;
@@ -769,7 +880,7 @@ static void rio_finish(rio_Vm *vm) {
   if (vm->top < size || ((vm->top - size) & ~3u) < c->slotHigh * 4) rio_FAIL(, "out of memory");
   base = (vm->top - size) & ~3u;
   if (vm->code == c->scratchCode) { /* the code lives in mem: just below the block */
-    codeSize = vm->codeLen * (uint32_t)sizeof(rio_Instr);
+    codeSize = vm->codeLen * 4u; /* (units) */
     if (base < codeSize || ((base - codeSize) & ~7u) < c->slotHigh * 4) rio_FAIL(, "out of memory");
     codeAt = (base - codeSize) & ~7u;
   }
@@ -835,7 +946,6 @@ static void rio_finish(rio_Vm *vm) {
   memset(vm->mem + firstFree, 0, (codeAt ? codeAt : base) - firstFree);
   if (codeAt) memset(vm->mem + codeAt + codeSize, 0, base - codeAt - codeSize);
   memset(vm->mem + base + size, 0, vm->memSize - base - size);
-  rio_codeFrames(vm, 1); /* (slots from each proc's frame, calls by proc number) */
 }
 
 /* ------------------------------------------------------------------ compiling */

@@ -143,10 +143,38 @@ typedef enum {
   rio_Op_lastScalar = rio_Op_fmax,  /* ops up to here write one scalar to slot a */
 } rio_Op;
 
+/* The short forms (rio/plans/smaller-instructions.md): 4 bytes, op, a, b, c, 8 bits each (rio_Short), for
+   the ops that matter most, when their operands fit; any other instruction is 8 bytes (rio_Instr: two
+   units), then its data word (8 more) if it has one. A short op is 128 or more (rio_Op_s_mov on); the
+   string says how each operand reads: S a slot of the running proc's frame (slot - frameStart + 128:
+   R + it), I a number under 256, J a jump's target (relative to the
+   instruction, in units, -128 to 127), P a proc's number, - unused. (S is a wide operand's bias too, so
+   one base, R, serves both: rio_FRAME_BIAS.) More forms of some ops (rio_SHORT_MORE, each after the
+   rio_SHORT_OPS: its name, its wide op, its operands) read slots from mem's start, not the frame: K a
+   slot under 256 (the constants, low in memory), G any slot (16 bits: the short's b and c, the other
+   operand in a). The packer tries an op's first form, then its others in order. */
+#define rio_SHORT_OPS(X)                                                                                    X(mov, "SS-") X(add, "SSS") X(sub, "SSS") X(mul, "SSS") X(and, "SSS") X(or, "SSS") X(eq, "SSS")          X(ne, "SSS") X(lt, "SSS") X(le, "SSS") X(imin, "SSS") X(imax, "SSS") X(fadd, "SSS") X(fsub, "SSS")        X(fmul, "SSS") X(flt, "SSS") X(fle, "SSS") X(ldw, "SSI") X(ldb, "SSI") X(ldw2, "SSI") X(lea, "SSI")      X(stw, "SSI") X(stb, "SSI") X(stw2, "SSI") X(movn, "SSI") X(mov2, "SS-") X(jmp, "--J") X(jz, "S-J")       X(jnz, "S-J") X(jeq, "SSJ") X(jne, "SSJ") X(jlt, "SSJ") X(jle, "SSJ") X(fori, "SSJ") X(each, "SSJ")       X(call, "--P") X(ret, "---") X(ffi, "S-I") X(jit, "I--")
+#define rio_SHORT_MORE(X)                                                                                     X(movg, mov, "SG-") X(stg, mov, "GS-") X(mov2g, mov2, "SG-") X(st2g, mov2, "GS-")                       X(addk, add, "SSK") X(subk, sub, "SSK") X(mulk, mul, "SSK") X(andk, and, "SSK") X(ork, or, "SSK")       X(eqk, eq, "SSK") X(nek, ne, "SSK") X(ltk, lt, "SSK") X(lek, le, "SSK") X(imink, imin, "SSK")           X(imaxk, imax, "SSK") X(faddk, fadd, "SSK") X(fsubk, fsub, "SSK") X(fmulk, fmul, "SSK")                 X(fltk, flt, "SSK") X(flek, fle, "SSK")
+#define rio_SHORT_ENUM(o, k) rio_Op_s_##o,
+#define rio_SHORT_ENUM_MORE(o, w, k) rio_Op_s_##o,
+enum { rio_Op_s_before = 127, rio_SHORT_OPS(rio_SHORT_ENUM) rio_Op_s_more, rio_Op_s_moreBefore = rio_Op_s_more - 1,
+       rio_SHORT_MORE(rio_SHORT_ENUM_MORE) rio_Op_s_end };
+typedef struct { uint8_t op, a, b, c; } rio_Short;
+#define rio_SHORT_BIAS rio_FRAME_BIAS
+extern const uint8_t rio_shortOf[rio_Op_count]; /* a wide op's (first) short op, or 0 */
+extern const uint8_t rio_wideOf[rio_Op_s_end - 128]; /* a short op's wide op */
+extern const char rio_shortKinds[rio_Op_s_end - 128][4];
+int rio_shortField(const char *kinds, int k);
+
 /* the size in an instruction's b and c (a data word's, or zero's own) */
 static inline uint32_t rio_dataSize(const rio_Instr *in) { return (uint32_t)in->b | (uint32_t)in->c << 16; }
 
 static inline int rio_isJump(int op) { return op >= rio_Op_jmp && op <= rio_Op_forby; }
+/* whether b op c is c op b (so the packer may swap them, to reach a short form) */
+static inline int rio_commutes(int op) {
+  return op == rio_Op_add || op == rio_Op_mul || op == rio_Op_and || op == rio_Op_or || op == rio_Op_eq || op == rio_Op_ne ||
+         op == rio_Op_imin || op == rio_Op_imax || op == rio_Op_fadd || op == rio_Op_fmul;
+}
 
 /* which operands of an instruction are slots: bit 1 a, 2 b, 4 c (unused ones are 0, which never moves).
    (A data word's slot, a slice's or a builder op's, isn't among them: the vm reads it from mem's start.) */
@@ -164,18 +192,30 @@ static inline int rio_slotOperands(int op) {
    pcs count instructions (vm->codeLen of them, a data word one too), operands name slots from mem's
    start, a call names its proc's entry. Run, as the vm runs it: pcs count 4-byte units (an instruction
    is two, for now: see rio/plans/smaller-instructions.md), a proc's code names its slots from its
-   frame's start, biased (an operand is slot - frameStart + rio_FRAME_BIAS, 16 bits, so R moves with the
-   running proc: the vm's R is mem + frameStart - rio_FRAME_BIAS, and its own slots are small numbers
-   either side of the bias; top-level code counts from mem's start the same way, its base 0), and a call
+   frame's start, biased (an operand is slot - frameStart + rio_FRAME_BIAS, as a signed 16-bit number in a
+   wide instruction, 8 bits unsigned in a short one: so R moves with the running proc, the vm's R is mem
+   + frameStart - rio_FRAME_BIAS, one base for both, and its own slots are small numbers; top-level code
+   counts from mem's start the same way, its base 0), and a call
    names its proc by number. Jump targets, the procs' entries and ends, and vm->codeLen go with the form.
    rio_codeFrames(vm, 1) turns the code from vm->framedAt (units) on into the run form (the compiler,
    once frames are placed; the REPL, a piece at a time: procs from vm->framedProcs on are new);
    rio_codeFrames(vm, 0) turns all of it back (and 1 again after). The line table and the modules'
    ranges stay in instructions: rio_unitIndex turns a running pc into one. */
-#define rio_FRAME_BIAS 32768
+#define rio_FRAME_BIAS 128
 void rio_codeFrames(rio_Vm *vm, int run);
-static inline uint32_t rio_unitIndex(uint32_t pc) { return pc / 2; } /* (every instruction two units, for now) */
-static inline uint32_t rio_indexUnit(uint32_t i) { return i * 2; } /* (and back: an instruction's first unit) */
+/* the units an instruction at pc takes (its data word too): 1 short, 2 wide, 4 with a data word */
+static inline uint32_t rio_unitsAt(const uint32_t *units, uint32_t pc, uint32_t len) {
+  if ((units[pc] & 255) >= 128) return 1;
+  return pc + 2 < len && (units[pc + 2] & 255) == rio_Op_data ? 4 : 2;
+}
+uint32_t rio_unitIndex(const rio_Vm *vm, uint32_t pc); /* a running pc's instruction (counting data words), for the line table and modules */
+/* The code as compiled (rio_codeFrames' compiled form: slots from mem's start, pcs by instruction, calls
+   by entry), unpacked into buf (room for vm->codeLen instructions: never more): how many instructions.
+   unitOf[i]: instruction i's pc in units (room for vm->codeLen + 1); the procs' entries and ends turn
+   into instructions too, theirs in units kept in kept (room for vm->procCount), for rio_procsInUnits to
+   put back. For the JIT (in its room) and the C backend (in a buffer of its own). */
+uint32_t rio_unpackInto(rio_Vm *vm, rio_Instr *buf, uint16_t *unitOf, uint16_t (*kept)[2]);
+void rio_procsInUnits(rio_Vm *vm, const uint16_t (*kept)[2]);
 
 /* math builtins, by the index in rio_Op_m1 / rio_Op_m2's x */
 typedef enum {

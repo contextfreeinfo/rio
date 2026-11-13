@@ -446,9 +446,10 @@ static inline void rio_offsetPlace(rio_Expr *e, int32_t n) {
   if (e->kind == rio_ExprKind_static) e->value += n;
   else e->offset += n;
 }
-/* operands are 16 bits, counted from the running proc's frame (biased by half: rio_FRAME_BIAS), so they
-   name only the slots below this byte address (frames are low): those above are reached by address */
-#define rio_SLOTS_END 0x20000
+/* operands are signed 16 bits, counted from the running proc's frame less rio_FRAME_BIAS, so they name
+   only the slots below this byte address (frames are low: from base 0, slot 32639 at most): those above
+   are reached by address */
+#define rio_SLOTS_END 0x1FE00
 
 /* ------------------------------------------------------------------ errors (lexer.c) */
 

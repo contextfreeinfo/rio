@@ -1,0 +1,53 @@
+# the short forms that read constants and globals (src/internal.h: rio_SHORT_MORE), each run from a proc
+# (tests/shortforms.py checks the packer chose each one)
+g := 5
+pair := [2]Int{7, 8}
+gf := 1.5
+name := "rio"
+other := "rinc"
+# (slots after them, before the frames: so k's frame is far from the constants and these globals)
+pad0: [16]Int
+pad1: [16]Int
+pad2: [16]Int
+pad3: [16]Int
+pad4: [16]Int
+pad5: [16]Int
+pad6: [16]Int
+pad7: [16]Int
+pad8: [16]Int
+pad9: [16]Int
+k :: proc(x: Int, f: Float) -> Int
+  y := g                                # movg: a global into the frame
+  g = x                                 # stg: the frame's into a global
+  p := pair                             # (a pair, copied either way)
+  pair = [2]Int{x, y}
+  q := pair
+  s := (x + 1000) + (2000 + x) + (x - 3000) + x * 4000 + 5000 * x + (x & 6000) + (x | 7000) # addk (one commuted), subk, mulk, andk, ork
+  t := 0
+  e1 := x == 1000                       # eqk (as values: an if would jump on them instead)
+  e2 := 1000 != x                       # nek, commuted
+  e3 := x < 1000                        # ltk
+  e4 := x <= 1000                       # lek
+  e5 := f < 3000.5                      # fltk
+  e6 := f <= 3000.5                     # flek
+  if e1 do t += 1
+  if e2 do t += 2
+  if e3 do t += 4
+  if e4 do t += 8
+  if e5 do t += 16
+  if e6 do t += 32
+  n := name                             # mov2g, st2g: a String's two words, either way
+  name = other
+  other = n
+  u := min(x, 1000) + max(x, 1000)      # imink, imaxk
+  h := f + 1000.5                       # faddk
+  h = h - 0.25                          # fsubk
+  h = h * 2000.5                        # fmulk
+  return y + p[0] * 10 + p[1] * 100 + q[0] * 1000 + q[1] * 10000 + s + t + u + h.toInt()
+end
+r := k(1000, 3.25)                      # (the sums worked out apart, in Python with 32-bit floats)
+assert(r == 12071457 and g == 1000 and pair[0] == 1000 and pair[1] == 5 and gf == 1.5 and name == "rinc" and other == "rio", "short forms, first call")
+r = k(9, 3000.5)
+assert(r == 18113083 and g == 9 and pair[0] == 9 and pair[1] == 1000, "short forms, second call")
+assert(name == "rio" and other == "rinc", "short forms, strings swapped back")
+log("short forms came through")

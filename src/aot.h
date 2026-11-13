@@ -7,4 +7,6 @@
    (may be NULL; then the user links them); if it defines rio_HOST_START(argc, argv), main calls it first,
    with the program's arguments (the rio command's os takes them so). */
 int rio_aot(rio_Vm *vm, FILE *out, const char *hostFfi);
+/* the code as compiled, unpacked into a buffer of its own while on is 1 (and as it was with 0): -1 without memory */
+int rio_unpacked(rio_Vm *vm, int on);
 #endif

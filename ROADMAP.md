@@ -67,6 +67,14 @@ In this order:
   rest) would fit about twice the code in the same space, if it doesn't slow the VM much: measured
   first on the Fruit Jam, against today's dispatch. Rinc keeps its limits small on purpose: this is
   for doing more within them. The plan, with what today's code measures: plans/smaller-instructions.md.
+  Under way (2026-11-13): 4-byte short forms in (24% smaller code; bytecode alone up to 18% slower on
+  the Fruit Jam, accepted for the size, since apps there run hot code natively); then constants and
+  globals reached short (2.3a: 35% smaller, a little faster than 2.2). Left: a constant as the second
+  operand (about 2.5% more), if wanted.
+- **What the JIT compiled, in the `-m` report** (rinc's, and rio's): each loop and proc that became
+  native code, its size, and for those that didn't, why (an op it can't compile, a call that isn't
+  native, the room run out). Now nothing says, and in a big app the loop that matters may be the one
+  left out: the JIT takes what qualifies in code order until the room is gone.
 - **Host procs returning views:** a host proc's struct result holding a view (`pc.imageRead` giving a
   `pc.Image`), counted as viewing what went in, as a Rio proc's is. Until then a Rio proc wraps the host
   one (pc.rio's `imageRead` around `imageLoad`); for `rio -H`, a call to a host proc the host doesn't
@@ -119,6 +127,11 @@ In this order:
 
 ## Maybe
 
+- **Asking for native code** (being considered, 2026-11-13): a marker on a loop or proc that must be
+  compiled to native code: it's compiled first, ahead of the rest, and if it can't be (an op the JIT
+  doesn't do, a call that isn't native), compiling the app says why, on the desktop too (the check is
+  the same everywhere; only the board's JIT knows the exact size, so running out of room might be an
+  error when the app loads). The `-m` report (Leaning yes) comes first.
 - **`+` for constant strings:** `ROOT :: "/rinc/" + "apps"`, joined while compiling: no storage
   question, as both sides are constants. Only for constants (decided: no `+` on other strings).
 - **Void as a unit type:** a zero-sized value, so `proc() -> Void` is a proc with no result and a

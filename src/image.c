@@ -14,7 +14,7 @@ typedef enum {
   rio_Image_procCount, rio_Image_procsAt, rio_Image_ffiCount, rio_Image_codeAt, rio_Image_freeAt,
   rio_Image_sourceCount, rio_Image_headerWords
 } rio_ImageHeader;
-#define rio_IMAGE_VERSION 16 /* (16: slots from each proc's frame, calls by proc number) (14: idxv, copyv, swapv; 15: scmp) (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors; 11: host module sources' hashes; 12: ushr; 13: pnum) */
+#define rio_IMAGE_VERSION 18 /* (18: short forms reading constants and globals, K and G; 17: pcs in 4-byte units, short instructions; 16: slots from each proc's frame, calls by proc number) (14: idxv, copyv, swapv; 15: scmp) (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors; 11: host module sources' hashes; 12: ushr; 13: pnum) */
 
 #define rio_IMAGE_MAGIC 0x494F4952u /* "RIOI" */
 
@@ -302,9 +302,14 @@ static rio_NOINLINE int rio_sourceNote(rio_Vm *vm, char *text, int n, const char
    call lose the image's names (which don't outlive the load) */
 static rio_NOINLINE int rio_callsOk(rio_Vm *vm, const uint32_t *h, const rio_Instr *code, rio_Ffi *ffi, const rio_ImageSources *src) {
   uint32_t i;
-  for (i = 0; i < rio_unitIndex(h[rio_Image_codeLen]); i++) { /* (each instruction) */
+  for (i = 0; i < h[rio_Image_codeLen]; i += rio_unitsAt((const uint32_t *)(const void *)code, i, h[rio_Image_codeLen])) { /* (each instruction) */
     rio_Instr in;
-    memcpy(&in, code + i, sizeof in);
+    if ((((const uint32_t *)(const void *)code)[i] & 255) >= 128) { /* (a short one: its op, and an ffi's c) */
+      rio_Short sh;
+      memcpy(&sh, (const uint32_t *)(const void *)code + i, sizeof sh);
+      in.op = rio_wideOf[sh.op - 128];
+      in.c = sh.c;
+    } else memcpy(&in, (const uint32_t *)(const void *)code + i, sizeof in);
     if (in.op == rio_Op_ffi && (in.c >= h[rio_Image_ffiCount] || !ffi[in.c].fn)) {
       char text[rio_ERROR_BUF_SIZE];
       int n = rio_appendText(text, 0, "the program calls ");
