@@ -252,6 +252,10 @@ int rio_findProc(rio_Vm *vm, const char *name);   /* -1 if missing */
 rio_Val *rio_procArgs(rio_Vm *vm, int proc);      /* params, consecutive words in declaration order */
 rio_Val *rio_procResult(rio_Vm *vm, int proc);
 int rio_call(rio_Vm *vm, int proc);
+/* the instruction at pc (pcs count 4-byte units, from 0 to vm->codeLen), in the 8-byte form, operands as
+   the vm runs them (a proc's slots from its frame): how many units it takes (its data word too), so
+   pc + that is the next; 0 past the end */
+uint32_t rio_instrAt(const rio_Vm *vm, uint32_t pc, rio_Instr *out);
 void *rio_findGlobal(rio_Vm *vm, const char *name); /* address of a global variable, or NULL */
 void *rio_sliceBytes(rio_Vm *vm, const rio_Val *slice); /* bytes of a string/blob/slice value */
 /* A struct argument to a host proc (a sig's {...}: its layout) is 2 words: where it is, and its size.
@@ -389,7 +393,8 @@ struct rio_Vm {
   uint32_t modulesAt, moduleCount; /* code ranges of modules, for naming files in errors */
   rio_Instr *code;         /* where the code is now: in mem, or the host's buffer */
   uint32_t codeCap, codeLen;
-  uint32_t framedAt;        /* the code before this names its procs' slots from their frames (rio_codeFrames) */
+  uint32_t framedAt;        /* the code before this is in the run form, in units (rio_codeFrames) */
+  int framedProcs;          /* and the procs before this */
   rio_Instr *hostCode;     /* the host's code buffer, or NULL: the code lives in mem */
   uint32_t hostCodeCap;
   rio_LogFn logFn;

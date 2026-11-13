@@ -42,6 +42,7 @@ static int rio_runtimeError(rio_Vm *vm, const char *message, uint32_t pc) {
     memcpy(copy, message, sizeof copy);
     message = copy;
   }
+  pc = rio_unitIndex(pc); /* (the line table and the modules count instructions) */
   rio_setError(vm, rio_ErrorKind_runtime, rio_pcLine(vm, pc), 0, 0, message);
   vm->errorFile = rio_fileOfPc(vm, pc);
   return -1;
@@ -123,13 +124,17 @@ void rio_jitOp(rio_Val *R, rio_Vm *vm, const rio_Instr *ip) {
 #define rio_WORD(p) (*(rio_Val *)(M + (p)))
 /* slot s counted from mem's start (a data word's: they don't move with the frame) */
 #define rio_ABS(s) (((rio_Val *)(void *)M)[s])
+/* the instruction at pc, and the pc of one (pcs count 4-byte units: rio_codeFrames) */
+#define rio_AT(pc) ((const rio_Instr *)(const void *)(units + (pc)))
+#define rio_PC_OF(p) ((uint32_t)((const uint32_t *)(const void *)(p) - units))
 /* the current pc, for errors */
-#define rio_PC ((uint32_t)(ip - code))
+#define rio_PC rio_PC_OF(ip)
 
 /* from pc, in the frame starting at slot frame (R: the running proc's slots, an instruction's operands
    counted from there: rio_codeFrames) */
 rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
-  const rio_Instr *code = vm->code, *ip = code + pc;
+  const uint32_t *units = (const uint32_t *)(const void *)vm->code;
+  const rio_Instr *ip = rio_AT(pc);
   uint32_t *callStack = (uint32_t *)(void *)(vm->mem + vm->callStackAt); /* (each call: where it returns, and its caller's frame) */
   uint8_t *M = vm->mem;
   rio_Val *R = (rio_Val *)M + frame - rio_FRAME_BIAS;
@@ -163,8 +168,8 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
 /* to pc c; a backward jump checks for rio_interrupt */
 #define rio_JUMP()                                               \
   {                                                              \
-    if (ip->c <= (uint32_t)(ip - code) && vm->interrupted) goto interrupted; \
-    ip = code + ip->c;                                           \
+    if (ip->c <= rio_PC && vm->interrupted) goto interrupted;    \
+    ip = rio_AT(ip->c);                                          \
     rio_DISPATCH();                                              \
   }
 /* A loop's bottom always jumps back, so it can skip rio_JUMP's direction test. Measured: 5-12% faster
@@ -173,7 +178,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
 #define rio_LOOP()                         \
   {                                        \
     if (vm->interrupted) goto interrupted; \
-    ip = code + ip->c;                     \
+    ip = rio_AT(ip->c);                    \
     rio_DISPATCH();                        \
   }
 #else
@@ -556,17 +561,17 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
 
   rio_CASE(call) { /* proc c */
     const rio_Proc *p = &vm->procs[ip->c];
-    callStack[depth++] = (uint32_t)(ip + 1 - code);
+    callStack[depth++] = rio_PC_OF(ip + 1);
     callStack[depth++] = (uint32_t)(R - (rio_Val *)M);
     if (vm->interrupted) goto interrupted;
     R = (rio_Val *)M + p->frameStart - rio_FRAME_BIAS;
-    ip = code + p->entry;
+    ip = rio_AT(p->entry);
     rio_DISPATCH();
   }
   rio_CASE(ret) {
     if (!depth) return 0;
     R = (rio_Val *)M + (int32_t)callStack[--depth];
-    ip = code + callStack[--depth];
+    ip = rio_AT(callStack[--depth]);
     rio_DISPATCH();
   }
   rio_CASE(calli) { /* call proc value a: its c argument words, at b, go to its parameters */
@@ -574,10 +579,10 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
     if (proc >= (uint32_t)vm->procCount) return rio_runtimeError(vm, "this proc value isn't set", rio_PC);
     if (ip->c) memmove((rio_Val *)M + vm->procs[proc].frameStart, R + ip->b, ip->c * sizeof(rio_Val));
     if (vm->interrupted) goto interrupted;
-    callStack[depth++] = (uint32_t)(ip + 1 - code);
+    callStack[depth++] = rio_PC_OF(ip + 1);
     callStack[depth++] = (uint32_t)(R - (rio_Val *)M);
     R = (rio_Val *)M + vm->procs[proc].frameStart - rio_FRAME_BIAS;
-    ip = code + vm->procs[proc].entry;
+    ip = rio_AT(vm->procs[proc].entry);
     rio_DISPATCH();
   }
   rio_CASE(getret) { /* proc value b's result */
@@ -603,16 +608,16 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
     to = vm->jitFns[ip->a]((rio_Val *)M, vm); /* (native code names slots from mem's start) */
     switch (to >> 16) {
     case 0: break;
-    case rio_JitFail_div: return rio_runtimeError(vm, "division by zero", to & 0xFFFF);
+    case rio_JitFail_div: return rio_runtimeError(vm, "division by zero", rio_indexUnit(to & 0xFFFF));
     case rio_JitFail_trap: /* an ffi function called rio_trap */
       vm->trapped = 0;
-      return rio_runtimeError(vm, vm->errorText, to & 0xFFFF);
+      return rio_runtimeError(vm, vm->errorText, rio_indexUnit(to & 0xFFFF));
     case rio_JitFail_interrupt: /* in a native proc */
       vm->interrupted = 0;
-      return rio_runtimeError(vm, "interrupted", to & 0xFFFF);
-    default: return rio_runtimeError(vm, "index out of bounds", to & 0xFFFF);
+      return rio_runtimeError(vm, "interrupted", rio_indexUnit(to & 0xFFFF));
+    default: return rio_runtimeError(vm, "index out of bounds", rio_indexUnit(to & 0xFFFF));
     }
-    ip = code + to;
+    ip = rio_AT(rio_indexUnit(to)); /* (native code's pcs count instructions) */
     rio_DISPATCH();
   }
 #ifndef rio_CGOTO

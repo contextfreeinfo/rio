@@ -1498,7 +1498,9 @@ int main(int argc, char **argv) {
       return 1;
     }
     if (memReport) {
+      rio_codeFrames(&rio_vm, 0); /* (the report reads the code as compiled) */
       rio_memoryReport();
+      rio_codeFrames(&rio_vm, 1);
       return 0;
     }
     if (cOut) {

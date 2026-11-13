@@ -164,7 +164,8 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   vm->constCap = l.consts;
   vm->top = vm->checking ? 0x10000000u : vm->memSize; /* (a check's program has no memory: just addresses, 256 MB of them) */
   vm->constCount = 1; /* word 0 stays 0 */
-  vm->codeLen = vm->framedAt = 0; /* (none of it named from frames yet: rio_codeFrames) */
+  vm->codeLen = vm->framedAt = 0; /* (none of it in the run form yet: rio_codeFrames) */
+  vm->framedProcs = 0;
   vm->procCount = 0;
   ((rio_Val *)vm->mem)[0].u = 0;
   if (codeInScratch) {
@@ -452,6 +453,7 @@ void rio_compileAll(rio_Vm *vm) {
       c->keepUsed = 0; /* (names kept through the statement before: done with) */
       if (vm->checking && !c->blockCount && c->curProc < 0) { /* (a check: the code so far, its lines and strings, aren't needed) */
         vm->codeLen = vm->framedAt = 0;
+        vm->framedProcs = 0;
         c->lastLabel = 0;
         c->poolCap = c->lineTableTop;
         c->poolUsed = 0; /* (its strings too: nothing reads them, but by where they were) */

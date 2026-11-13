@@ -113,8 +113,8 @@ instructions already fit short (81% with a relayout). What changed:
 - Operands name only the slots below 128 KB now (rio_SLOTS_END: was 256 KB), so any of them is in
   reach of a frame's biased offset; statics above it are reached by address, as those above 256 KB
   were (tests/highstatic.rio, at -M 256K as Rinc runs apps).
-- Images: version 16. Rinc's board firmware: 256 bytes less of its big stack (6 KB, 2.2 KB needed), as
-  the vm in RAM grew by about that.
+- Images: version 16. Rinc's board firmware: the vm in RAM grew by about 100 bytes, past what was free;
+  RAM found elsewhere (below), so apps keep their 256 KB and the big stack its 6 KB.
 
 Speed, on the Fruit Jam (bench.rio, seconds, the same both runs):
 
@@ -137,12 +137,50 @@ cost far more than 10%. So the short form wants its own handlers for the ops it 
 8-byte ones. Ways to do it:
 
 - Short handlers for the common ops only (`mov` is 23% of all instructions; about 30 ops cover most of
-  the rest), every other op wide only. Perhaps 1.5 to 2 KB more SRAM for the vm: taken from the app
-  space (256 KB to 254), which code 40% smaller pays back many times (Maps: about 39 KB).
+  the rest), every other op wide only. Perhaps 1.5 to 2 KB more SRAM for the vm. Not from the app
+  space (the user, 2026-11-13: apps keep 256 KB): found in Rinc's firmware instead. PIO-USB (the USB-A
+  ports) keeps its code in RAM, and GCC had made three copies of its packet encoder, one per constant
+  argument (5.6 KB); -fno-ipa-cp-clone for its sources keeps one, freeing 3.7 KB (the PIO times the
+  bits, so the encoder's speed doesn't matter). 3.7 KB of RAM is free now.
 - Pcs counted in 4-byte units, a wide instruction taking two, so jumps, entries, line tables and the
   call stack stay indexes; jumps relative (8 bits short, 16 wide). The JIT and C backend read through a
   decoding helper.
 - The cold handlers (rare ops, wide forms) could move to flash, to keep the vm's SRAM where it is now.
+
+## Step 2's layouts (measured 2026-11-13, after step 1)
+
+Measured on the frame-relative code (the same seven apps: 40,212 instructions, and 2,468 data words),
+a plain short form (three 8-bit operands, all from the frame) fits only 30%: the earlier estimate had
+counted operands under 256 as near, which includes the constants, low in memory, now far from a frame.
+Counting each operand as F (its frame, within 128), K (a constant: an absolute slot under 256; every
+app has 500 to 1,350 constant slots, the hot ones low), G (any other: a global), with the operands an
+op doesn't use (zero) left out:
+
+| operands | share of instructions |
+|---|---|
+| frame only, or none (jumps, calls, ret) | 55% |
+| frame and one constant | 21% |
+| frame and one global | 15% |
+| others | 9% |
+
+So three short layouts, 4 bytes each, each read through a base of its own (no choosing per operand,
+which would cost too much in every instruction):
+
+- S3: op, a, b, c, each 8 bits: from the frame (R, biased by 128), or small numbers (offsets, sizes,
+  counts; a jump's target relative, in units; a call's proc number).
+- SK: op, a, b from the frame, k a constant (mem's start + k): for `add a, b, 1` and its kin.
+- SG: op, f from the frame, then a 16-bit absolute slot: `mov` to or from a global (most of the 15%).
+
+An instruction that fits none stays as today: 8 bytes, two units, then its data word (8 bytes) if it
+has one. With about 87% short, the average is about 4.5 bytes: about 43% smaller. Short handlers for
+the ops that matter (about 30 in S3, 10 in SK, 4 in SG) and a 256-entry dispatch table: about 1.5 to 2
+KB of RAM on the Fruit Jam, inside the 3.7 KB found.
+
+Plumbing: pcs count 4-byte units (a wide instruction two, its data word two more), so the compiler's
+pcs (jumps, proc entries and ends, lines) are remapped once, when a packer rewrites the finished code
+in place (the compiler keeps emitting 8-byte instructions, so its fusing and patching don't change).
+The REPL's pieces stay wide (two units each, so its pcs just double). The JIT and the C backend read
+the code through a decoder (or, for the C backend on the computer, an unpacked copy).
 
 ## Next steps
 

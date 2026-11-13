@@ -160,15 +160,22 @@ static inline int rio_slotOperands(int op) {
   default: return rio_isJump(op) ? 3 : 7;
   }
 }
-/* A proc's code names its slots from its frame's start, biased: an operand is slot - frameStart +
-   rio_FRAME_BIAS (16 bits), so R moves with the running proc (the vm's R is mem + frameStart -
-   rio_FRAME_BIAS) and its own slots are small numbers either side of the bias; code outside every proc
-   (top level) counts from mem's start the same way (its base 0). A call names its proc by number.
-   rio_codeFrames(vm, 1) makes the code from vm->framedAt on so (the compiler, once frames are placed);
-   rio_codeFrames(vm, 0) turns all of it back, slots counted from mem's start and calls by pc, for the
-   JIT and the C backend, which read it that way (and 1 again after). */
+/* The code in two forms. Compiled, as the compiler writes it (and the JIT and the C backend read it):
+   pcs count instructions (vm->codeLen of them, a data word one too), operands name slots from mem's
+   start, a call names its proc's entry. Run, as the vm runs it: pcs count 4-byte units (an instruction
+   is two, for now: see rio/plans/smaller-instructions.md), a proc's code names its slots from its
+   frame's start, biased (an operand is slot - frameStart + rio_FRAME_BIAS, 16 bits, so R moves with the
+   running proc: the vm's R is mem + frameStart - rio_FRAME_BIAS, and its own slots are small numbers
+   either side of the bias; top-level code counts from mem's start the same way, its base 0), and a call
+   names its proc by number. Jump targets, the procs' entries and ends, and vm->codeLen go with the form.
+   rio_codeFrames(vm, 1) turns the code from vm->framedAt (units) on into the run form (the compiler,
+   once frames are placed; the REPL, a piece at a time: procs from vm->framedProcs on are new);
+   rio_codeFrames(vm, 0) turns all of it back (and 1 again after). The line table and the modules'
+   ranges stay in instructions: rio_unitIndex turns a running pc into one. */
 #define rio_FRAME_BIAS 32768
-void rio_codeFrames(rio_Vm *vm, int relative);
+void rio_codeFrames(rio_Vm *vm, int run);
+static inline uint32_t rio_unitIndex(uint32_t pc) { return pc / 2; } /* (every instruction two units, for now) */
+static inline uint32_t rio_indexUnit(uint32_t i) { return i * 2; } /* (and back: an instruction's first unit) */
 
 /* math builtins, by the index in rio_Op_m1 / rio_Op_m2's x */
 typedef enum {
