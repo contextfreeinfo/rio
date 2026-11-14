@@ -251,6 +251,12 @@ In this order:
 
 ## Done recently
 
+- **No slot map where nothing finishes** (2026-11-14): a REPL and a check never finish a program, so
+  the slot map (2 bytes a slot, for sharing frames, packing and dropping unused procs) isn't carved
+  for them: its room goes to the string pool. Rinc's console session: 6.2 KB of pool to 17.5 KB at the
+  same size; Rinc now sizes that session's tables itself (more fields, types and params, for pc) and
+  hands it 40 KB, not 44.
+
 - **Unused procs dropped** (2026-11-13): as compiling finishes, procs nothing can call (from top-level
   code, the host's names, proc values and callbacks) lose their code and frames; `-m` says how many
   (docs/spec/host.md#unused-procs; tests/unused). A library's whole surface costs an app only what it

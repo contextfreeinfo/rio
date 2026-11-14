@@ -47,8 +47,9 @@ static uint32_t rio_carve(uint32_t *at, uint32_t n, uint32_t size, uint32_t alig
 }
 
 /* Lays the tables out after the rio_Compiler header (c NULL: just measures). Returns the end offset,
-   where the string pool starts. */
-static uint32_t rio_layout(rio_Compiler *c, const rio_Limits *l) {
+   where the string pool starts. finishing: the program will be finished (rio_finish), which needs the
+   slot map, 2 bytes a slot; a REPL and a check never finish, so theirs goes to the string pool. */
+static uint32_t rio_layout(rio_Compiler *c, const rio_Limits *l, int finishing) {
   uint32_t at = (uint32_t)sizeof(rio_Compiler);
   uint8_t *base = (uint8_t *)c;
   uint32_t syms = rio_carve(&at, l->symbols, sizeof(rio_Symbol), 4);
@@ -67,7 +68,7 @@ static uint32_t rio_layout(rio_Compiler *c, const rio_Limits *l) {
   uint32_t constIsAddr = rio_carve(&at, (l->consts + 7) / 8, 1, 1);
   uint32_t localViews = rio_carve(&at, (l->slots + 7) / 8, 1, 1);
   uint32_t paramViews = rio_carve(&at, (l->slots + 7) / 8, 1, 1);
-  uint32_t slotMap = rio_carve(&at, l->slots, 2, 2);
+  uint32_t slotMap = rio_carve(&at, finishing ? l->slots : 0, 2, 2);
   uint32_t code = rio_carve(&at, l->code, sizeof(rio_Instr), 8);
   if (c) {
     c->syms = (rio_Symbol *)(void *)(base + syms);
@@ -92,7 +93,7 @@ static uint32_t rio_layout(rio_Compiler *c, const rio_Limits *l) {
   return (at + 15) & ~15u;
 }
 
-uint32_t rio_limitsSize(const rio_Limits *l) { return rio_layout(0, l) + 16; }
+uint32_t rio_limitsSize(const rio_Limits *l) { return rio_layout(0, l, 1) + 16; }
 
 /* ------------------------------------------------------------------ starting */
 
@@ -124,9 +125,9 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
     for (k = size + size / 2; k > size / 4; k -= size / 32) {
       l = rio_limitsFor(k);
       l.code = rio_clamp(size / 128, 256, 65535);
-      l.slots = rio_clamp(size / 32, 2048, 65536); /* (their map, 2 bytes each, is for finishing, which a check doesn't) */
+      l.slots = rio_clamp(size / 32, 2048, 65536); /* (a check has no slot map: that's for finishing) */
       if (l.slots < l.consts + 1024) l.slots = l.consts + 1024;
-      if (rio_limitsSize(&l) + room + 64 <= size) break;
+      if (rio_layout(0, &l, 0) + 16 + room + 64 <= size) break;
     }
   } else { /* the tables scale to half the room; the code (when it's compiled into scratch) starts with an
               eighth, and takes more from the string pool's free room as it needs it (rio_moreCode) */
@@ -148,7 +149,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
     size = below - l.consts * 4;
   }
   pad = (16 - ((uintptr_t)scratch & 15)) & 15;
-  used = rio_limitsSize(&l);
+  used = rio_layout(0, &l, !repl && !vm->checking) + 16;
   if (l.slots < l.consts + 64 || l.consts * 4 + 256 > vm->memSize || size < pad + used + 64) {
     rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, inMem ? "not enough memory for the compiler" : "scratch too small for these limits");
     return -1;
@@ -158,7 +159,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   c->limits = l;
   c->room = size - (uint32_t)pad;
   c->source = inMem ? vm->memSize - below : 0;
-  used = rio_layout(c, &l);
+  used = rio_layout(c, &l, !repl && !vm->checking);
   c->pool = (uint8_t *)c + used;
   c->poolCap = c->lineTableTop = (size - (uint32_t)pad - used) & ~3u;
   vm->constCap = l.consts;
