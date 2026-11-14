@@ -83,7 +83,11 @@ static void rio_condition(rio_Vm *vm, rio_Block *b) {
   rio_Expr e, cond;
   c->isTestCount = 0;
   b->knownBefore = b->knownCount;
-  e = rio_parseExpr(vm);
+  if (c->tok.kind == rio_Tok_id && c->peek.kind == rio_Tok_colonEq) { /* if name := x: the name lives in this branch, and is tested */
+    rio_declareVar(vm);
+    e = rio_symbolExpr(vm, c->symCount - 1);
+    e.tempStart = (uint16_t)c->freeSlot; /* (the test's temporaries from here, as a parsed expression's) */
+  } else e = rio_parseExpr(vm);
   rio_maybeTest(vm, &e, 1); /* (if x, for a maybe x: x is its value inside) */
   cond = e;
   b->a = (uint16_t)rio_jumpIfFalse(vm, &e);

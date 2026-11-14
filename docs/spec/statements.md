@@ -120,6 +120,38 @@ if n  # error: condition must be Bool
 end
 ```
 
+`if name := value` (and `case name := value`) declares a variable for that branch alone and tests it:
+a maybe is true when it has a value, and is that value inside, as `if x` makes it for a maybe `x`; a
+`Bool` is the test itself. As `switch name := value` does for a switch, it keeps a name that's only
+for one branch out of the code after it:
+
+```rio
+Spot :: struct
+  name: String
+end
+spots := [2]Spot{{name = "well"}, {name = "gate"}}
+find :: proc(name: String) -> ?Spot
+  for s in spots
+    if s.name == name do return s
+  end
+  return nil
+end
+if s := find("cave")
+  log("cave", s.name)
+case s := find("gate")
+  log("found", s.name)
+end
+```
+
+```output
+found gate
+```
+
+```rio
+if n := 3  # error: condition must be Bool (or a maybe)
+end
+```
+
 ## for
 
 `for` has four forms:

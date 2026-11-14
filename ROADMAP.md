@@ -127,6 +127,17 @@ In this order:
 
 ## Maybe
 
+- **Keeping a String a proc was given** (met in Cloudlamp, 2026-11-14): `say(s: String)` can't store `s`
+  in a global (it may view the caller's memory), though here it's always a literal, so a game copies it
+  into a Blob. Ideas: a String that's known constant (a literal's, or a constant's) kept as it is; or a
+  parameter marked as one that's kept, which a call can pass only a constant (or a global's) to.
+
+- **A declaration before a condition** (the user, 2026-11-14), as Go's `if a := b(); a.ready`: a value
+  fetched, then something about it tested, the name kept to the statement; for `switch` and loops too
+  (`for line := next(); line.len() > 0`?). Not Go's spelling: `;` already parts statements on a line.
+  Done meanwhile: `if name := value` and `case name := value` (a maybe's value, or a Bool), as `switch
+  name := value` was.
+
 - **Asking for native code** (being considered, 2026-11-13): a marker on a loop or proc that must be
   compiled to native code: it's compiled first, ahead of the rest, and if it can't be (an op the JIT
   doesn't do, a call that isn't native), compiling the app says why, on the desktop too (the check is
@@ -250,6 +261,10 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **`if name := value`** (2026-11-14): `if` and `case` declare a name for their branch alone and test it
+  (a maybe: there, and its value inside; a Bool: its truth), as `switch name := value` already did
+  (docs/spec/statements.md#if; tests/test.rio).
 
 - **No slot map where nothing finishes** (2026-11-14): a REPL and a check never finish a program, so
   the slot map (2 bytes a slot, for sharing frames, packing and dropping unused procs) isn't carved

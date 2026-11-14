@@ -1372,6 +1372,23 @@ if bmM
   bmSeen = bmM + 1
 end
 check(bmSeen == 8, "if x: x its value inside")
+bmBound := 0
+if bmV := "6".toInt() # (if name := value: declared for the branch, tested; a later case's too)
+  bmBound = bmV * 10
+end
+if bmW := "x".toInt()
+  bmBound = -1
+case bmW := "4".toInt()
+  bmBound += bmW
+else
+  bmBound = -2
+end
+if bmZ := "0".toInt() do bmBound += 1 - bmZ # (a maybe that's there, though it's 0: an Int isn't a condition)
+bmBound -= 1
+if bmT := bmBound == 64 do bmBound += 1
+check(bmBound == 65, "if name := value, and case name := value: a maybe's value, a Bool's truth")
+bmV := 1 # (the branch's name gone after it: free to declare again)
+check(bmV == 1, "if name := value: the name only in its branch")
 check(not "z".toInt() and not not bmM, "not x")
 check(bmM and bmM > 5, "x and a Bool: a Bool")
 check(not (bmM and bmM > 50), "x and a Bool: false")
