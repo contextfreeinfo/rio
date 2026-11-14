@@ -230,7 +230,8 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
    of its own, rio_setSourceWindow's bytes (2048 by default; set before compiling): a name, a number
    or one line of a type method's declaration has to fit in half of it. The window comes out of the
    string pool, only when compiling reads this way: rio_compileStream, or (for a loader's sources read
-   so, the main one in memory) rio_setSourceWindow set */
+   so, the main one in memory) rio_setSourceWindow set; for a REPL, set before rio_replBegin, which sets
+   the window aside as it starts */
 int rio_compileStream(rio_Vm *vm, rio_SourceFn read, void *userData);
 void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes);
 /* A check: a source compiled for what it says, not to run: its first error, if any (rio_error,

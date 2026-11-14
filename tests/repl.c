@@ -13,6 +13,27 @@ static int fails, n;
 static void logfn(void *ud, const char *s, int len) { (void)ud; memcpy(out + outn, s, (size_t)len); outn += (size_t)len; out[outn++] = '\n'; out[outn] = 0; }
 static void stop(rio_Vm *v, rio_Val *a) { (void)a; rio_interrupt(v); }
 
+/* files read a part at a time, as a host's storage gives them: part.rio and helper.rio (long enough to
+   need more than one 64-byte window) */
+static const char partSrc[] = "# a part, included into the REPL's piece: its names the piece's own\n"
+                              "fromPart := 40 + 2   # (a line or two, to read across the window)\n";
+static const char helperSrc[] = "# a module, imported: its names through it\n"
+                                "twice* :: proc(x: Int) -> Int\n  return x * 2   # (and on, past the window)\nend\n";
+static int streamRead(void *ud, char *buf, uint32_t at, uint32_t len) {
+  const char *s = (const char *)ud; uint32_t total = (uint32_t)strlen(s), k = 0;
+  while (at + k < total && k < len) { buf[k] = s[at + k]; k++; }
+  return (int)k;
+}
+static int streamLoader(void *ud, const char *path, int kind, rio_Source *o) {
+  (void)ud; (void)kind;
+  memset(o, 0, sizeof *o);
+  if (!strcmp(path, "part.rio")) o->readData = (void *)partSrc;
+  else if (!strcmp(path, "helper.rio") || !strcmp(path, "helper")) o->readData = (void *)helperSrc;
+  else return 1;
+  o->read = streamRead;
+  return 0;
+}
+
 /* eval src; expect result r, printed output (NULL = don't check) and error substring (NULL = none) */
 static void eval(const char *src, int r, const char *printed, const char *err) {
   int got;
@@ -93,6 +114,20 @@ int main(void) {
     rio_addFfi(&vm, "stop", "", stop);
     if (rio_compile(&vm, src, (uint32_t)strlen(src)) || !rio_run(&vm) || !strstr(rio_error(&vm), "interrupted")) {
       printf("FAIL: interrupt a compiled program: \"%s\"\n", rio_error(&vm)); fails++;
+    }
+  }
+  { /* a REPL whose loader's files are read a part at a time (a host's storage): the window for them is
+       set aside as it begins, when the host asks for one (rio_setSourceWindow), since the line table
+       grows down from where it goes; an include and a module, read through a 64-byte window */
+    n++;
+    rio_init(&vm, mem, sizeof mem, code, 8192);
+    rio_setLog(&vm, logfn, 0);
+    rio_setLoader(&vm, streamLoader, 0);
+    rio_setSourceWindow(&vm, 64);
+    if (rio_replBegin(&vm, scratch, sizeof scratch, 0)) { printf("FAIL: begin, with a window: %s\n", rio_error(&vm)); fails++; }
+    else {
+      eval("include \"part.rio\"\nimport helper\n", 0, "", 0);
+      eval("fromPart + helper.twice(fromPart)\n", 0, "126\n", 0);
     }
   }
   if (!fails) printf("all %d repl tests passed\n", n);

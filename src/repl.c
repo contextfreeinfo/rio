@@ -34,6 +34,8 @@ int rio_replBegin(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *li
   }
   if (rio_startCompiler(vm, scratch, size, lim, 1, 0)) return -1;
   c = vm->compiler;
+  if (vm->sourceWindow) rio_carveWindow(vm); /* (a loader's files read a part at a time, as the host asked: rio_setSourceWindow;
+                                                now, while the pool's top is free, since the line table grows down from it) */
   memset(vm->mem, 0, vm->memSize);
   rio_setupCompiler(vm, 1); /* (auto-imports from the loader's sources: compiled below, before any input) */
   /* reserved up front, since later pieces can add procs and code: their runtime table, the return stack,
