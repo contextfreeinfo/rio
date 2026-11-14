@@ -429,7 +429,7 @@ static void rio_memoryReport(void) {
     for (pc = p->entry; pc < p->end; pc++) /* its callees: compiled earlier, so already measured */
       if (vm->code[pc].op == rio_Op_call)
         for (j = 0; j < i; j++)
-          if (vm->procs[j].entry == vm->code[pc].c) {
+          if (vm->procs[j].entry == vm->code[pc].c && vm->procs[j].end > vm->procs[j].entry) {
             if (chain[j] > heaviestCallee) {
               heaviestCallee = chain[j];
               next[i] = j;

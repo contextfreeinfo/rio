@@ -1,0 +1,79 @@
+# procs nothing calls are dropped as compiling finishes (docs/spec/host.md#unused-procs); what's
+# kept runs as before. rio -m names how many: CMakeLists.txt (rio_unused_report) checks the count, 7:
+# here 3 (never, onlyFromNever, unusedGeneric) and in tools.rio 4 (triple, cubeOf, cubes, Pair.diff).
+import .tools
+
+fails := 0
+check :: proc(ok: Bool, what: String)
+  if not ok
+    log("FAIL", what)
+    fails += 1
+  end
+end
+
+onlyFromNever :: proc() -> Int
+  return 7
+end
+
+never :: proc() -> Int              # nothing calls it
+  return onlyFromNever() + 1
+end
+
+unusedGeneric :: proc[T](xs: []T) -> Int
+  return xs.len()
+end
+
+usedGeneric :: proc[T](xs: []T) -> Int
+  return xs.len() * 10
+end
+
+add :: proc(a, b: Int) -> Int
+  return a + b
+end
+
+apply :: proc(f: proc(Int, Int) -> Int, a, b: Int) -> Int
+  return f(a, b)
+end
+
+mul :: callback proc(a, b: Int) -> Int  # used only as a value: kept
+  return a * b
+end
+
+maxOf :: callback proc(a, b: Int) -> Int  # a callback no one names: kept (it may be a value)
+  if a > b do return a
+  return b
+end
+
+loopy :: proc(n: Int) -> Int        # jumps inside a kept proc that comes after dropped ones
+  total := 0
+  for i in 0..<n
+    if i % 2 == 0
+      total += i
+    else
+      total -= 1
+    end
+  end
+  return total
+end
+
+xs := [3]Int{1, 2, 3}
+check(add(2, 3) == 5, "add")
+check(apply(mul, 4, 5) == 20, "a callback, as a value")
+check(tools.double(4) == 8, "a module's proc")
+check(tools.sumSquares(xs[]) == 14, "a module's proc, calling one called nowhere else")
+check(tools.started == 42, "a module's top-level code")
+p := tools.Pair{a = 5, b = 2}
+check(p.sum() == 7, "a method")
+check(usedGeneric(xs[]) == 30, "a generic proc")
+check(loopy(6) == 3, "loops and ifs after dropped procs")
+check(tools.at(xs[], 2) == 3, "a module's proc after dropped ones")
+s := 0
+for i in 0..<3
+  if i == 1
+    s += 100
+  else
+    s += i
+  end
+end
+check(s == 102, "top-level loops after dropped procs")
+if fails == 0 do log("unused: all ok")

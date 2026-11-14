@@ -194,3 +194,15 @@ The host sees values in words of 4 bytes, little-endian:
 
 Positions ("where ... start") are byte offsets in the program's memory. Host procs get their
 arguments as these words, one after another.
+
+### Unused procs
+
+A proc nothing can call is left out of the compiled program: its code, and its frame. So a module's
+whole surface can be imported, and a program pays only for the procs it uses. What can run is the
+top-level code (each module's too), the procs the host can find (`main` and `name*` in the main file,
+see [What the host can find](#what-the-host-can-find)), and the procs used as values, or declared
+`callback`; then whatever they call, and so on. A dropped proc is still compiled, so its errors are
+still errors, and it keeps its place in the proc table (a few bytes). `rio -m` says how many were
+dropped, and how many instructions with them. A REPL keeps them all, since what's typed next may call
+any of them. Not dropped (yet): globals and constants only dropped code used, and a dropped proc's big
+locals (over 16 words), which are set aside as it compiles.

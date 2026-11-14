@@ -126,7 +126,8 @@ typedef struct {
   uint32_t resultAt;
   uint32_t bigBytes;   /* bytes of its locals stored apart (over 16 words) */
   uint32_t bigTop;     /* its big locals are below this */
-  uint8_t defined;     /* its end has been compiled: a call to it isn't recursion */
+  uint8_t defined;     /* its end has been compiled: a call to it isn't recursion (1; 2 once compiling's done,
+                          if nothing can call it: its code is dropped, rio_dropUnused) */
   uint8_t selfByRef;   /* a method on a struct: self is the receiver's address */
   uint8_t isStatic;    /* T.name :: static proc: on its type, with no self (called T.name()) */
   uint8_t shared;
@@ -394,7 +395,8 @@ typedef struct rio_Compiler {
   } isTests[8];           /* the `x is T`s in an if's condition */
   int16_t isTestCount;
   int16_t unreachable;    /* the code here can't run: after a return, break or continue (rio_Flow) */
-  uint16_t *slotMap;      /* old slot -> new slot, while sharing frames */
+  uint16_t *slotMap;      /* old slot -> new slot, while sharing frames; the dropped procs' code, before */
+  uint32_t codeHigh;      /* the instructions compiling made, before unused procs were dropped */
   rio_Instr *scratchCode; /* the code while compiling, when it ends up in mem */
   rio_FfiDef ffi[rio_MAX_FFI];
   uint8_t *pool;          /* string pool: the rest of scratch */

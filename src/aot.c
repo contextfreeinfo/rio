@@ -124,7 +124,7 @@ static const char *rio_procName(rio_Aot *a, int proc) {
 static int rio_procAtPc(rio_Aot *a, int pc) {
   int i;
   for (i = 0; i < a->vm->procCount; i++)
-    if (a->vm->procs[i].entry == pc) return i;
+    if (a->vm->procs[i].entry == pc && a->vm->procs[i].end > pc) return i; /* (not a dropped one, empty) */
   return -1;
 }
 

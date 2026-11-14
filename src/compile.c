@@ -514,11 +514,14 @@ static int rio_procAt(rio_Vm *vm, int pc, int before) {
   int lo = 0, hi = before - 1, m;
   while (lo <= hi) { /* procs are compiled in order, so their code is too */
     m = (lo + hi) / 2;
-    if (procs[m].entry == pc) return m;
+    if (procs[m].entry == pc) {
+      while (procs[m].end == pc && m + 1 < before && procs[m + 1].entry == pc) m++; /* (past dropped ones, empty) */
+      return m;
+    }
     if (procs[m].entry < pc) lo = m + 1;
     else hi = m - 1;
   }
-  for (m = 0; m < before && procs[m].entry != pc; m++) {}
+  for (m = 0; m < before && (procs[m].entry != pc || procs[m].end == pc); m++) {}
   if (m == before) rio_FAIL(0, "internal error: call to an unknown proc");
   return m;
 }
@@ -536,6 +539,12 @@ static uint32_t rio_placeFrames(rio_Vm *vm, uint32_t *top) {
     rio_ProcDef *p = &c->procDefs[k];
     uint32_t start = 0, callDepth = 0;
     if ((i < n) == (p->callsValues != 0)) continue;
+    if (p->defined == 2) { /* (dropped: no code: its frame, shared, at the bottom, taking no room) */
+      p->shared = !vm->inRepl && p->frameEnd > p->frameStart;
+      p->sharedStart = p->sharedEnd = 0;
+      p->depth = 0;
+      continue;
+    }
     for (pc = p->entry; pc < p->end; pc++) { /* above everything it can call */
       if (vm->code[pc].op == rio_Op_calli) {
         for (j = 0; j < vm->procCount; j++) {
@@ -633,7 +642,7 @@ static uint32_t rio_shareFrames(rio_Vm *vm) {
     if (p->frameEnd > p->frameStart) {
       uint32_t n = p->frameEnd - p->frameStart;
       p->frameStart = map[p->frameStart];
-      p->frameEnd = (uint16_t)(p->frameStart + n);
+      p->frameEnd = (uint16_t)(p->frameStart + (p->defined == 2 ? 0 : n)); /* (a dropped one's: empty) */
     }
     if (p->resultAt) p->resultAt = rio_MAP_ADDR(p->resultAt);
   }
@@ -695,6 +704,7 @@ static int rio_isHostName(rio_Compiler *c, rio_Symbol *y) {
 static void rio_noteCompile(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Usage *u = vm->usage;
+  int k;
   if (!u || !c) return;
   memset(u, 0, sizeof *u);
   u->cap = c->limits;
@@ -706,7 +716,9 @@ static void rio_noteCompile(rio_Vm *vm) {
   u->used.consts = vm->constCount;
   u->used.slots = c->slotHigh;
   u->used.modules = (uint32_t)c->moduleCount;
-  u->used.code = vm->code == c->scratchCode ? vm->codeLen : 0;
+  u->used.code = vm->code == c->scratchCode ? (c->codeHigh ? c->codeHigh : vm->codeLen) : 0;
+  for (k = 0; k < vm->procCount; k++) u->droppedProcs += c->procDefs[k].defined == 2;
+  u->droppedCode = c->codeHigh ? c->codeHigh - vm->codeLen : 0;
   if (u->used.code) { /* (the most it could have had: what it has, and the pool's free middle, which it shares) */
     uint32_t most = vm->codeCap + (c->poolCap - c->poolUsed) / (uint32_t)sizeof(rio_Instr);
     u->cap.code = most > 65535 ? 65535 : most;
@@ -831,14 +843,116 @@ static void rio_pack(rio_Vm *vm) {
   vm->framedProcs = vm->procCount;
 }
 
+/* Procs nothing can call are left out (docs/spec/host.md#unused-procs): a library's whole surface
+   compiles, and an app keeps the code of what it uses. What runs is top-level code, the procs the host can
+   look up (rio_isHostName), and procs used as values (or declared callbacks); then whatever they call, and
+   so on. Callees come before their callers in the code (declared before use, no recursion), so a pass back
+   to front finds nearly all of them; passes repeat until none is new. A dropped proc keeps its number
+   (proc values and the host hold numbers), its code empty; its frame is given no room (rio_placeFrames).
+   Jumps, calls, procs, modules and the line table are renumbered. Not in a REPL (what's typed next may
+   call anything). The cuts, (start, new start, length) each, sorted, go in the slot map, done with until
+   frames are shared; without room for them, nothing is dropped. */
+static uint32_t rio_afterCuts(const uint16_t *cuts, int count, uint32_t pc) {
+  int lo = 0, hi = count;
+  while (lo < hi) { /* (the first cut starting past pc) */
+    int m = (lo + hi) / 2;
+    if (cuts[3 * m] <= pc) lo = m + 1;
+    else hi = m;
+  }
+  if (!lo) return pc;
+  lo--;
+  if (pc < (uint32_t)cuts[3 * lo] + cuts[3 * lo + 2]) return cuts[3 * lo + 1]; /* (inside it: where it was) */
+  return pc - ((uint32_t)cuts[3 * lo] - cuts[3 * lo + 1]) - cuts[3 * lo + 2];
+}
+
+static void rio_dropUnused(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  uint16_t *cuts = c->slotMap;
+  uint32_t n = vm->codeLen, pc, to, removed = 0, i, w;
+  int k, j, changed, count = 0;
+  c->codeHigh = n;
+  if (vm->inRepl || !vm->procCount) return;
+  for (k = 0; k < vm->procCount; k++) c->procDefs[k].defined = c->procDefs[k].usedAsValue ? 1 : 2; /* (2: not called yet) */
+  for (k = 0; k < c->symCount; k++)
+    if (c->syms[k].kind == rio_SymKind_proc && rio_isHostName(c, &c->syms[k])) c->procDefs[c->syms[k].value].defined = 1;
+  do { /* each call from code that runs (the procs that may be dropped are in the code's order) */
+    changed = 0;
+    for (pc = n, j = vm->procCount - 1; pc-- > 0;) {
+      rio_ProcDef *callee;
+      if (vm->code[pc].op != rio_Op_call) continue;
+      while (j >= 0 && (c->procDefs[j].usedAsValue || c->procDefs[j].entry > pc)) j--;
+      if (j >= 0 && pc < c->procDefs[j].end && c->procDefs[j].defined == 2) continue; /* (in one not called yet) */
+      callee = &c->procDefs[rio_procAt(vm, vm->code[pc].c, vm->procCount)];
+      if (callee->defined == 2) callee->defined = 1, changed = 1;
+    }
+  } while (changed && !rio_failed(vm));
+  for (k = 0; k < vm->procCount; k++) count += c->procDefs[k].defined == 2;
+  if (!count || rio_failed(vm)) return;
+  if ((uint32_t)count * 3 > c->limits.slots) { /* (no room for the cuts: all kept) */
+    for (k = 0; k < vm->procCount; k++) c->procDefs[k].defined = 1;
+    return;
+  }
+  for (k = 0, j = 0; k < vm->procCount; k++) { /* the cuts: each one's code, and the jump around it */
+    rio_ProcDef *p = &c->procDefs[k];
+    uint32_t start = p->entry;
+    if (p->defined != 2) continue;
+    if (start && vm->code[start - 1].op == rio_Op_jmp && vm->code[start - 1].c == p->end) start--;
+    cuts[3 * j] = (uint16_t)start;
+    cuts[3 * j + 1] = (uint16_t)(start - removed);
+    cuts[3 * j + 2] = (uint16_t)(p->end - start);
+    removed += p->end - start;
+    j++;
+  }
+  for (pc = 0, to = 0, j = 0; pc < n;) { /* the code, closed up */
+    if (j < count && pc == cuts[3 * j]) {
+      pc += cuts[3 * j + 2];
+      j++;
+      continue;
+    }
+    vm->code[to++] = vm->code[pc++];
+  }
+  vm->codeLen = to;
+  for (i = 0; i < to; i++) { /* jumps and calls (calls name their proc's entry, while compiling) */
+    rio_Instr *in = &vm->code[i];
+    if (in->op != rio_Op_data && (rio_isJump(in->op) || in->op == rio_Op_call)) in->c = (uint16_t)rio_afterCuts(cuts, count, in->c);
+  }
+  for (k = 0; k < vm->procCount; k++) {
+    rio_ProcDef *p = &c->procDefs[k];
+    p->entry = (uint16_t)rio_afterCuts(cuts, count, p->entry);
+    p->end = (uint16_t)rio_afterCuts(cuts, count, p->end);
+  }
+  for (k = 0; k < c->moduleCount; k++) {
+    c->modules[k].codeStart = (uint16_t)rio_afterCuts(cuts, count, c->modules[k].codeStart);
+    c->modules[k].codeEnd = (uint16_t)rio_afterCuts(cuts, count, c->modules[k].codeEnd);
+  }
+  for (i = 0, w = 0; i < c->lineCount; i++) { /* the line table (oldest at the top): an entry whose code all
+                                                 went gives way to the next, at the same place */
+    uint16_t entry[2], last[2];
+    memcpy(entry, c->pool + c->lineTableTop - 4 * (i + 1), 4);
+    entry[0] = (uint16_t)rio_afterCuts(cuts, count, entry[0]);
+    if (w) {
+      memcpy(last, c->pool + c->lineTableTop - 4 * w, 4);
+      if (last[0] == entry[0]) w--;
+    }
+    memcpy(c->pool + c->lineTableTop - 4 * (w + 1), entry, 4);
+    w++;
+  }
+  c->lineCount = w;
+  c->poolCap = c->lineTableTop - 4 * w;
+}
+
 static void rio_finish(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Val *R = (rio_Val *)vm->mem;
   rio_Export *x;
-  uint32_t depth = rio_shareFrames(vm), firstFree = vm->constCap * 4; /* after sharing, slots start right after the constants */
+  uint32_t depth, firstFree;
   uint32_t i, n = 0, p, exportsAt, linesAt, procsAt, modulesAt, size, base, lineSize, codeSize = 0, codeAt = 0;
   uint32_t moduleCount = (uint32_t)(c->moduleCount - 2), fileNamesAt;
   int k;
+  rio_dropUnused(vm);
+  if (rio_failed(vm)) return;
+  depth = rio_shareFrames(vm);
+  firstFree = vm->constCap * 4; /* after sharing, slots start right after the constants */
   rio_noteCompile(vm);
   rio_pack(vm); /* (into the run form: rio_codeFrames) */
   c->freeSlot = c->slotHigh;
@@ -1056,6 +1170,19 @@ int rio_usageText(const rio_Usage *u, char *out, int cap) {
   if (u->wanted) { /* (what didn't fit) */
     n = rio_usageBytes(out, n, cap, "big value", u->wanted);
     n = rio_usageBytes(out, n, cap, "room for it", u->left);
+  }
+  if (u->droppedProcs) { /* (procs nothing calls: left out, instructions and all) */
+    char line[96];
+    int k = rio_appendText(line, 0, "  unused procs");
+    while (k < 18) line[k++] = ' ';
+    k += rio_formatInt(line + k, (int32_t)u->droppedProcs);
+    k = rio_appendText(line, k, " dropped (");
+    k += rio_formatInt(line + k, (int32_t)u->droppedCode);
+    k = rio_appendText(line, k, " instructions)\n");
+    if (n + k < cap) {
+      memcpy(out + n, line, (size_t)k);
+      n += k;
+    }
   }
   if (u->tables) { /* (compiled: where the memory goes, running) */
     n = rio_usageBytes(out, n, cap, "constants", u->consts);

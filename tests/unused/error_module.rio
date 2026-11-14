@@ -1,0 +1,4 @@
+# a runtime error in a module's proc that comes after its dropped ones names that module's line
+import .tools
+xs: [3]Int
+log(tools.at(xs[], 5))

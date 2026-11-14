@@ -244,6 +244,25 @@ if(NOT MSVC)
   target_link_libraries(runtime_error_aot PRIVATE m)
 endif()
 add_test(NAME rio_aot_runtime_error COMMAND runtime_error_aot)
+# procs nothing calls are dropped (docs/spec/host.md#unused-procs): what's kept runs as before (the VM,
+# and generated C); -m says how many went; a runtime error after dropped code names its own line
+add_test(NAME rio_unused COMMAND rio ${CMAKE_SOURCE_DIR}/tests/unused/main.rio)
+set_tests_properties(rio_unused PROPERTIES PASS_REGULAR_EXPRESSION "unused: all ok")
+add_test(NAME rio_unused_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/unused/main.rio)
+set_tests_properties(rio_unused_report PROPERTIES PASS_REGULAR_EXPRESSION "unused procs +7 dropped")
+add_test(NAME rio_unused_error_main COMMAND rio ${CMAKE_SOURCE_DIR}/tests/unused/error_main.rio)
+set_tests_properties(rio_unused_error_main PROPERTIES PASS_REGULAR_EXPRESSION "error_main\\.rio:14: runtime error: index out of bounds")
+add_test(NAME rio_unused_error_module COMMAND rio ${CMAKE_SOURCE_DIR}/tests/unused/error_module.rio)
+set_tests_properties(rio_unused_error_module PROPERTIES PASS_REGULAR_EXPRESSION "tools\\.rio:44: runtime error: index out of bounds")
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/unused_aot.c
+  COMMAND rio -c ${CMAKE_BINARY_DIR}/unused_aot.c ${CMAKE_SOURCE_DIR}/tests/unused/main.rio
+  DEPENDS rio ${CMAKE_SOURCE_DIR}/tests/unused/main.rio ${CMAKE_SOURCE_DIR}/tests/unused/tools.rio)
+add_executable(unused_aot ${CMAKE_BINARY_DIR}/unused_aot.c)
+if(NOT MSVC)
+  target_link_libraries(unused_aot PRIVATE m)
+endif()
+add_test(NAME rio_aot_unused COMMAND unused_aot)
+set_tests_properties(rio_aot_unused PROPERTIES PASS_REGULAR_EXPRESSION "unused: all ok")
 # an error late in a line that becomes many statements still reports that line
 add_test(NAME rio_cli_runtime_error_late COMMAND rio ${CMAKE_SOURCE_DIR}/tests/runtime_error_late.rio)
 set_tests_properties(rio_cli_runtime_error_late PROPERTIES PASS_REGULAR_EXPRESSION "runtime_error_late\\.rio:6: runtime error: index out of bounds")

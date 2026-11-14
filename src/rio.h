@@ -203,6 +203,7 @@ typedef struct {
   uint32_t mem, consts, data, code, tables, free;
   uint32_t wanted, left; /* compiling ran out of memory for a big value (an array or struct, over 16
                             words): its bytes, and the room there was for it (else 0) */
+  uint32_t droppedProcs, droppedCode; /* procs nothing could call, and their instructions: left out */
 } rio_Usage;
 
 #ifndef rio_NO_COMPILER

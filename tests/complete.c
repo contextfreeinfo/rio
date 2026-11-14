@@ -274,12 +274,15 @@ int main(void) {
       printf("FAIL %d: a whole check: %d, and runnable after\n", n, r);
       fails++;
     }
-    for (i = 0; i < 60; i++) { /* (far more code than the scratch holds: kept a statement at a time) */
+    for (i = 0; i < 60; i++) { /* (far more code than the scratch holds: kept a statement at a time; each proc
+                                  calls the one before, and the last is called, so none is dropped as unused) */
       int j;
-      len += (size_t)snprintf(src + len, sizeof src - len, "p%d :: proc(a: Int) -> Int\n  b := a\n", i);
+      if (i) len += (size_t)snprintf(src + len, sizeof src - len, "p%d :: proc(a: Int) -> Int\n  b := a + p%d(a)\n", i, i - 1);
+      else len += (size_t)snprintf(src + len, sizeof src - len, "p%d :: proc(a: Int) -> Int\n  b := a\n", i);
       for (j = 0; j < 20; j++) len += (size_t)snprintf(src + len, sizeof src - len, "  if b > %d\n    b = b * 3 - a / %d\n  end\n", j, j + 1);
       len += (size_t)snprintf(src + len, sizeof src - len, "  return b\nend\n");
     }
+    len += (size_t)snprintf(src + len, sizeof src - len, "log(p59(1))\n");
     rio_init(&cv, small, sizeof small, 0, 0);
     r = rio_compileScratch(&cv, src, (uint32_t)len, many, sizeof many);
     n++;

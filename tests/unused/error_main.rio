@@ -1,0 +1,16 @@
+# a runtime error in code after dropped procs names its own line (the line table is renumbered)
+gone :: proc(x: Int) -> Int
+  y := x * 2
+  return y + 1
+end
+
+alsoGone :: proc() -> Int
+  return gone(3)
+end
+
+xs: [3]Int
+k := 5
+fetch :: proc(i: Int) -> Int
+  return xs[i]
+end
+log(fetch(k))

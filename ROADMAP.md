@@ -251,6 +251,14 @@ In this order:
 
 ## Done recently
 
+- **Unused procs dropped** (2026-11-13): as compiling finishes, procs nothing can call (from top-level
+  code, the host's names, proc values and callbacks) lose their code and frames; `-m` says how many
+  (docs/spec/host.md#unused-procs; tests/unused). A library's whole surface costs an app only what it
+  calls: Rinc's Cloudlamp, 37.4 KB of code to 23.1 KB (59 procs, 2,929 instructions), 16.3 KB more
+  free; Maps 5.2 KB more, Music 3.6, Sound 2.9, Paint 0.9. Still kept: globals and constants only the
+  dropped code used, and dropped procs' big locals. The compiler's instruction table still holds them
+  all while compiling (Maps' limit, 93% full, is unchanged).
+
 - **`==` on arrays, structs and unions:** whole values, each part as its own `==` (a String by its text,
   a Float as a number), a union by its tag first and then its value as that type. Only what's made of
   numbers, Bools, enums, Strings, Blobs and arrays, structs, unions and maybes of those compares, so

@@ -73,3 +73,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-11-13,3f4acbc+,puddle,33156,231785,19281,448512,30.0,90648,0.607,0.005,0.617,0.006,0.444,0.017,0.601,0.117,15719,3562,"pcs count 4-byte units (smaller instructions, step 2.1: every instruction still 8 bytes)"
 2026-11-13,3f12532+,puddle,38064,235549,19662,455168,38.3,83848,0.809,0.008,0.703,0.004,0.543,0.015,0.626,0.128,16069,3593,"short instructions (step 2.2: S3 packed, 24% smaller apps)"
 2026-11-13,3f12532+,puddle,39388,236001,19757,456704,26.7,78376,0.555,0.007,0.578,0.006,0.348,0.014,0.584,0.125,16164,3593,"short forms reading constants and globals (step 2.3a: SG and SK, 35% smaller apps)"
+2026-11-13,f328c2f+,puddle,39388,237565,19887,459776,43.3,78376,0.718,0.004,0.574,0.006,0.481,0.012,0.6,0.123,16294,3593,"unused procs dropped (Cloudlamp's code 38% smaller)"

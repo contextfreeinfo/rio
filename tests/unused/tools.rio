@@ -1,0 +1,47 @@
+# a module whose procs are mostly unused by main.rio (tests/unused/main.rio): those are dropped
+
+Pair* :: struct
+  a, b: Int
+end
+
+double* :: proc(x: Int) -> Int
+  return x * 2
+end
+
+triple* :: proc(x: Int) -> Int     # unused: dropped
+  return x * 3
+end
+
+squareOf :: proc(x: Int) -> Int    # called only by sumSquares, which main calls
+  return x * x
+end
+
+sumSquares* :: proc(xs: []Int) -> Int
+  total := 0
+  for x in xs do total += squareOf(x)
+  return total
+end
+
+cubeOf :: proc(x: Int) -> Int      # called only by cubes, which is unused: both dropped
+  return x * x * x
+end
+
+cubes* :: proc(xs: []Int) -> Int
+  total := 0
+  for x in xs do total += cubeOf(x)
+  return total
+end
+
+Pair.sum* :: proc() -> Int
+  return self.a + self.b
+end
+
+Pair.diff* :: proc() -> Int        # unused method: dropped
+  return self.a - self.b
+end
+
+at* :: proc(xs: []Int, i: Int) -> Int  # after dropped procs: an error here names its own line
+  return xs[i]
+end
+
+started* := double(21)             # top-level code runs, so double is kept
