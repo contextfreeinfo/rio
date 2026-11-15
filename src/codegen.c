@@ -287,7 +287,7 @@ static int rio_heldWords(rio_Vm *vm, int type, uint32_t addr, uint8_t *bits, int
   if (ty->kind == rio_TypeKind_struct) {
     for (i = 0; i < ty->fieldCount; i++) {
       rio_Field *f = rio_field(vm, ty->firstField + i);
-      if (!f->bits && !rio_heldWords(vm, f->type, addr + f->offset, bits, on)) return 0;
+      if (!f->bits && !rio_bitGet(vm->compiler->staticFields, ty->firstField + i) && !rio_heldWords(vm, f->type, addr + f->offset, bits, on)) return 0; /* (a static field's views last) */
     }
     return 1;
   }
@@ -356,6 +356,11 @@ void rio_checkReturned(rio_Vm *vm, const rio_Expr *e, int resultType) {
   rio_Expr held = *e;
   if ((rio_isViewKind(ty->kind) || rio_isViewKind(rio_type(vm, resultType)->kind)) && rio_isLocalView(vm, e))
     rio_FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+  if (rio_bitGet(vm->compiler->staticResults, (uint32_t)vm->compiler->curProc)) { /* (-> static T: what it returns lasts) */
+    rio_slotMarks(vm, &held);
+    if (rio_isLocalView(vm, &held) || held.fromParam)
+      rio_FAIL(, "this proc's result is static: return a view that lasts, a literal's, a constant's or a global's, not a local's or a parameter's");
+  }
   if (!rio_isAggregate(ty->kind) || !ty->hasRefs) return;
   rio_slotMarks(vm, &held);
   if (held.localView)
@@ -377,6 +382,8 @@ static void rio_storeView(rio_Vm *vm, const rio_Expr *dst, const rio_Expr *src) 
   if (holds) rio_slotMarks(vm, &held);
   isLocal = holds ? held.localView : rio_isLocalView(vm, src);
   src = &held;
+  if (dst->staticField && (isLocal || src->fromParam)) /* (a static field: it keeps only what lasts) */
+    rio_FAIL(, "this field is static: it holds only views that last, a literal's, a constant's or a global's, not a local's or a parameter's");
   if (dst->kind == rio_ExprKind_static && rio_isLocalMemory(vm, dst) && (uint32_t)dst->value < vm->top) {
     uint32_t at = (uint32_t)dst->value;
     int words = rio_typeWords(vm, dst->type), b = c->blockCount - 1;
@@ -670,8 +677,12 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
     return;
   }
   if (p->paramCount > 16) rio_FAIL(, "too many parameters for a proc value");
+  if (rio_bitGet(c->staticSelves, (uint32_t)e->value))
+    rio_FAIL(, "a proc that keeps what's passed (static) can't be a proc value yet: a call through it wouldn't check");
   for (i = 0; i < p->paramCount; i++) {
     rio_Param *param = &c->params[p->firstParam + i];
+    if (rio_bitGet(c->staticParams, (uint32_t)(p->firstParam + i))) /* (a static result is fine: callers just assume less) */
+      rio_FAIL(, "a proc that keeps what's passed (static) can't be a proc value yet: a call through it wouldn't check");
     params[i] = param->refType ? param->refType : param->type;
     refs |= (param->refType != 0) << i;
   }

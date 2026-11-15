@@ -391,6 +391,10 @@ static void rio_member(rio_Vm *vm) {
     rio_offsetPlace(e, f->offset);
     e->type = f->type;
     if (e->kind == rio_ExprKind_static) rio_partMarks(vm, e);
+    if (rio_bitGet(c->staticFields, (uint32_t)(ty->firstField + i))) { /* (a static field: what it views lasts) */
+      e->localView = e->fromParam = 0;
+      e->staticField = 1;
+    }
     if (f->bits) { /* (a bitfield: its bits of the word there) */
       e->bitAt = f->bitAt;
       e->bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
@@ -935,6 +939,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     f = rio_field(vm, st->firstField + m->a);
     e = rio_popValue(vm);
     dst = rio_exprOf(rio_ExprKind_static, f->type, m->c + f->offset);
+    dst.staticField = (uint16_t)rio_bitGet(c->staticFields, (uint32_t)(st->firstField + m->a));
     if (f->bits) {
       dst.bitAt = f->bitAt;
       dst.bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
@@ -1068,6 +1073,7 @@ static int rio_structOf(rio_Vm *vm, int p, int from, const int *bound) {
     if (f < 0) return 0;
     *rio_field(vm, f) = *rio_field(vm, rio_type(vm, tmpl)->firstField + j);
     rio_field(vm, f)->type = (uint16_t)types[j];
+    if (rio_bitGet(c->staticFields, (uint32_t)(rio_type(vm, tmpl)->firstField + j))) rio_bitSet(c->staticFields, (uint32_t)f); /* (static, as declared) */
   }
   rio_type(vm, made)->fieldCount = (uint16_t)n;
   rio_type(vm, made)->hasRefs = rio_type(vm, tmpl)->hasRefs;
@@ -1154,6 +1160,8 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
         continue;
       }
       if (param->refType && p->typeParams && arg->type != rio_bindType(vm, m->b, param->refType, bound)) rio_FAIL(, "type mismatch");
+      if (!i && rio_bitGet(c->staticSelves, (uint32_t)m->b) && (rio_isLocalMemory(vm, arg) || arg->localView || arg->fromParam))
+        rio_FAIL(, "this method keeps views of itself (self: static): call it on a global, not a local or a parameter");
       if ((!i && p->selfByRef) || param->refType) { /* the place's address (a view it returns may view that place) */
         if (arg->access & rio_Access_readOnly) { /* (a constant: the method has a copy, since it may change self) */
           rio_Expr copy = rio_exprOf(rio_ExprKind_static, rio_valueType(arg->type), rio_allocSlots(vm, rio_typeWords(vm, arg->type)) * 4);
@@ -1165,8 +1173,13 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
         continue;
       }
       rio_slotMarks(vm, arg);
-      resultLocal |= rio_isLocalView(vm, arg); /* (a view it returns may view what went in) */
-      resultFrom |= arg->fromParam;
+      if (rio_bitGet(c->staticParams, (uint32_t)(p->firstParam + i))) { /* (it may keep it: a view that lasts, then) */
+        if (rio_isLocalView(vm, arg) || arg->fromParam)
+          rio_FAIL(, "this proc keeps it (a static parameter): give it a view that lasts, a literal's, a constant's or a global's, not a local's or a parameter's");
+      } else {
+        resultLocal |= rio_isLocalView(vm, arg); /* (a view it returns may view what went in) */
+        resultFrom |= arg->fromParam;
+      }
       c->storingArgs = 1;
       rio_store(vm, &dst, &c->values[m->valueBase + i]);
       c->storingArgs = 0;
@@ -1186,6 +1199,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
       d = rio_allocSlots(vm, rio_typeWords(vm, resultType));
       dst = rio_exprOf(rio_ExprKind_static, resultType, d * 4);
       rio_store(vm, &dst, &src);
+      if (rio_bitGet(c->staticResults, (uint32_t)m->b)) resultLocal = resultFrom = 0; /* (a static result: it lasts) */
       rio_resultMarks(vm, &dst, resultLocal, resultFrom);
       rio_pushResult(vm, dst, m->freeAtStart);
     }

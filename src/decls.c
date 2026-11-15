@@ -306,8 +306,12 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
                                                                      read through like self */
   if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
   rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
+  if (how & 4) { /* static: what it views lasts, so it's kept as a global's view is */
+    if (isRef || !(rio_isViewKind(ty->kind) || ty->hasRefs)) rio_FAIL(, "static is for a view (a String, a Blob, a []T) or a value holding views, not a & parameter");
+    rio_bitSet(c->staticParams, (uint32_t)(c->paramCount - 1));
+  }
   if (isRef) rio_markParamView(vm, (uint32_t)addr, 1, 1); /* (the caller's place, or views from the caller: borrowed) */
-  else rio_markHeld(vm, type, (uint32_t)addr, 0, 1);
+  else rio_markHeld(vm, type, (uint32_t)addr, 0, !(how & 4));
   rio_addSymbol(vm, name, nameLen, isRef ? rio_SymKind_ref : rio_SymKind_var, type, isRef ? addr / 4 : addr);
   c->procDefs[proc].paramCount++;
 }
@@ -459,10 +463,26 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int ho
   }
   while (c->tok.kind != ')' && !rio_failed(vm)) { /* a, b: T  or  a: &T */
     const char *names[16];
-    int lens[16], opt, n = rio_parseNames(vm, names, lens, &opt), isRef = c->tok.kind == '&', t, j;
+    int lens[16], opt, n = rio_parseNames(vm, names, lens, &opt), isRef, t, j, kept = 0;
+    if (n == 1 && lens[0] == 4 && !memcmp(names[0], "self", 4) && rio_tokIs(vm, "static", 6)) { /* self: static, a method's claim */
+      rio_ProcDef *p = &c->procDefs[index];
+      rio_next(vm);
+      if (receiver < 0 || isStatic || p->paramCount != 1) rio_FAIL(, "self: static is a method's, first: it keeps views of itself, so it's called on a global");
+      rio_bitSet(c->staticSelves, (uint32_t)index);
+      if (p->selfByRef) rio_markParamView(vm, c->params[p->firstParam].addr, 1, 0);
+      else rio_markHeld(vm, c->params[p->firstParam].type, c->params[p->firstParam].addr, 0, 0);
+      if (c->tok.kind != ',') break;
+      rio_next(vm);
+      continue;
+    }
+    if (rio_tokIs(vm, "static", 6) && c->peek.kind != ',' && c->peek.kind != ')') { /* name: static T: kept, a view that lasts */
+      rio_next(vm);
+      kept = 4;
+    }
+    isRef = c->tok.kind == '&';
     if (isRef) rio_next(vm);
     t = rio_parseType(vm);
-    for (j = 0; j < n && !rio_failed(vm); j++) rio_procParam(vm, index, names[j], lens[j], t, isRef | (opt >> j & 1) << 1);
+    for (j = 0; j < n && !rio_failed(vm); j++) rio_procParam(vm, index, names[j], lens[j], t, isRef | (opt >> j & 1) << 1 | kept);
     if (rio_failed(vm)) return;
     if (c->tok.kind != ',') break;
     rio_next(vm);
@@ -470,9 +490,19 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int ho
   rio_expect(vm, ')', "')' expected");
   if (typeCount) rio_genericParams(vm, index); /* (its hidden parameters, right after the others) */
   if (c->tok.kind == rio_Tok_arrow) {
+    int kept = 0;
     rio_next(vm);
+    if (rio_tokIs(vm, "static", 6) && c->peek.kind != rio_Tok_eof && !c->peek.newline) { /* -> static T: what it returns lasts */
+      rio_next(vm);
+      kept = 1;
+    }
     rio_setProcResult(vm, index, rio_parseType(vm));
     if (rio_failed(vm)) return;
+    if (kept) {
+      rio_Type *rt = rio_type(vm, c->procDefs[index].resultType);
+      if (!rio_isViewKind(rt->kind) && !rt->hasRefs) rio_FAIL(, "static is for a view (a String, a Blob, a []T) or a value holding views");
+      rio_bitSet(c->staticResults, (uint32_t)index);
+    }
     if (typeCount && !rio_genericOk(vm, c->procDefs[index].resultType, 0)) rio_FAIL(, "a generic proc can't return a T yet: fill in a &T parameter");
   }
   rio_beginBody(vm, index);
@@ -602,7 +632,8 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   st->firstField = (uint16_t)c->fieldCount;
   while (c->tok.kind != rio_Tok_end && !rio_failed(vm)) {
     const char *names[16];
-    int lens[16], n, t, j, bits = 0, i;
+    int lens[16], n, t, j, bits = 0, i, kept = 0;
+    rio_Field *f;
     if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
     n = rio_parseNames(vm, names, lens, 0);
     if (c->tok.kind == rio_Tok_id && c->peek.kind == '(' && (i = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
@@ -624,12 +655,18 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
         if (bits < 31 && values > 1u << bits) rio_FAIL(, "too few bits for every value of this enum");
       }
       rio_expect(vm, ')', "')' expected");
-    } else t = rio_parseType(vm);
+    } else {
+      if (rio_tokIs(vm, "static", 6) && c->peek.kind != rio_Tok_eof && !c->peek.newline) { /* name: static T: it holds only views that last */
+        rio_next(vm);
+        kept = 1;
+      }
+      t = rio_parseType(vm);
+      if (kept && !rio_isViewKind(rio_type(vm, t)->kind) && !rio_type(vm, t)->hasRefs) rio_FAIL(, "static is for a view (a String, a Blob, a []T) or a value holding views");
+    }
     if (rio_type(vm, t)->kind == rio_TypeKind_void) rio_FAIL(, "invalid field type");
     if (!rio_genericOk(vm, t, 0)) rio_FAIL(, "a T goes in a field only in a []T, a [..]T or a proc type, so every field's size is the same whatever T is");
     rio_keepFieldsTogether(vm, st, st->fieldCount);
     for (j = 0; j < n; j++) {
-      rio_Field *f;
       if (bits) {
         int width = bits < 0 ? -bits : bits;
         if (bitUsed + width > 32) { /* (a new word) */
@@ -646,7 +683,8 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
         continue;
       }
       bitUsed = 32;
-      if (!rio_addField(vm, names[j], lens[j], t, offset)) return;
+      if (!(f = rio_addField(vm, names[j], lens[j], t, offset))) return;
+      if (kept) rio_bitSet(c->staticFields, (uint32_t)(f - c->fields));
       offset += (int)rio_type(vm, t)->size;
       st->fieldCount++;
       st->hasRefs |= rio_type(vm, t)->hasRefs;

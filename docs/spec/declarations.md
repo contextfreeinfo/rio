@@ -287,6 +287,99 @@ And a call's result, when it's a view or holds one, may view what went in, so it
 caller's own memory if any argument was. Each rule is about one proc's own code, so changing a proc's body never
 changes what its callers may do.
 
+### Static views
+
+A view that lasts the whole program (a literal's, a constant's or a global's) can be kept anywhere.
+Marked `static`, a signature or a struct says that's all it takes, or all it gives, and then it may
+keep what it's given. Each use is checked against the claim, never against what a body happens to do:
+
+- **A parameter,** `s: static String`: each call must pass a view that lasts, and the proc may keep
+  it. A static parameter passed on lasts too.
+- **A result,** `-> static String`: the proc returns only views that last, so a caller may keep the
+  result whatever it passed in.
+- **A field,** `name: static String`: only views that last are stored there, so what's read from it
+  lasts, even from a local or a borrowed struct.
+- **A method's self,** `self: static` first in its parameters: the method may keep views of `self`
+  (its arrays, say) or of what `self` holds, so it's called only on a global.
+
+```rio
+said := ""
+say :: proc(s: static String)
+  said = s
+end
+Thing :: struct
+  name: static String
+  hp: Int
+end
+title :: proc(t: Thing) -> static String
+  if t.hp > 0 do return t.name
+  return "gone"
+end
+f :: proc()
+  t := Thing{name = "lamp", hp = 3}
+  say(title(t))
+end
+f()
+log(said)
+Menu :: struct
+  items: [3]String
+  shown: []String
+end
+Menu.showAll :: proc(self: static)
+  self.shown = self.items[]
+end
+menu := Menu{items = {"tea", "toast", "jam"}}
+menu.showAll()
+log(menu.shown.len(), menu.shown[1])
+```
+
+```output
+lamp
+3 toast
+```
+
+```rio
+said := ""
+say :: proc(s: static String)
+  said = s
+end
+f :: proc(name: String)
+  say("hi")  # fine: a literal lasts
+  say(name)  # error: a static parameter
+end
+```
+
+```rio
+Thing :: struct
+  name: static String
+end
+f :: proc()
+  typed: Blob[4]
+  typed[0] = 'A'
+  t := Thing{name = typed[0..<1].asString()}  # error: this field is static
+end
+```
+
+```rio
+Menu :: struct
+  items: [3]String
+  shown: []String
+end
+Menu.showAll :: proc(self: static)
+  self.shown = self.items[]
+end
+f :: proc()
+  m: Menu
+  m.showAll()  # error: self: static
+end
+```
+
+`static` is about how long what's viewed lasts, not about changing it: a static field can be set
+again, to another view that lasts. It goes only on a view (a `String`, a `Blob`, a `[]T`) or a value
+holding views, and not on a `&` parameter. A proc with a static parameter or `self` can't be a proc
+value yet, since a call through a proc type wouldn't check what's passed. `static` is a word only in
+these places (and on [static procs](#methods)), so it reserves nothing.
+
 ## Methods
 
 `Type.name :: proc` declares a method on a type. Inside, `self` is the value it was called on: for
@@ -320,7 +413,7 @@ Each type has its own method names, apart from plain procs. A method can't have 
 field of its type. Fields are always `self.x`; a plain `x` is never a field.
 
 `Type.name :: static proc` declares a static proc: one called on the type, `Type.name(...)`, with no
-`self`, as a constructor is (`static` is a word only there). It's one of the type's method names, and
+`self`, as a constructor is (`static` is a word only there, and in [static views](#static-views)). It's one of the type's method names, and
 travels with the type as its methods do, but a value can't call it, and the type can't call a method:
 
 ```rio

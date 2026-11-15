@@ -21,7 +21,23 @@ Rinc's and Studio's apps, would change with it.
 
 ## Next
 
+- **Priorities (2026-11-14), in order** (what's open now; the items below are the history of this list):
+  1. **A static (global) lifetime marker** (the user's idea): done (2026-11-14), below; next, using it
+     in Cloudlamp's `say`, rinc's Song (one buffer) and tilemap.Map (arrays of its own, thing names as
+     Strings).
+  2. The memory spec, then the full spec (Before 1.0), with tests drawn from them; with them, the items
+     below still open (rinc's points and sizes, Rio+ scripts, more than one error in the editor).
+  3. Maybe, later: a declaration before a condition (Maybe, below); compile-time `when`.
+
 In this order:
+
+- **Static views:** done (2026-11-14): `static` claims a view lasts the whole program (a literal's, a
+  constant's, a global's), on a parameter (`s: static String`, so the proc may keep it), a result (`->
+  static String`, so a caller may), a field (`name: static String`, stored only so, so what's read
+  lasts) and a method's self (`self: static`, called on globals only, so it may keep views of itself).
+  Checked at each call and store against the claim, never against what a body does. Met in Cloudlamp
+  (`say` copying a literal into a Blob) and tilemap.Map (no arrays of its own). A proc with a static
+  parameter or self isn't a proc value yet: a proc type would need the claim too (Maybe, if it's met).
 
 - **Host procs' builders and places:** done (2026-11-06): a `Blob[..]` parameter (`B` in a sig), so
   pc's reads add to a builder; `&` for points and sizes as for structs (`&[2]Int`, `&(ii)` in a sig);
@@ -126,11 +142,6 @@ In this order:
   chart is a real one.
 
 ## Maybe
-
-- **Keeping a String a proc was given** (met in Cloudlamp, 2026-11-14): `say(s: String)` can't store `s`
-  in a global (it may view the caller's memory), though here it's always a literal, so a game copies it
-  into a Blob. Ideas: a String that's known constant (a literal's, or a constant's) kept as it is; or a
-  parameter marked as one that's kept, which a call can pass only a constant (or a global's) to.
 
 - **A declaration before a condition** (the user, 2026-11-14), as Go's `if a := b(); a.ready`: a value
   fetched, then something about it tested, the name kept to the statement; for `switch` and loops too

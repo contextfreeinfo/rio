@@ -76,3 +76,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-11-13,f328c2f+,puddle,39388,237565,19887,459776,43.3,78376,0.718,0.004,0.574,0.006,0.481,0.012,0.6,0.123,16294,3593,"unused procs dropped (Cloudlamp's code 38% smaller)"
 2026-11-14,ff7b8af+,puddle,39388,237805,19891,460288,30.9,78376,0.688,0.008,0.574,0.005,0.447,0.009,0.549,0.13,16298,3593,"a REPL's source window, for a loader's files read in parts"
 2026-11-14,3d2fc8b+,puddle,39388,237737,19895,460288,30.1,78736,0.688,0.006,0.571,0.005,0.445,0.01,0.537,0.115,16302,3593,"if name := value, case name := value"
+2026-11-14,e13d776+,puddle,39388,239997,19970,462336,34.6,78792,0.539,0.008,0.568,0.007,0.344,0.011,0.559,0.127,16377,3593,"static views: params, results, fields, self"

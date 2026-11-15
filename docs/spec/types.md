@@ -452,6 +452,9 @@ end
 
 A builder holding views, or a big value (over 16 words) holding them, must be a global.
 
+A field marked `static` (`name: static String`) holds only views that last the whole program, so
+what's read from it can be kept anywhere: see [static views](declarations.md#static-views).
+
 ## Type identity
 
 Structs, enums and unions are the same type only if they're the same declaration. Other types are

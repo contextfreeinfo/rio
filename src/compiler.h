@@ -192,6 +192,7 @@ typedef struct {
                              is that memory, or may hold such views) */
   uint16_t fromParam : 1; /* a view that came in through a parameter of the current proc (its caller's;
                              read through a reference: its place came in so) */
+  uint16_t staticField : 1; /* a static field's place (x.name, name: static String): what's stored there lasts */
   uint16_t bitAt : 5;     /* a bitfield (bits not 0): bits wide, from bit bitAt of the word here */
   uint16_t bits : 5;
   uint16_t bitSigned : 1;
@@ -363,6 +364,9 @@ typedef struct rio_Compiler {
   uint8_t *constIsString; /* constants holding string pool offsets, relocated at the end */
   uint8_t *constIsAddr;   /* constants holding slot addresses, renumbered when frames are shared */
   uint8_t *localViews;    /* local slots that hold a view of their proc's own memory */
+  /* static views (docs/spec/types.md#static-views): the parameters, fields, procs' results and methods'
+     self claimed static (a bit each, by index): what they view lasts the whole program */
+  uint8_t *staticParams, *staticFields, *staticResults, *staticSelves;
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
   int namingType;         /* parsing Name :: ...: a generic proc type may be named, proc[T](...) */
@@ -433,6 +437,7 @@ static inline rio_Expr rio_exprOf(int kind, int type, int32_t value) {
   e.access = 0;
   e.localView = 0;
   e.fromParam = 0;
+  e.staticField = 0;
   e.bitAt = 0;
   e.bits = 0;
   e.bitSigned = 0;
