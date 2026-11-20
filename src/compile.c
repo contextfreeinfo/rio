@@ -140,7 +140,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   } else { /* the tables scale to half the room; the code (when it's compiled into scratch) starts with an
               eighth, and takes more from the string pool's free room as it needs it (rio_moreCode) */
     uint32_t n = inMem ? below : size;
-    l = rio_limitsFor(codeInScratch ? n / 2 : n);
+    l = vm->retryLimits ? *vm->retryLimits : rio_limitsFor(codeInScratch ? n / 2 : n); /* (again: as the last try's use said) */
     l.code = rio_limitsFor(n).code / 2;
   }
   if (!codeInScratch) l.code = 0;
@@ -280,7 +280,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
           t = g[1] == 'i' ? rio_TypeId_int : g[1] == 'f' ? rio_TypeId_float : -1;
           if (t < 0) rio_FAIL(, "bad ffi signature: & takes i, f, {...} or (ii)");
           if (*g == '(') { t = rio_arrayOf(vm, t, (uint32_t)n); g += n; } /* (to the ')': the g++ below passes it) */
-          if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
+          if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(, rio_Table_params, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
           c->params[c->paramCount].refType = (uint16_t)t;
           c->params[c->paramCount].addr = 0;
           c->params[c->paramCount++].type = rio_TypeId_int; /* (the address word) */
@@ -294,7 +294,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
                                                      declaration's (rio_declareHostProc) */
         int depth = 0, isEnum = *g == 'E';
         const char *at = g;
-        if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
+        if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(, rio_Table_params, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
         if (isEnum && ref) rio_FAIL(, "bad ffi signature: & takes i, f or {...}");
         c->params[c->paramCount].refType = ref ? rio_REF_LAYOUT : 0;
         c->params[c->paramCount].addr = (uint32_t)(at - f->sig);
@@ -319,7 +319,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
         g += 2;
       }
       if (t < 0) rio_FAIL(, "bad ffi signature");
-      if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
+      if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(, rio_Table_params, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
       if (isResult) {
         int n = 1;
         while ((t == rio_TypeId_int || t == rio_TypeId_float) && g[1 + n] == g[1]) n++; /* (>ii: a point or size, [2]Int) */
@@ -407,6 +407,10 @@ static void rio_keepError(rio_Vm *vm) {
 static int rio_recover(rio_Vm *vm, int line, const char *name, int nameLen) {
   rio_Compiler *c = vm->compiler;
   int tries = 0;
+  if (c->full && vm->retryAllowed && !c->errorsKept) { /* (a table full, first: compiled again with room for it) */
+    vm->retryQuiet = 1;
+    return 0;
+  }
   rio_keepError(vm);
   if (name && c->failedNameCount < 8 && nameLen < 32) {
     memcpy(c->failedNames[c->failedNameCount], name, (size_t)nameLen);
@@ -483,7 +487,8 @@ void rio_compileAll(rio_Vm *vm) {
     }
     rio_endFile(vm);
   }
-  if (rio_failed(vm) && vm->errorFn) { /* (the last error, then the first, as rio_error's) */
+  if (rio_failed(vm) && c->full && vm->retryAllowed && !c->errorsKept) vm->retryQuiet = 1; /* (compiled again: not reported) */
+  else if (rio_failed(vm) && vm->errorFn) { /* (the last error, then the first, as rio_error's) */
     rio_keepError(vm);
     if (c->errorsKept) {
       memcpy(vm->errorText, c->firstError, sizeof c->firstError);
@@ -1074,7 +1079,9 @@ static void rio_finish(rio_Vm *vm) {
 /* ------------------------------------------------------------------ compiling */
 
 static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
-                           const rio_Limits *lim) {
+                           const rio_Limits *lim);
+static int rio_compileOnce(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
+                           const rio_Limits *lim, uint8_t *full, rio_Limits *cap, rio_Limits *used) {
   int inMem = !scratch;
   rio_Compiler *c;
   /* a source in mem itself: up in what stays zero until the program runs, with the compiler's room ending
@@ -1082,7 +1089,11 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
   uint32_t below = 0;
   if (inMem && src >= (const char *)vm->mem && src < (const char *)vm->mem + vm->memSize && !(below = (uint32_t)(src - (const char *)vm->mem) & ~15u))
     below = 16; /* (no room at all: an error, below) */
-  if (rio_startCompiler(vm, scratch, size, lim, 0, below)) return -1;
+  *full = 0;
+  if (rio_startCompiler(vm, scratch, size, lim, 0, below)) {
+    *full = 0xff; /* (no room for these tables: nothing compiled, nothing reported) */
+    return -1;
+  }
   c = vm->compiler;
   if (read || vm->sourceWindow) rio_carveWindow(vm); /* (a text read a part at a time: this one, or a loader's) */
   rio_setupCompiler(vm, 1);
@@ -1100,6 +1111,18 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
     if (!rio_failed(vm)) rio_compileAll(vm);
   }
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
+  *full = rio_failed(vm) ? c->full : 0;
+  if (*full) { /* (what this try had and used: the next is sized from them) */
+    *cap = c->limits;
+    *used = c->high;
+    used->types = (uint32_t)c->typeCount;
+    used->fields = (uint32_t)c->fieldCount;
+    used->procs = (uint32_t)vm->procCount;
+    used->params = (uint32_t)c->paramCount;
+    used->consts = vm->constCount;
+    used->slots = c->slotHigh;
+    used->modules = (uint32_t)c->moduleCount;
+  }
   if (!rio_failed(vm) && !vm->checking) rio_finish(vm);
   if (vm->errorKind != rio_ErrorKind_none) { /* (not c->failed: rio_finish's moves may have written over c, overlaid
                                               on mem; it fails, if it does, before them) */
@@ -1202,6 +1225,87 @@ int rio_usageText(const rio_Usage *u, char *out, int cap) {
   }
   out[n] = 0;
   return n;
+}
+
+/* a table's next size: the one that filled, twice as big; the rest, half as big again as they were used, so
+   a table hardly used gives its room to the one that filled (and to code and strings), down to half. A
+   guess (the try stopped early, so the rest may need more than they'd used): it handles a program a little
+   past its room; one far past it can go round in circles, and fails as it would have (Rio's ROADMAP: the
+   tables sized from a check's exact counts) */
+static uint32_t rio_nextCap(uint32_t cap, uint32_t used, int full) {
+  uint32_t n;
+  if (full) return cap * 2 > used * 2 ? cap * 2 : used * 2;
+  n = used + used / 2 + 16;
+  if (n < cap / 2) n = cap / 2;
+  return n < cap ? n : cap;
+}
+/* a table's capacity in l, by its rio_Table_ (0: none, as for the room code and strings share) */
+static uint32_t *rio_tableOf(rio_Limits *l, int t) {
+  switch (t) {
+  case rio_Table_symbols: return &l->symbols;
+  case rio_Table_names: return &l->nameBytes;
+  case rio_Table_types: return &l->types;
+  case rio_Table_fields: return &l->fields;
+  case rio_Table_procs: return &l->procs;
+  case rio_Table_params: return &l->params;
+  case rio_Table_consts: return &l->consts;
+  case rio_Table_slots: return &l->slots;
+  case rio_Table_blocks: return &l->blocks;
+  case rio_Table_expr: return &l->exprDepth;
+  case rio_Table_modules: return &l->modules;
+  default: return 0;
+  }
+}
+/* compiled with the tables' room chosen for it (no rio_Limits): when one fills first, compiled again with
+   more room for it, from those that used less (the room code and strings share, filling: from them all),
+   a few times; failing still, compiled once more as at first, so its errors are reported as they'd be */
+static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
+                           const rio_Limits *lim) {
+  rio_Limits cap, used, next;
+  uint8_t full = 0, grown = 0;
+  int r, tries;
+  if (lim || vm->checking) return rio_compileOnce(vm, src, len, read, readData, scratch, size, lim, &full, &cap, &used);
+  vm->retryAllowed = 1;
+  vm->retryLimits = 0;
+  for (tries = 0; tries < 16; tries++) {
+    vm->retryQuiet = 0;
+    r = rio_compileOnce(vm, src, len, read, readData, scratch, size, 0, &full, &cap, &used);
+    if (!r) break;
+    if (full == 0xff) { /* (no room for the table grown so much: grown half as much, till it's hardly growing) */
+      uint32_t *f = rio_tableOf(&next, grown), was = grown ? *rio_tableOf(&cap, grown) : 0;
+      if (!f || *f - was < 16) break;
+      *f = was + (*f - was) / 2;
+      continue;
+    }
+    if (!full || !vm->retryQuiet) break;
+#define rio_NEXT(f, t) next.f = rio_nextCap(cap.f, used.f, full == rio_Table_##t)
+    rio_NEXT(symbols, symbols);
+    rio_NEXT(nameBytes, names);
+    rio_NEXT(types, types);
+    rio_NEXT(fields, fields);
+    rio_NEXT(procs, procs);
+    rio_NEXT(params, params);
+    rio_NEXT(consts, consts);
+#undef rio_NEXT
+    /* (the slots' map is kept as it was: packing the code uses it too, an entry an instruction, and
+       without room for that every instruction is wide) */
+    next.slots = full == rio_Table_slots ? cap.slots * 2 : cap.slots;
+    next.blocks = full == rio_Table_blocks ? cap.blocks * 2 : cap.blocks;
+    next.exprDepth = full == rio_Table_expr ? cap.exprDepth * 2 : cap.exprDepth;
+    next.modules = full == rio_Table_modules ? cap.modules * 2 : cap.modules;
+    next.code = 0;
+    if (next.slots < next.consts + 1024) next.slots = next.consts + 1024;
+    if (next.slots > 65536) next.slots = 65536;
+    if (next.consts > 16384) next.consts = 16384;
+    grown = full;
+    vm->retryLimits = &next;
+  }
+  vm->retryLimits = 0;
+  vm->retryAllowed = 0;
+  if (r && tries > 0 && (vm->retryQuiet || full == 0xff)) /* (tried again, still failing, unreported: as at first, reported) */
+    r = rio_compileOnce(vm, src, len, read, readData, scratch, size, 0, &full, &cap, &used);
+  vm->retryQuiet = 0;
+  return r;
 }
 
 int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const rio_Limits *lim) {

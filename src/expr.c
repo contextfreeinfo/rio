@@ -20,7 +20,7 @@ rio_Expr rio_popValue(rio_Vm *vm) {
 
 static void rio_pushValue(rio_Vm *vm, rio_Expr e) {
   rio_Compiler *c = vm->compiler;
-  if (c->valueCount >= (int)c->limits.exprDepth) rio_FAIL(, "expression too complex");
+  if (c->valueCount >= (int)c->limits.exprDepth) rio_FAIL_FULL(, rio_Table_expr, "expression too complex");
   c->values[c->valueCount++] = e;
   if ((uint32_t)c->valueCount > c->high.exprDepth) c->high.exprDepth = (uint32_t)c->valueCount;
 }
@@ -34,7 +34,7 @@ void rio_pushResult(rio_Vm *vm, rio_Expr e, int tempStart) {
 static rio_PendingOp *rio_pushOp(rio_Vm *vm, int kind, int prec, int op) {
   rio_Compiler *c = vm->compiler;
   rio_PendingOp *o;
-  if (c->opCount >= (int)c->limits.exprDepth) rio_FAIL(&c->ops[0], "expression too complex"); /* (somewhere harmless to write) */
+  if (c->opCount >= (int)c->limits.exprDepth) rio_FAIL_FULL(&c->ops[0], rio_Table_expr, "expression too complex"); /* (somewhere harmless to write) */
   o = &c->ops[c->opCount++];
   if ((uint32_t)c->opCount > c->high.exprDepth) c->high.exprDepth = (uint32_t)c->opCount;
   o->kind = (uint8_t)kind;
@@ -206,7 +206,7 @@ rio_Expr rio_stringConst(rio_Vm *vm, const char *s, int n) {
   uint32_t k = vm->constCount;
   int i, len = 0;
   rio_Expr e;
-  if ((uint32_t)n > c->poolCap - c->poolUsed) rio_FAIL(rio_voidExpr(), "out of compiler memory");
+  if ((uint32_t)n > c->poolCap - c->poolUsed) rio_FAIL_FULL(rio_voidExpr(), rio_Table_room, "out of compiler memory");
   if (k + 2 > vm->constCap) rio_FAIL(rio_voidExpr(), "too many constants");
   for (i = 0; i < n; i++) {
     int used, ch;
@@ -694,7 +694,7 @@ static void rio_finishGrown(rio_Vm *vm, rio_PendingOp *lit) {
     if (to > 0xFFFF) rio_FAIL(, "more values than a literal holds");
     if ((uint32_t)to > c->slotHigh) {
       c->slotHigh = (uint32_t)to;
-      if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL(, "out of slots");
+      if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL_FULL(, rio_Table_slots, "out of slots");
     }
     for (w = from; w < to; w++) rio_emit(vm, rio_Op_mov, w, rio_constSlot(vm, 0), 0);
     lit->b = rio_arrayOf(vm, elem, (uint32_t)lit->fieldsSet);
@@ -904,7 +904,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     c->freeSlot = (uint32_t)(at + words);
     if (c->freeSlot > c->slotHigh) { /* (as rio_allocSlots, but keeping what the store marked) */
       c->slotHigh = c->freeSlot;
-      if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL(, "out of slots");
+      if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL_FULL(, rio_Table_slots, "out of slots");
     }
     m->argCount++;
     return;
@@ -1422,7 +1422,7 @@ static rio_Expr rio_stringLiterals(rio_Vm *vm, const rio_ExprState *x) {
   while (c->peek.kind == rio_Tok_string && (!c->peek.newline || x->depth)) {
     uint32_t m = (uint32_t)c->peek.len;
     if (c->peek.val.u != at + n) { /* (not right after it in the pool: both again, at its end) */
-      if (n + m > c->poolCap - c->poolUsed) rio_FAIL(rio_voidExpr(), "out of compiler memory");
+      if (n + m > c->poolCap - c->poolUsed) rio_FAIL_FULL(rio_voidExpr(), rio_Table_room, "out of compiler memory");
       memcpy(c->pool + c->poolUsed, c->pool + at, n);
       memmove(c->pool + c->poolUsed + n, c->pool + c->peek.val.u, m);
       at = c->poolUsed;

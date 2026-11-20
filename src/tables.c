@@ -7,7 +7,7 @@
 /* copies a name into the names table; returns where */
 int rio_addName(rio_Vm *vm, const char *s, int n) {
   rio_Compiler *c = vm->compiler;
-  if (c->nameBytes + n > (int)c->limits.nameBytes) rio_FAIL(0, "out of name space");
+  if (c->nameBytes + n > (int)c->limits.nameBytes) rio_FAIL_FULL(0, rio_Table_names, "out of name space");
   memcpy(c->names + c->nameBytes, s, (size_t)n);
   c->nameBytes += n;
   if ((uint32_t)c->nameBytes > c->high.nameBytes) c->high.nameBytes = (uint32_t)c->nameBytes;
@@ -49,7 +49,7 @@ void rio_addSymbol(rio_Vm *vm, const char *s, int n, int kind, int type, int32_t
       }
     }
   }
-  if (c->symCount >= (int)c->limits.symbols) rio_FAIL(, "too many symbols");
+  if (c->symCount >= (int)c->limits.symbols) rio_FAIL_FULL(, rio_Table_symbols, "too many symbols");
   y = &c->syms[c->symCount++];
   if ((uint32_t)c->symCount > c->high.symbols) c->high.symbols = (uint32_t)c->symCount;
   y->name = (uint16_t)rio_addName(vm, s, n);
@@ -124,7 +124,7 @@ int rio_genericOf(rio_Vm *vm, int tmpl) {
 /* a new field, at the end of the table; -1 if it's full */
 int rio_newField(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  if (c->fieldCount >= (int)c->limits.fields) rio_FAIL(-1, "too many fields");
+  if (c->fieldCount >= (int)c->limits.fields) rio_FAIL_FULL(-1, rio_Table_fields, "too many fields");
   c->fields[c->fieldCount].line = (uint16_t)(c->prevLine < 65535 ? c->prevLine : 0); /* (the last token read: its name, or its type, on its line) */
   return c->fieldCount++;
 }
@@ -132,7 +132,7 @@ int rio_newField(rio_Vm *vm) {
 int rio_newType(rio_Vm *vm, int kind, int elem, uint32_t count, uint32_t size) {
   rio_Compiler *c = vm->compiler;
   rio_Type *y;
-  if (c->typeCount >= (int)c->limits.types) rio_FAIL(0, "too many types");
+  if (c->typeCount >= (int)c->limits.types) rio_FAIL_FULL(0, rio_Table_types, "too many types");
   y = &c->types[c->typeCount];
   y->kind = (uint8_t)kind;
   y->elem = (uint16_t)elem;

@@ -548,6 +548,8 @@ static const Case cases[] = {
   {"x := 1\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
 };
 
+static int reported; /* (errors reported to rio_setErrorFn's fn) */
+static void countError(void *data, rio_Error e) { (void)e; (*(int *)data)++; }
 static void boom(rio_Vm *v, rio_Val *a) { (void)a; rio_trap(v, "the host said no"); }
 /* calls back into rio, which is refused: procs that never run at the same time share memory */
 static void again(rio_Vm *v, rio_Val *a) {
@@ -614,6 +616,29 @@ int main(void) {
     if (rio_compile(&vm, src, (uint32_t)len)) { printf("FAIL code outgrowing its room: %s\n", rio_error(&vm)); fails++; }
     else if (rio_run(&vm)) { printf("FAIL code outgrowing its room, run: %s\n", rio_error(&vm)); fails++; }
     else if (vm.codeLen <= rio_limitsFor(sizeof room).code / 2) { /* (it starts with an eighth) */ printf("FAIL code outgrowing its room: only %u instructions\n", vm.codeLen); fails++; }
+  }
+  { /* the tables share their room: a program with more procs than the tables first give them (in 256 KB, 300ish)
+       compiles, the compiler trying again with room for more, taken from tables it hardly used (the slots) */
+    static char src[60000];
+    static unsigned char room[256 << 10];
+    int k, len = 0;
+    for (k = 0; k < 400; k++) len += sprintf(src + len, "p%d :: proc() -> Int do return %d\n", k, k);
+    len += sprintf(src + len, "total := 0\n");
+    for (k = 0; k < 400; k += 50) len += sprintf(src + len, "total += p%d()\n", k);
+    len += sprintf(src + len, "assert(total == %d, \"each proc there\")\n", 0 + 50 + 100 + 150 + 200 + 250 + 300 + 350);
+    rio_init(&vm, room, sizeof room, 0, 0);
+    n++;
+    if (rio_compile(&vm, src, (uint32_t)len)) { printf("FAIL more procs than the tables start with: %s\n", rio_error(&vm)); fails++; }
+    else if (rio_run(&vm)) { printf("FAIL more procs than the tables start with, run: %s\n", rio_error(&vm)); fails++; }
+    /* and an error past them: reported once (the try that ran out of procs reported nothing) */
+    len += sprintf(src + len, "nope()\n");
+    rio_init(&vm, room, sizeof room, 0, 0);
+    rio_setErrorFn(&vm, countError, &reported);
+    reported = 0;
+    n++;
+    if (!rio_compile(&vm, src, (uint32_t)len) || reported != 1 || !strstr(rio_error(&vm), "undefined name")) {
+      printf("FAIL an error past more procs than the tables start with: reported %d, \"%s\"\n", reported, rio_error(&vm)); fails++;
+    }
   }
   { /* explicit limits: tiny tables fail cleanly, and a scratch buffer too small for them is refused */
     static unsigned char scratch[1 << 16];

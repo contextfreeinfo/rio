@@ -14,7 +14,7 @@ static void rio_markLine(rio_Vm *vm) {
   uint32_t line = c->lineOverride ? c->lineOverride : (uint32_t)c->prevLine;
   uint16_t entry[2];
   if (line == c->lastLine && vm->codeLen - c->lastLinePc < 4096) return; /* (steps stay under 4096: see rio_packLines) */
-  if (c->poolCap - c->poolUsed < 4) rio_FAIL(, "out of compiler memory");
+  if (c->poolCap - c->poolUsed < 4) rio_FAIL_FULL(, rio_Table_room, "out of compiler memory");
   c->poolCap -= 4;
   entry[0] = (uint16_t)vm->codeLen;
   entry[1] = (uint16_t)(line > 0xFFFF ? 0xFFFF : line);
@@ -72,7 +72,7 @@ static int rio_moreCode(rio_Vm *vm) {
 
 int rio_emit(rio_Vm *vm, int op, int a, int b, int c) {
   rio_Instr *in;
-  if (vm->codeLen >= vm->codeCap && !rio_moreCode(vm)) rio_FAIL(0, "code too large");
+  if (vm->codeLen >= vm->codeCap && !rio_moreCode(vm)) rio_FAIL_FULL(0, rio_Table_room, "code too large");
   rio_markLine(vm);
   in = &vm->code[vm->codeLen];
   in->op = (uint8_t)op;
@@ -121,7 +121,7 @@ int rio_allocSlots(rio_Vm *vm, int n) {
   c->freeSlot += (uint32_t)n;
   if (c->freeSlot > c->slotHigh) {
     c->slotHigh = c->freeSlot;
-    if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL(0, "out of slots");
+    if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL_FULL(0, rio_Table_slots, "out of slots");
   }
   for (s = first; s < (int)c->freeSlot; s++) { /* (fresh: they view nothing yet) */
     rio_bitClear(c->localViews, (uint32_t)s);
@@ -161,7 +161,7 @@ int rio_findConsts(rio_Vm *vm, const uint32_t *values, int n, int addrBits) {
     }
     if (j == n) return (int)i;
   }
-  if (vm->constCount + (uint32_t)n > vm->constCap) rio_FAIL(0, "too many constants");
+  if (vm->constCount + (uint32_t)n > vm->constCap) rio_FAIL_FULL(0, rio_Table_consts, "too many constants");
   for (j = 0; j < n; j++, vm->constCount++) {
     R[vm->constCount].u = values[j];
     if (rio_ADDR_BIT(addrBits, j)) rio_bitSet(c->constIsAddr, vm->constCount);

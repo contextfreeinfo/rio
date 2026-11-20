@@ -392,6 +392,8 @@ struct rio_Vm {
   rio_LoadFn loader;
   void *loaderData;
   uint32_t sourceWindow;   /* rio_setSourceWindow's bytes (0: the default) */
+  const rio_Limits *retryLimits; /* (compiling again after a table filled: the tables' sizes this time) */
+  int retryAllowed, retryQuiet; /* (a table filling may be tried again: then it's not reported, and stops the compile) */
   uint32_t modulesAt, moduleCount; /* code ranges of modules, for naming files in errors */
   rio_Instr *code;         /* where the code is now: in mem, or the host's buffer */
   uint32_t codeCap, codeLen;

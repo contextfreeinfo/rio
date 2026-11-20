@@ -73,7 +73,7 @@ int rio_hostModule(rio_Vm *vm, const char *key, int keyLen) {
     if (m->isPackage && !m->isInclude && rio_nameIs(vm, m->key, m->keyLen, key, keyLen)) return i;
   }
   if (!rio_hasHostProcs(vm, key, keyLen)) return -1;
-  if (c->moduleCount >= (int)c->limits.modules) rio_FAIL(-1, "too many modules");
+  if (c->moduleCount >= (int)c->limits.modules) rio_FAIL_FULL(-1, rio_Table_modules, "too many modules");
   index = c->moduleCount++;
   m = &c->modules[index];
   memset(m, 0, sizeof *m);
@@ -342,7 +342,7 @@ void rio_ffiProcValue(rio_Vm *vm, rio_Expr *e, int type) {
     if (c->thunks[i].ffi == e->value) proc = c->thunks[i].proc;
   if (proc < 0) { /* (kept: its code comes at the end) */
     if (c->thunkCount >= (int)(sizeof c->thunks / sizeof c->thunks[0])) rio_FAIL(, "too many host procs used as proc values (16)");
-    if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
+    if (vm->procCount >= (int)c->limits.procs) rio_FAIL_FULL(, rio_Table_procs, "too many procs");
     proc = vm->procCount++;
     memset(&c->procDefs[proc], 0, sizeof c->procDefs[proc]);
     c->procDefs[proc].defined = 1;
@@ -450,7 +450,7 @@ static void rio_declareBuiltin(rio_Vm *vm, const char *name, int nameLen, int re
     }
     builtin = c->syms[i].value;
   }
-  if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
+  if (vm->procCount >= (int)c->limits.procs) rio_FAIL_FULL(, rio_Table_procs, "too many procs");
   if ((proc = rio_beginProc(vm, "", 0, receiver)) < 0) return; /* (unnamed: the call inside finds the builtin) */
   for (i = 0; i < ty->fieldCount && !rio_failed(vm); i++) {
     char param[16];

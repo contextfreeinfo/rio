@@ -73,7 +73,7 @@ int rio_parseType(rio_Vm *vm) {
   rio_expect(vm, '(', "'(' expected");
   while (c->tok.kind != ')' && !rio_failed(vm)) {
     int names = rio_paramNames(vm), t, j, opt = 0; /* a, b: T, c?: T, or just T */
-    if (n >= 16) rio_FAIL(0, "too many parameters");
+    if (n >= 16) rio_FAIL_FULL(0, rio_Table_params, "too many parameters");
     for (j = 0; j < names; j++) { /* (each name, a ? if it's optional, and the , or : after it) */
       rio_next(vm);
       if (c->tok.kind == '?') {
@@ -86,7 +86,7 @@ int rio_parseType(rio_Vm *vm) {
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
     t = rio_parseValueType(vm);
     for (j = 0; j < (names ? names : 1); j++) {
-      if (n >= 16) rio_FAIL(0, "too many parameters");
+      if (n >= 16) rio_FAIL_FULL(0, rio_Table_params, "too many parameters");
       if (ref && (opt >> j & 1) && !c->hostType) rio_FAIL(0, "a & parameter can't be optional: it needs a place");
       refs |= ref << n;
       if (opt >> j & 1) optional++;
@@ -278,7 +278,7 @@ int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int recei
   p->frameStart = (uint16_t)c->liveSlots;
   if (receiver >= 0) { /* self: a struct receiver by address, other receivers as a copy */
     int addr = rio_allocSlots(vm, p->selfByRef ? 1 : rio_typeWords(vm, receiver)) * 4;
-    if (c->paramCount >= (int)c->limits.params) rio_FAIL(-1, "too many parameters");
+    if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(-1, rio_Table_params, "too many parameters");
     rio_addParam(vm, p->selfByRef ? rio_TypeId_int : receiver, 0, addr);
     if (p->selfByRef) rio_markParamView(vm, (uint32_t)addr, 1, 1); /* (the caller's place, or views from it: borrowed) */
     else rio_markHeld(vm, receiver, (uint32_t)addr, 0, 1);
@@ -304,7 +304,7 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
   if (ty->kind == rio_TypeKind_param && !isRef) rio_FAIL(, "a T goes by reference: x: &T, or xs: []T");
   addr = rio_allocSlots(vm, isRef ? 1 : rio_typeWords(vm, type)) * 4; /* a & parameter is one word holding the address,
                                                                      read through like self */
-  if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
+  if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(, rio_Table_params, "too many parameters");
   rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
   if (how & 4) { /* static: what it views lasts, so it's kept as a global's view is */
     if (isRef || !(rio_isViewKind(ty->kind) || ty->hasRefs)) rio_FAIL(, "static is for a view (a String, a Blob, a []T) or a value holding views, not a & parameter");
@@ -387,7 +387,7 @@ static void rio_genericParams(rio_Vm *vm, int proc) {
   }
   for (j = 0; j < p->typeParams; j++) {
     int addr = rio_allocSlots(vm, 1) * 4;
-    if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
+    if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(, rio_Table_params, "too many parameters");
     rio_addParam(vm, rio_TypeId_int, 0, addr);
     p->paramCount++;
   }
@@ -421,7 +421,7 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int ho
   const char *typeNames[8];
   int index, typeLens[8], typeCount = 0, k, selfSym, isStatic = how & 1;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
-  if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
+  if (vm->procCount >= (int)c->limits.procs) rio_FAIL_FULL(, rio_Table_procs, "too many procs");
   rio_next(vm);
   if (c->tok.kind == '[' && !c->tok.newline) { /* proc[T, U]: generic, the types named for the proc */
     rio_next(vm);

@@ -28,6 +28,27 @@ Rinc's and Studio's apps, would change with it.
   2. The memory spec, then the full spec (Before 1.0), with tests drawn from them; with them, the items
      below still open (rinc's points and sizes, Rio+ scripts, more than one error in the editor).
   3. Maybe, later: a declaration before a condition (Maybe, below); compile-time `when`.
+  - Begun (2026-11-20): **compiled again when a table fills** (docs/guide/memory.md): the full table
+    twice as big, the rest from what they'd used (1.5 times, down to half), a few tries, quiet, then as
+    at first if none fit; the slots' map kept (packing the code uses it, an entry an instruction: shrunk,
+    every instruction went wide, and Maps no longer fit). Studio's Maps: 397 procs compile (was 300),
+    and 240 more lines (instructions about 15,000, was about 14,800). tests/errors.c: 400 procs in 256 KB,
+    and an error past them reported once. Rinc: a file read again by a retry takes the reader it had
+    (tests/retryfiles). Not converging for a program far past its room (1,300 procs: the guesses go round
+    in circles, a try stopped early having used less than it needs). Next: **the tables sized from a
+    check's exact counts**: on the first table filling, a check (statement at a time, no code kept: the
+    editor's) counts what every table needs, then one compile with just that, the code and strings
+    getting the rest. Also seen: what binds Maps now is the code itself (8 bytes an instruction while
+    compiling, 4 when packed), more than the tables.
+  - Was next, first (the user, 2026-11-15; for when there are credits again, Friday): **the compiler's
+    tables share their room**, as code and strings do since 8158967. Today, compiled without
+    `rio_Limits`, the tables get a fixed half of the room, each a fixed share of it, and code and strings
+    share the other half; so one table fills while another sits nearly empty. Studio's Maps (rinc, 256 KB
+    app space): procs 277 of 300 (92%) and instructions 13,758 of 14,868 (92%), while slots are 2,804 of
+    16,384 (17%) and names 50%. Recommended: the tables grow as they're needed, from one room the code
+    and strings share too, so nothing runs out until all of it has; the usage report (-m) then says how
+    much of the whole room is used, and each table's own count. (Rather than rinc setting `rio_Limits`
+    to suit its apps: quicker, but retuned as apps change.) Before Maps is trimmed (rinc's ROADMAP, 9).
 
 In this order:
 

@@ -45,7 +45,7 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   int found, dirLen, n;
   char text[300];
   if (c->resumeCount >= rio_MAX_IMPORT_DEPTH) rio_FAIL(0, "imports and includes nested too deep");
-  if (c->moduleCount >= (int)c->limits.modules) rio_FAIL(0, "too many modules");
+  if (c->moduleCount >= (int)c->limits.modules) rio_FAIL_FULL(0, rio_Table_modules, "too many modules");
   key[keyLen] = 0;
   memset(&s, 0, sizeof s);
   found = rio_load(vm, key, (isPackage ? rio_LoadKind_package : 0) | (isInclude ? rio_LoadKind_file : 0), &s);

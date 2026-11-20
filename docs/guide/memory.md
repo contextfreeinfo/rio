@@ -12,6 +12,17 @@ moves to just below the strings and tables at the top of memory, taking exactly 
 instruction). So one buffer is the whole budget, split between code and data however each program needs.
 A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
 
+The compiler's tables (symbols, names, types, fields, procs, params, constants, slots...) share their room
+too, a little. Compiled without a `rio_Limits`, a program that fills one of them first (too many procs,
+say), or fills the room code and strings share, is compiled again: the table that filled twice as big,
+the others half as big again as they'd been used (down to half), giving it their room; if that doesn't
+fit, it grows less. Nothing is reported for a try that's compiled again. A few tries at most; still
+failing, it's compiled once more as at first, so its errors are reported as they'd be. The slots' map
+keeps its size: packing the code uses it as well (an entry an instruction; without room for that, every
+instruction takes the wide form). The sizes are guesses from a try that stopped early, so a program a
+little past its room (Studio's Maps with 120 more procs, or 240 more lines) compiles, and one far past it
+may not; sizing the tables from a check's exact counts is next (the ROADMAP).
+
 ## The compiler borrows the program's memory
 
 While compiling, the compiler writes only constants (at the bottom of `mem`) and string literals into
