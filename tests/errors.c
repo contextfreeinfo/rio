@@ -548,6 +548,7 @@ static const Case cases[] = {
   {"x := 1\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
 };
 
+static rio_Usage usage; /* (where a compile's room went) */
 static int reported; /* (errors reported to rio_setErrorFn's fn) */
 static void countError(void *data, rio_Error e) { (void)e; (*(int *)data)++; }
 static void boom(rio_Vm *v, rio_Val *a) { (void)a; rio_trap(v, "the host said no"); }
@@ -628,8 +629,13 @@ int main(void) {
     len += sprintf(src + len, "assert(total == %d, \"each proc there\")\n", 0 + 50 + 100 + 150 + 200 + 250 + 300 + 350);
     rio_init(&vm, room, sizeof room, 0, 0);
     n++;
+    rio_trackUsage(&vm, &usage);
     if (rio_compile(&vm, src, (uint32_t)len)) { printf("FAIL more procs than the tables start with: %s\n", rio_error(&vm)); fails++; }
     else if (rio_run(&vm)) { printf("FAIL more procs than the tables start with, run: %s\n", rio_error(&vm)); fails++; }
+    else if (usage.cap.procs != 400 + 400 / 8 + 16) { /* (a check counted them: just that, and an eighth) */
+      printf("FAIL more procs than the tables start with: room for %u procs, not as a check counted them\n", usage.cap.procs); fails++;
+    }
+    rio_trackUsage(&vm, 0);
     /* and an error past them: reported once (the try that ran out of procs reported nothing) */
     len += sprintf(src + len, "nope()\n");
     rio_init(&vm, room, sizeof room, 0, 0);

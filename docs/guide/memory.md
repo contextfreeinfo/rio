@@ -13,15 +13,17 @@ instruction). So one buffer is the whole budget, split between code and data how
 A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
 
 The compiler's tables (symbols, names, types, fields, procs, params, constants, slots...) share their room
-too, a little. Compiled without a `rio_Limits`, a program that fills one of them first (too many procs,
-say), or fills the room code and strings share, is compiled again: the table that filled twice as big,
-the others half as big again as they'd been used (down to half), giving it their room; if that doesn't
-fit, it grows less. Nothing is reported for a try that's compiled again. A few tries at most; still
-failing, it's compiled once more as at first, so its errors are reported as they'd be. The slots' map
-keeps its size: packing the code uses it as well (an entry an instruction; without room for that, every
-instruction takes the wide form). The sizes are guesses from a try that stopped early, so a program a
-little past its room (Studio's Maps with 120 more procs, or 240 more lines) compiles, and one far past it
-may not; sizing the tables from a check's exact counts is next (the ROADMAP).
+too. Compiled without a `rio_Limits`, a program that fills one of them first (too many procs, say), or
+fills the room code and strings share, is checked first (a statement at a time, no code kept, as an
+editor's check is), in `mem`'s room, which is free till the program runs: that counts what each table
+needs, and it's compiled again with just that, an eighth more, the code and strings getting the rest.
+(Constants and the slots' map keep their sizes: a check makes fewer constants than a compile does, and
+packing the code uses the slots' map too, an entry an instruction.) If the check can't count them (an
+error in the program, or tables too big even for it), or that still fails, it guesses: the table that
+filled twice as big, the others half as big again as they'd been used, down to half, a few tries. Nothing
+is reported for a try that's compiled again; still failing, it's compiled once more as at first, so its
+errors are reported as they'd be. Studio's Maps: 397 procs compile (were 300 at most), and about 15,900
+instructions (were 14,800).
 
 ## The compiler borrows the program's memory
 

@@ -1112,7 +1112,7 @@ static int rio_compileOnce(rio_Vm *vm, const char *src, uint32_t len, rio_Source
   }
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
   *full = rio_failed(vm) ? c->full : 0;
-  if (*full) { /* (what this try had and used: the next is sized from them) */
+  if (*full || vm->checking) { /* (what this try had and used: the next is sized from them; a check's, exactly) */
     *cap = c->limits;
     *used = c->high;
     used->types = (uint32_t)c->typeCount;
@@ -1256,6 +1256,47 @@ static uint32_t *rio_tableOf(rio_Limits *l, int t) {
   default: return 0;
   }
 }
+/* a table's size from a check's exact count: an eighth more, and a little */
+static uint32_t rio_exactCap(uint32_t used) { return used + used / 8 + 16; }
+/* the program checked (a statement at a time, no code kept: the editor's check) in mem's room, which is
+   free till it runs, to count what each of its tables needs: 0, with them in exact; -1 if the check
+   failed (an error in the program, or no room), its errors not reported (it's compiled as before) */
+static int rio_measure(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, const rio_Limits *cap,
+                       rio_Limits *exact) {
+  rio_Limits checkCap, used;
+  rio_ErrorFn fn = vm->errorFn;
+  uint32_t memSize = vm->memSize, end = memSize, low = (cap->consts * 8 + 256 + 15) & ~15u; /* (room for twice the
+    constants the compile had: no more, as a check's slots are counted after them) */
+  uint8_t full = 0;
+  int r;
+  if (src >= (const char *)vm->mem && src < (const char *)vm->mem + memSize) end = (uint32_t)(src - (const char *)vm->mem) & ~15u;
+  if (end < low + 32768) return -1; /* (too little room to measure in) */
+  vm->errorFn = 0;
+  vm->memSize = low; /* (the check's constants, below its scratch) */
+  vm->checking = 1;
+  r = rio_compileOnce(vm, src, len, read, readData, vm->mem + low, end - low, 0, &full, &checkCap, &used);
+  vm->checking = 0;
+  vm->memSize = memSize;
+  vm->errorFn = fn;
+  if (r) return -1;
+  *exact = *cap;
+  exact->symbols = rio_exactCap(used.symbols);
+  exact->nameBytes = rio_exactCap(used.nameBytes);
+  exact->types = rio_exactCap(used.types);
+  exact->fields = rio_exactCap(used.fields);
+  exact->procs = rio_exactCap(used.procs);
+  exact->params = rio_exactCap(used.params);
+  /* (constants as they were, or more if they filled: a check makes fewer than the compile does) */
+  if (exact->blocks < used.blocks + 4) exact->blocks = used.blocks + 4;
+  if (exact->exprDepth < used.exprDepth + 8) exact->exprDepth = used.exprDepth + 8;
+  if (exact->modules < used.modules + 2) exact->modules = used.modules + 2;
+  /* (the slots' map stays as it was: packing the code uses it, an entry an instruction) */
+  if (exact->slots < exact->consts + 1024) exact->slots = exact->consts + 1024;
+  if (exact->slots > 65536) exact->slots = 65536;
+  if (exact->consts > 16384) exact->consts = 16384;
+  exact->code = 0;
+  return 0;
+}
 /* compiled with the tables' room chosen for it (no rio_Limits): when one fills first, compiled again with
    more room for it, from those that used less (the room code and strings share, filling: from them all),
    a few times; failing still, compiled once more as at first, so its errors are reported as they'd be */
@@ -1278,6 +1319,11 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
       continue;
     }
     if (!full || !vm->retryQuiet) break;
+    if (!tries && !rio_measure(vm, src, len, read, readData, &cap, &next)) { /* (first: the tables as the program needs them) */
+      grown = 0;
+      vm->retryLimits = &next;
+      continue;
+    }
 #define rio_NEXT(f, t) next.f = rio_nextCap(cap.f, used.f, full == rio_Table_##t)
     rio_NEXT(symbols, symbols);
     rio_NEXT(nameBytes, names);

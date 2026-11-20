@@ -28,6 +28,17 @@ Rinc's and Studio's apps, would change with it.
   2. The memory spec, then the full spec (Before 1.0), with tests drawn from them; with them, the items
      below still open (rinc's points and sizes, Rio+ scripts, more than one error in the editor).
   3. Maybe, later: a declaration before a condition (Maybe, below); compile-time `when`.
+  - Next, recommended first (2026-11-20, over the exact counts below): **code kept packed while
+    compiling**. Each instruction takes 8 bytes while compiling and most take 4 once packed (rio_pack, at
+    the end), and the code is most of the compiler's room (Maps: about 110 KB of 250). Packing each proc
+    as it's finished (its jumps are its own; calls between procs fixed up at the end, as now) would about
+    halve that: Maps from about 15,000 instructions to maybe 20,000 to 25,000, a guess. The bigger lever;
+    the exact counts give maybe 1,500 more for Maps.
+  - Done (2026-11-20): **the tables sized from a check's exact counts**, when one fills: symbols, names,
+    types, fields, procs and params as a check counted them (an eighth more); constants and the slots'
+    map as they were (a check makes fewer constants; packing uses the slots' map). Maps: about 15,900
+    instructions, 397 procs. Guessing stays for when the check can't count (1,300 procs: too many for
+    the check's own tables).
   - Begun (2026-11-20): **compiled again when a table fills** (docs/guide/memory.md): the full table
     twice as big, the rest from what they'd used (1.5 times, down to half), a few tries, quiet, then as
     at first if none fit; the slots' map kept (packing the code uses it, an entry an instruction: shrunk,
