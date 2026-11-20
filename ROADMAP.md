@@ -28,12 +28,41 @@ Rinc's and Studio's apps, would change with it.
   2. The memory spec, then the full spec (Before 1.0), with tests drawn from them; with them, the items
      below still open (rinc's points and sizes, Rio+ scripts, more than one error in the editor).
   3. Maybe, later: a declaration before a condition (Maybe, below); compile-time `when`.
-  - Next, recommended first (2026-11-20, over the exact counts below): **code kept packed while
-    compiling**. Each instruction takes 8 bytes while compiling and most take 4 once packed (rio_pack, at
-    the end), and the code is most of the compiler's room (Maps: about 110 KB of 250). Packing each proc
-    as it's finished (its jumps are its own; calls between procs fixed up at the end, as now) would about
-    halve that: Maps from about 15,000 instructions to maybe 20,000 to 25,000, a guess. The bigger lever;
-    the exact counts give maybe 1,500 more for Maps.
+  - Assessed, for later (2026-11-20; the user: written up, not done yet): **code packed while compiling**.
+    - Why: while compiling, an instruction takes 8 bytes (rio_Instr); packed (rio_pack, at the end) one
+      takes 1.3 units of 4 bytes on average (Maps: 12,663 instructions, 16,655 units), about 5.3 bytes.
+      The code is most of the compiler's room (Maps: about 125 KB of 255), so packing each proc as it
+      ends would hold about a third more code.
+    - What it gains, really: then the app space running binds instead. Maps has about 29 KB free running
+      (data 146 KB, its arrays, is most of the 256), about 5,000 instructions more at 5.3 bytes: Maps
+      from about 15,900 to about 21,000. Trimming Maps' data frees running room directly, so look there
+      first when Maps needs more.
+    - Why it can be done (rio_shareFrames, rio_dropUnused, rio_pack read 2026-11-20): what a short form
+      depends on stays as it was decided at a proc's end:
+      - S (a slot by its frame): frame sharing moves a proc's whole frame as a block (a shared one to
+        keep + sharedStart + its offset; one not shared packed down with the slots that stay, its own
+        slots contiguous), so offsets within the proc's own frame don't change. Rule needed: S only for
+        slots in the proc's own frame [frameStart, frameEnd); any other slot (a global's) takes the wide
+        form or G (absolute: remapped in place, as wide operands are now).
+      - P (a proc by its index, < 256): dropping unused procs only makes indices smaller, so a short call
+        stays short; its index rewritten in place.
+      - J (a jump, -128 to 127 units): jumps stay inside their proc, and procs are dropped whole, so a
+        distance doesn't change. (Decided at the proc's end, with the same loop as now: a short jump too
+        far made wide, until none change.)
+      - I and K (immediates, constants): constant indices don't move (starting data aside, kept with the
+        constants: check that its K uses stay < 256 after its move).
+    - What changes: the code generator emits a proc's instructions at 8 bytes as now, and at its end packs
+      them in place to units (its own pc map from rio_pack's first two loops, for that proc alone); the
+      code after it goes on from the end of its units. Top-level code (statements outside procs) packs at
+      the end, as one more proc. Then each pass that walks vm->code by instruction walks units: dropUnused
+      (cuts in units; procDefs' entry and end in units), shareFrames (remapping wide and G operands in
+      place; S left alone), the line table (rio_markLine in units), rio_finish's moves (codeSize: units),
+      rio_codeFrames (the run form), the image format (already units at the end), and the board's native
+      compiler (jit.c: reads the run form, so likely unchanged). rio_pack's own work moves to each proc's end.
+    - Tests: every program in tests/ compiled both ways (the image the same, or as fast and as small);
+      a proc with a jump just past 127 units; a global next to a frame (S not used for it); procs
+      dropped between shorts; Maps' instruction ceiling measured before and after.
+    - Size: medium to large (a day or two, with care: the most delicate part of the compiler).
   - Done (2026-11-20): **the tables sized from a check's exact counts**, when one fills: symbols, names,
     types, fields, procs and params as a check counted them (an eighth more); constants and the slots'
     map as they were (a check makes fewer constants; packing uses the slots' map). Maps: about 15,900
