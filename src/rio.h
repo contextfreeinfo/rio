@@ -346,6 +346,16 @@ int rio_pcLine(rio_Vm *vm, uint32_t pc); /* source line of a bytecode position (
 typedef uint32_t (*rio_JitFn)(rio_Val *slots, rio_Vm *vm);
 int rio_jit(rio_Vm *vm, void *buf, uint32_t size);
 void rio_jitOp(rio_Val *slots, rio_Vm *vm, const rio_Instr *ip); /* (for the native code) */
+#ifdef rio_METER
+/* Metering (built with rio_METER, for a host that estimates another machine's speed: Rinc's board
+   speed): each instruction the vm runs adds 1 to counts[op], or counts[256 + op] in code the JIT would
+   compile on Thumb-2 (native: from rio_jitPlan, a byte for each of vm->codeLen code units, or NULL for
+   none). counts: 512, the host's, kept till it's done; NULL stops it. */
+void rio_meter(rio_Vm *vm, uint64_t *counts, const uint8_t *native);
+/* Which code units Thumb-2's JIT would compile (rio_jit's choice of loops and procs, made here on any
+   machine): native[unit] 1 (room for vm->codeLen). How many loops and procs, or -1 (no memory). */
+int rio_jitPlan(rio_Vm *vm, uint8_t *native);
+#endif
 
 /* ------------------------------------------------------------------ private: the vm's layout */
 
@@ -421,6 +431,10 @@ struct rio_Vm {
   struct rio_Compiler *compiler; /* only while compiling, or after rio_compileScratch and in a REPL */
   rio_Usage *usage;        /* rio_trackUsage */
   rio_Proc *procs;         /* per proc, in mem next to the strings */
+#ifdef rio_METER
+  uint64_t *meter;         /* rio_meter's: each instruction run counted, by op (+256: in code the JIT would compile) */
+  const uint8_t *meterNative; /* each code unit: 1 if in code the JIT would compile (rio_jitPlan), or NULL */
+#endif
   rio_JitFn *jitFns;       /* native loops (rio_Op_jit a: which) */
   int (*jitHook)(rio_Vm *vm); /* set by rio_jit: compiles what was just compiled or loaded */
   void *jitBuf;            /* the host's buffer for native code, or NULL: it goes at freeAt */

@@ -204,6 +204,10 @@ In this order:
 
 ## Maybe
 
+- Bigger values by value (the user, 2026-11-20: sometime): more than 16 words passed and returned by value,
+  or a big value passed by value as an address underneath (copied only if changed), so a struct like
+  rinc's pc.Text (a Font in it) needn't be trimmed to fit (its line went, for Font.line, at 16 words).
+
 - **A declaration before a condition** (the user, 2026-11-14), as Go's `if a := b(); a.ready`: a value
   fetched, then something about it tested, the name kept to the statement; for `switch` and loops too
   (`for line := next(); line.len() > 0`?). Not Go's spelling: `;` already parts statements on a line.

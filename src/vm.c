@@ -168,13 +168,23 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
 #define rio_SLABEL_MORE(o, w, k) &&rio_L_s_##o,
   static const void *const labels[256] = {rio_OPS(rio_LABEL)[128] = rio_SHORT_OPS(rio_SLABEL) rio_SHORT_MORE(rio_SLABEL_MORE)};
 #define rio_CASE(o) rio_L_##o:
+#ifdef rio_METER /* (each instruction counted, in one place, so the handlers stay as small: rio_meter) */
+#define rio_DISPATCH() goto metered
+#else
 #define rio_DISPATCH() goto *labels[ip->op]
+#endif
 #define rio_NEXT() \
   do {             \
     ip++;          \
     rio_DISPATCH(); \
   } while (0)
+#ifdef rio_METER
+metered:
+  if (vm->meter) vm->meter[ip->op | (vm->meterNative ? (uint32_t)vm->meterNative[(const uint32_t *)(const void *)ip - units] << 8 : 0)]++;
+  goto *labels[ip->op];
+#else
   rio_DISPATCH();
+#endif
 #else
 #define rio_CASE(o) case rio_Op_##o:
 #define rio_DISPATCH() continue
@@ -183,7 +193,11 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc, uint32_t frame) {
     ip++;          \
     continue;      \
   }
+#ifdef rio_METER
+  for (;;) switch ((vm->meter ? (void)vm->meter[ip->op | (vm->meterNative ? (uint32_t)vm->meterNative[(const uint32_t *)(const void *)ip - units] << 8 : 0)]++ : (void)0), ip->op) {
+#else
   for (;;) switch (ip->op) {
+#endif
 #endif
 
 /* to pc c; a backward jump checks for rio_interrupt */
@@ -826,3 +840,10 @@ int rio_call(rio_Vm *vm, int proc) {
   vm->interrupted = 0;
   return vm->ready && proc >= 0 && proc < vm->procCount ? rio_start(vm, vm->procs[proc].entry, vm->procs[proc].frameStart) : -1;
 }
+
+#ifdef rio_METER
+void rio_meter(rio_Vm *vm, uint64_t *counts, const uint8_t *native) {
+  vm->meter = counts;
+  vm->meterNative = counts ? native : 0;
+}
+#endif

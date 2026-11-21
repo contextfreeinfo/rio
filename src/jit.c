@@ -16,7 +16,75 @@
 #include "internal.h"
 
 #if defined(__ARM_ARCH_ISA_THUMB) && __ARM_ARCH_ISA_THUMB >= 2 && !defined(rio_NO_JIT)
+#define rio_JIT_THUMB 1
+#endif
 
+#if defined(rio_JIT_THUMB) || defined(rio_METER)
+#include <stdlib.h>
+#ifndef rio_JIT_PLAN_FFI
+#define rio_JIT_PLAN_FFI rio_MAX_FFI /* (rio_jitPlan: the host procs Thumb-2's JIT reaches, by index; the host can say) */
+#endif
+/* ------------------------------------------------------------------ what qualifies (rio_jitPlan's too) */
+
+/* instructions with a data word after them (element size and offset) */
+static int rio_isIndexed(int op) {
+  return op == rio_Op_ldx || op == rio_Op_ldxb || op == rio_Op_stx || op == rio_Op_stxb || op == rio_Op_idx;
+}
+static int rio_hasData(int op) { return rio_isIndexed(op) || op == rio_Op_logn; }
+static int rio_isLog(int op) { return op >= rio_Op_logi && op <= rio_Op_loge; }
+
+#define rio_JIT_MAX_NATIVE 256 /* native loops and procs */
+
+#define rio_JIT_MAX_LEN 1024  /* longest loop compiled, in instructions */
+#define rio_OFFSET_FFI_FN(i) ((uint32_t)(offsetof(rio_Vm, ffi) + (i) * sizeof(rio_Ffi) + offsetof(rio_Ffi, fn)))
+
+static int rio_touchesMemory(int op) { /* (an ffi function may write through the pointers it's given) */
+  return rio_isIndexed(op) || op == rio_Op_ldw || op == rio_Op_ldb || op == rio_Op_stw || op == rio_Op_stb || op == rio_Op_ldw2 ||
+         op == rio_Op_stw2 || op == rio_Op_ffi;
+}
+
+static int rio_jitSupports(int op) {
+  switch (op) {
+  case rio_Op_mov: case rio_Op_add: case rio_Op_sub: case rio_Op_mul: case rio_Op_div: case rio_Op_mod: case rio_Op_and:
+  case rio_Op_or: case rio_Op_xor: case rio_Op_shl: case rio_Op_shr: case rio_Op_ushr: case rio_Op_neg: case rio_Op_bnot: case rio_Op_not:
+  case rio_Op_eq: case rio_Op_ne: case rio_Op_lt: case rio_Op_le: case rio_Op_iabs: case rio_Op_imin: case rio_Op_imax:
+  case rio_Op_lea: case rio_Op_mov2: case rio_Op_fadd: case rio_Op_fsub: case rio_Op_fmul: case rio_Op_fdiv: case rio_Op_fneg:
+  case rio_Op_feq: case rio_Op_fne: case rio_Op_flt: case rio_Op_fle: case rio_Op_itof: case rio_Op_ftoi: case rio_Op_fmin:
+  case rio_Op_fmax: case rio_Op_m1: case rio_Op_m2: case rio_Op_call: case rio_Op_ret:
+    return 1;
+  }
+  return rio_isJump(op) || rio_touchesMemory(op) || rio_isLog(op);
+}
+
+/* Are [first, last] all instructions this compiles (data words skipped)? *memory: whether any touch
+   memory. nativeProc(ctx, pc): whether the proc at pc is native code (a call only to one). */
+static int rio_jitCompilable(rio_Vm *vm, const rio_Instr *code, uint32_t first, uint32_t last, int *memory, int (*nativeProc)(void *ctx, uint32_t pc), void *ctx) {
+  uint32_t pc;
+  *memory = 0;
+  for (pc = first; pc <= last; pc++) {
+    int op = code[pc].op;
+    if (!rio_jitSupports(op)) return 0;
+    if (rio_touchesMemory(op)) *memory = 1;
+    if (op == rio_Op_call && !nativeProc(ctx, code[pc].c)) return 0; /* (calls only to native procs) */
+    if ((op == rio_Op_ldw || op == rio_Op_ldb || op == rio_Op_stw || op == rio_Op_stb || op == rio_Op_ldw2 || op == rio_Op_stw2) &&
+        code[pc].c >= 4088)
+      return 0; /* (offsets this big: left to the vm) */
+    if (rio_hasData(op)) {
+      if (pc + 1 > last || (rio_isIndexed(op) && code[pc + 1].a >= 4096)) return 0;
+      pc++;
+    }
+#ifdef rio_JIT_THUMB
+    if (op == rio_Op_ffi && (rio_OFFSET_FFI_FN(code[pc].c) >= 4096 || vm->ffi[code[pc].c].pad)) return 0; /* (padded: the vm's) */
+#else
+    if (op == rio_Op_ffi && (code[pc].c >= rio_JIT_PLAN_FFI || vm->ffi[code[pc].c].pad)) return 0; /* (the plan: as Thumb-2's offsets allow) */
+#endif
+  }
+  return pc == last + 1;
+}
+
+#endif
+
+#ifdef rio_JIT_THUMB
 /* ------------------------------------------------------------------ the output */
 
 /* condition codes */
@@ -50,7 +118,6 @@ typedef struct {
 /* where the native code finds things in rio_Vm (r1 holds the vm) */
 #define rio_OFFSET_INTERRUPTED ((uint32_t)offsetof(rio_Vm, interrupted))
 #define rio_OFFSET_TRAPPED ((uint32_t)offsetof(rio_Vm, trapped))
-#define rio_OFFSET_FFI_FN(i) ((uint32_t)(offsetof(rio_Vm, ffi) + (i) * sizeof(rio_Ffi) + offsetof(rio_Ffi, fn)))
 
 static void rio_put16(rio_Jit *g, uint32_t x) {
   if (g->len < g->cap) g->out[g->len] = (uint16_t)x;
@@ -153,15 +220,6 @@ static int rio_patchBranch(rio_Jit *g, uint32_t at, int cond, uint32_t target) {
 
 /* ------------------------------------------------------------------ what compiles */
 
-/* instructions with a data word after them (element size and offset) */
-static int rio_isIndexed(int op) {
-  return op == rio_Op_ldx || op == rio_Op_ldxb || op == rio_Op_stx || op == rio_Op_stxb || op == rio_Op_idx;
-}
-static int rio_hasData(int op) { return rio_isIndexed(op) || op == rio_Op_logn; }
-static int rio_isLog(int op) { return op >= rio_Op_logi && op <= rio_Op_loge; }
-
-#define rio_JIT_MAX_NATIVE 256 /* native loops and procs */
-
 /* math done in place: sqrt, abs, and on ARMv8 (which has vrint) floor and ceil */
 #if __ARM_ARCH >= 8
 #define rio_JIT_HAS_VRINT 1
@@ -173,6 +231,8 @@ static int rio_isInlineMath(int which) {
 }
 
 /* the proc starting at pc, if it's native code: its entry; else 0 */
+static uintptr_t rio_nativeProc(rio_Jit *g, uint32_t pc);
+static int rio_isNativeProc(void *g, uint32_t pc) { return rio_nativeProc((rio_Jit *)g, pc) != 0; }
 static uintptr_t rio_nativeProc(rio_Jit *g, uint32_t pc) {
   rio_Vm *vm = g->vm;
   const rio_Instr *in = &vm->code[pc];
@@ -180,50 +240,9 @@ static uintptr_t rio_nativeProc(rio_Jit *g, uint32_t pc) {
   return g->ranges[in->a][0] == pc && vm->code[g->ranges[in->a][1]].op == rio_Op_ret ? (uintptr_t)g->fns[in->a] : 0;
 }
 
-static int rio_touchesMemory(int op) { /* (an ffi function may write through the pointers it's given) */
-  return rio_isIndexed(op) || op == rio_Op_ldw || op == rio_Op_ldb || op == rio_Op_stw || op == rio_Op_stb || op == rio_Op_ldw2 ||
-         op == rio_Op_stw2 || op == rio_Op_ffi;
-}
-
-static int rio_jitSupports(int op) {
-  switch (op) {
-  case rio_Op_mov: case rio_Op_add: case rio_Op_sub: case rio_Op_mul: case rio_Op_div: case rio_Op_mod: case rio_Op_and:
-  case rio_Op_or: case rio_Op_xor: case rio_Op_shl: case rio_Op_shr: case rio_Op_ushr: case rio_Op_neg: case rio_Op_bnot: case rio_Op_not:
-  case rio_Op_eq: case rio_Op_ne: case rio_Op_lt: case rio_Op_le: case rio_Op_iabs: case rio_Op_imin: case rio_Op_imax:
-  case rio_Op_lea: case rio_Op_mov2: case rio_Op_fadd: case rio_Op_fsub: case rio_Op_fmul: case rio_Op_fdiv: case rio_Op_fneg:
-  case rio_Op_feq: case rio_Op_fne: case rio_Op_flt: case rio_Op_fle: case rio_Op_itof: case rio_Op_ftoi: case rio_Op_fmin:
-  case rio_Op_fmax: case rio_Op_m1: case rio_Op_m2: case rio_Op_call: case rio_Op_ret:
-    return 1;
-  }
-  return rio_isJump(op) || rio_touchesMemory(op) || rio_isLog(op);
-}
-
-/* Are [first, last] all instructions this compiles (data words skipped)? *memory: whether any touch
-   memory. */
-static int rio_jitCompilable(rio_Jit *g, const rio_Instr *code, uint32_t first, uint32_t last, int *memory) {
-  uint32_t pc;
-  *memory = 0;
-  for (pc = first; pc <= last; pc++) {
-    int op = code[pc].op;
-    if (!rio_jitSupports(op)) return 0;
-    if (rio_touchesMemory(op)) *memory = 1;
-    if (op == rio_Op_call && !rio_nativeProc(g, code[pc].c)) return 0; /* (calls only to native procs) */
-    if ((op == rio_Op_ldw || op == rio_Op_ldb || op == rio_Op_stw || op == rio_Op_stb || op == rio_Op_ldw2 || op == rio_Op_stw2) &&
-        code[pc].c >= 4088)
-      return 0; /* (offsets this big: left to the vm) */
-    if (rio_hasData(op)) {
-      if (pc + 1 > last || (rio_isIndexed(op) && code[pc + 1].a >= 4096)) return 0;
-      pc++;
-    }
-    if (op == rio_Op_ffi && (rio_OFFSET_FFI_FN(code[pc].c) >= 4096 || g->vm->ffi[code[pc].c].pad)) return 0; /* (padded: the vm's) */
-  }
-  return pc == last + 1;
-}
-
 /* ------------------------------------------------------------------ registers */
 
 #define rio_JIT_MAX_FIXES 128 /* branches in one loop */
-#define rio_JIT_MAX_LEN 1024  /* longest loop compiled, in instructions */
 #define rio_JIT_MAX_EXITS 64  /* places one loop exits to */
 /* scratch, at the far end of the room while compiling (nothing static: on an MCU, RAM is the app's) */
 #define rio_JIT_SCRATCH \
@@ -436,7 +455,7 @@ static int rio_compileRegion(rio_Jit *g, const rio_Instr *code, uint32_t first, 
   rio_JitFix *fixes = g->fixes;
   int fixCount = 0, i, memory;
   uint32_t pc, exitCount = 0, head = first;
-  if (last - first + 1 > rio_JIT_MAX_LEN || !rio_jitCompilable(g, code, first, last, &memory)) return -1;
+  if (last - first + 1 > rio_JIT_MAX_LEN || !rio_jitCompilable(g->vm, code, first, last, &memory, rio_isNativeProc, g)) return -1;
   memset(isTarget, 0, last - first + 1);
   for (pc = first; pc <= last; pc++) {
     if (rio_isJump(code[pc].op) && code[pc].c >= first && code[pc].c <= last) isTarget[code[pc].c - first] = 1;
@@ -929,7 +948,7 @@ static int rio_jitAll(rio_Vm *vm) {
       last = (uint32_t)vm->procs[i].end - 1u;
       if (vm->procs[i].end <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
       for (k = 0; k < vm->jitCount && !(first <= g.ranges[k][1] && last >= g.ranges[k][0]); k++) {} /* overlaps one done? */
-      if (k < vm->jitCount || !rio_jitCompilable(&g, code, first, last, &memory) || memory)
+      if (k < vm->jitCount || !rio_jitCompilable(vm, code, first, last, &memory, rio_isNativeProc, &g) || memory)
         continue; /* (memory ops would keep all its slots out of registers: its loops do better alone) */
       if (rio_addNative(&g, first, last, 1)) continue;
       count++;
@@ -948,7 +967,7 @@ static int rio_jitAll(rio_Vm *vm) {
       if (last - first + 1 <= best || last - first + 1 > rio_JIT_MAX_LEN) continue;
       for (k = 0; k < vm->jitCount && !(first >= g.ranges[k][0] && last <= g.ranges[k][1]); k++) {} /* inside one done? */
       if (k < vm->jitCount) continue;
-      if (!rio_jitCompilable(&g, code, first, last, &memory)) continue;
+      if (!rio_jitCompilable(vm, code, first, last, &memory, rio_isNativeProc, &g)) continue;
       bestFirst = first;
       bestLast = last;
       best = last - first + 1;
@@ -1002,10 +1021,90 @@ int rio_jit(rio_Vm *vm, void *buf, uint32_t size) {
 }
 
 #else
-int rio_jit(rio_Vm *vm, void *buf, uint32_t size) {
+int rio_jit(rio_Vm *vm, void *buf, uint32_t size) { /* (no native code here) */
   (void)vm;
   (void)buf;
   (void)size;
   return -1;
+}
+#endif
+
+#ifdef rio_METER
+/* ------------------------------------------------------------------ the plan (rio_jitPlan) */
+
+/* rio_jitAll's choice, made without compiling: procs that qualify (no memory touched), callees first,
+   then loops, biggest first. (Where the board's compiling fails, out of room or registers, it differs.) */
+typedef struct {
+  const rio_Instr *code;
+  uint16_t (*ranges)[2];
+  uint8_t *isProc;
+  int count;
+} rio_Plan;
+static int rio_planNativeProc(void *ctx, uint32_t pc) {
+  rio_Plan *p = (rio_Plan *)ctx;
+  int k;
+  for (k = 0; k < p->count; k++)
+    if (p->isProc[k] && p->ranges[k][0] == pc) return 1;
+  return 0;
+}
+/* a range's first instruction becomes rio_Op_jit, which nothing compiles over */
+static int rio_planStarts(const rio_Plan *p, uint32_t first, uint32_t last) {
+  int k;
+  for (k = 0; k < p->count; k++)
+    if (p->ranges[k][0] >= first && p->ranges[k][0] <= last) return 1;
+  return 0;
+}
+int rio_jitPlan(rio_Vm *vm, uint8_t *native) {
+  rio_Instr *code, *packed = vm->code;
+  uint16_t *unitOf, (*kept)[2], ranges[rio_JIT_MAX_NATIVE][2];
+  uint8_t isProc[rio_JIT_MAX_NATIVE];
+  uint32_t packedLen = vm->codeLen, n, pc, k, first, last, u;
+  rio_Plan p;
+  memset(native, 0, packedLen);
+  if (vm->inRepl || !packedLen) return 0;
+  code = (rio_Instr *)malloc((packedLen + 1) * sizeof *code);
+  unitOf = (uint16_t *)malloc((packedLen + 1) * sizeof *unitOf);
+  kept = (uint16_t (*)[2])malloc(((size_t)vm->procCount + 1) * sizeof *kept);
+  if (!code || !unitOf || !kept) { free(code); free(unitOf); free(kept); return -1; }
+  n = rio_unpackInto(vm, code, unitOf, kept);
+  p.code = code; p.ranges = ranges; p.isProc = isProc; p.count = 0;
+  for (;;) {
+    int more = 0, i;
+    for (i = 0; i < vm->procCount && p.count < rio_JIT_MAX_NATIVE; i++) {
+      int memory;
+      first = vm->procs[i].entry;
+      last = (uint32_t)vm->procs[i].end - 1u;
+      if (vm->procs[i].end <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
+      for (k = 0; k < (uint32_t)p.count && !(first <= ranges[k][1] && last >= ranges[k][0]); k++) {}
+      if (k < (uint32_t)p.count || rio_planStarts(&p, first, last) || !rio_jitCompilable(vm, code, first, last, &memory, rio_planNativeProc, &p) || memory) continue;
+      ranges[p.count][0] = (uint16_t)first; ranges[p.count][1] = (uint16_t)last; isProc[p.count++] = 1;
+      more = 1;
+    }
+    if (!more) break;
+  }
+  while (p.count < rio_JIT_MAX_NATIVE) {
+    uint32_t bestFirst = 0, bestLast = 0, best = 0;
+    for (pc = 0; pc < n; pc++) {
+      int memory;
+      if (!rio_isJump(code[pc].op) || code[pc].c > pc) continue;
+      first = code[pc].c;
+      last = pc;
+      if (last - first + 1 <= best || last - first + 1 > rio_JIT_MAX_LEN) continue;
+      for (k = 0; k < (uint32_t)p.count && !(first >= ranges[k][0] && last <= ranges[k][1]); k++) {}
+      if (k < (uint32_t)p.count || rio_planStarts(&p, first, last)) continue;
+      if (!rio_jitCompilable(vm, code, first, last, &memory, rio_planNativeProc, &p)) continue;
+      bestFirst = first; bestLast = last; best = last - first + 1;
+    }
+    if (!best) break;
+    ranges[p.count][0] = (uint16_t)bestFirst; ranges[p.count][1] = (uint16_t)bestLast; isProc[p.count++] = 0;
+  }
+  rio_procsInUnits(vm, (const uint16_t (*)[2])kept);
+  vm->code = packed;
+  vm->codeLen = packedLen;
+  for (k = 0; k < (uint32_t)p.count; k++)
+    for (pc = ranges[k][0]; pc <= ranges[k][1]; pc++)
+      for (u = unitOf[pc]; u < unitOf[pc + 1]; u++) native[u] = 1;
+  free(code); free(unitOf); free(kept);
+  return p.count;
 }
 #endif
