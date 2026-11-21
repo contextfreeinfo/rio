@@ -139,6 +139,17 @@ In this order:
 
 ## Leaning yes
 
+- **Enums to Int where an Int is wanted** (the user, 2026-11-21): an enum value assigned to an `Int`
+  (a variable, a field, an element) or passed or returned as one, without `.toInt()`, as a host proc's
+  sig already lets an enum stand for an `Int`. Safe that way round (every enum value is an Int); Int to
+  enum stays `E.fromInt`, checked. Recommended: only where the type wanted is `Int` already; not in
+  operators (`dir == 2`, `dir + 1` stay errors, the bugs they'd hide), not in inference (`x := dir` is a
+  `Dir`), and not inside arrays or maybes (`[]Dir` isn't a `[]Int`: a write through it could make a
+  value that's no Dir). Decided (the user, 2026-11-21): as recommended. Studio's snippets then give enums
+  instead of constants.
+  Done (2026-11-21): rio_coerce gives an enum's value as its number where an Int goes; comparing one
+  with a maybe's Int still an error; tests (test.rio, errors.c) failing without it; docs/spec/types.md.
+
 - **Smaller instructions** (2026-11-09): 8 bytes each now (Rinc's Cloudlamp: 4,845 of them, 38.8 KB of
   code, most of it tilemap's). A denser encoding (4 bytes for the common ones, a wider form for the
   rest) would fit about twice the code in the same space, if it doesn't slow the VM much: measured

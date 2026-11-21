@@ -1065,6 +1065,22 @@ for x, i in eds
   x = Dir.fromInt(i)
 end
 check(eds[3] == .west and eds[0] != .east, "an array of enums")
+# an enum's value where an Int goes is its number: assigned, passed, returned, an element or a field
+eTimes10 :: proc(n: Int) -> Int
+  return n * 10
+end
+eNumber :: proc(d: Dir) -> Int
+  return d
+end
+eN: Int = Dir.south
+eN2 := 0
+eN2 = ed                                # (ed is .south)
+eInts: [..4]Int
+_ = eInts.push(Dir.west)
+eArr := [2]Int{Dir.east, Dir.west}
+eMobN := EMob{facing = .north, hp = Dir.west}
+check(eN == 2 and eN2 == 2 and eTimes10(Dir.east) == 10 and eNumber(.west) == 3, "an enum where an Int goes: assigned, passed, returned")
+check(eInts[0] == 3 and eArr[1] == 3 and eMobN.hp == 3, "an enum where an Int goes: an element, a field")
 enames: Blob[..64]
 for d, i in Dir                         # an enum's values, in the order listed
   _ = enames.print(d, i, " ")

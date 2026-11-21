@@ -385,6 +385,7 @@ static void rio_unionCompare(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
     rv.tempStart = (uint16_t)c->freeSlot;
   } else {
     rv = *r;
+    if (rio_type(vm, rio_valueType(rv.type))->kind == rio_TypeKind_enum && rio_valueType(rv.type) != elem) rio_FAIL(, "type mismatch"); /* (an enum's an Int where one goes, but not compared with one) */
     rio_coerce(vm, &rv, elem);
     if (rio_failed(vm)) return;
     if (rio_valueType(rv.type) != elem) rio_FAIL(, "type mismatch");

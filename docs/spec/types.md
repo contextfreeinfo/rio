@@ -178,6 +178,26 @@ A value can't be given a number of its own: other numbers, such as a file format
 constants (`WALL :: 3`), or an array `[E]Int` of them. `[E]T` has one element for each value, in
 order, and `for x in E` (with an index, `for x, i in E`) goes through them.
 
+Where an `Int` goes (assigned to one, passed or returned as one, an element or a field that's one), an
+enum's value is its number, with no `.toInt()`. The other way, `E.fromInt(n)` checks that `n` is one of
+its values. Operators still take two of one type (`d == 1` and `d + 1` are errors), `x := d` is the
+enum, an index is an `Int` (an array indexed by the enum is `[E]T`), and a `[]E` isn't a `[]Int`:
+
+```rio
+Way :: enum
+  up, right, down, left
+end
+twice :: proc(n: Int) -> Int
+  return n * 2
+end
+n: Int = Way.down
+log(n, twice(Way.left))
+```
+
+```output
+2 6
+```
+
 ## Unions
 
 A union holds a value of one of its types, and remembers which (a tag word, then room for the biggest

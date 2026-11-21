@@ -693,8 +693,9 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   *e = rio_exprOf(rio_ExprKind_const, i, e->value + 1);
 }
 
-/* makes e a value of type `type`, or fails: Int constants become Floats, arrays view as slices, builders as
-   builder views, and procs become proc values */
+/* makes e a value of type `type`, or fails: Int constants become Floats, an enum's value its number (where
+   an Int goes: assigned, passed, returned; not back, where E.fromInt checks it), arrays view as slices,
+   builders as builder views, and procs become proc values */
 void rio_coerce(rio_Vm *vm, rio_Expr *e, int type) {
   int from, fromKind, toKind;
   if ((e->kind == rio_ExprKind_proc || e->kind == rio_ExprKind_ffi) && rio_type(vm, type)->kind == rio_TypeKind_proc) { /* a proc where a proc value goes */
@@ -714,6 +715,10 @@ void rio_coerce(rio_Vm *vm, rio_Expr *e, int type) {
   if (from == type) return;
   fromKind = rio_type(vm, from)->kind;
   toKind = rio_type(vm, type)->kind;
+  if (fromKind == rio_TypeKind_enum && type == rio_TypeId_int) { /* (stored as an Int already) */
+    e->type = rio_TypeId_int;
+    return;
+  }
   if (fromKind == rio_TypeKind_array && toKind == rio_TypeKind_slice && rio_sliceOf(vm, rio_type(vm, from)->elem) == type) {
     if (rio_isTemp(vm, e)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
     return;
