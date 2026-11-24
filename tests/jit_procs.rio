@@ -8,6 +8,15 @@ check :: proc(ok: Bool, what: String)
   end
 end
 
+# a proc with nothing in it (just its ret): called, and back (as native code, it once came back to
+# itself for ever: an app's empty update hung the board)
+nothing :: proc()
+end
+for i in 0..<3
+  nothing()
+end
+check(true, "an empty proc, called")
+
 # a proc with a loop, called from a loop; globals it changes stay right around the calls
 total := 0
 calls := 0

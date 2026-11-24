@@ -946,7 +946,9 @@ static int rio_jitAll(rio_Vm *vm) {
       int memory;
       first = vm->procs[i].entry;
       last = (uint32_t)vm->procs[i].end - 1u;
-      if (vm->procs[i].end <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
+      /* (a proc that's just its ret: nothing to gain, and its native code would carry on at the ret, its own
+         entry, which becomes the jit op: around and around for ever) */
+      if (vm->procs[i].end <= first || last <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
       for (k = 0; k < vm->jitCount && !(first <= g.ranges[k][1] && last >= g.ranges[k][0]); k++) {} /* overlaps one done? */
       if (k < vm->jitCount || !rio_jitCompilable(vm, code, first, last, &memory, rio_isNativeProc, &g) || memory)
         continue; /* (memory ops would keep all its slots out of registers: its loops do better alone) */
@@ -1074,7 +1076,9 @@ int rio_jitPlan(rio_Vm *vm, uint8_t *native) {
       int memory;
       first = vm->procs[i].entry;
       last = (uint32_t)vm->procs[i].end - 1u;
-      if (vm->procs[i].end <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
+      /* (a proc that's just its ret: nothing to gain, and its native code would carry on at the ret, its own
+         entry, which becomes the jit op: around and around for ever) */
+      if (vm->procs[i].end <= first || last <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
       for (k = 0; k < (uint32_t)p.count && !(first <= ranges[k][1] && last >= ranges[k][0]); k++) {}
       if (k < (uint32_t)p.count || rio_planStarts(&p, first, last) || !rio_jitCompilable(vm, code, first, last, &memory, rio_planNativeProc, &p) || memory) continue;
       ranges[p.count][0] = (uint16_t)first; ranges[p.count][1] = (uint16_t)last; isProc[p.count++] = 1;
