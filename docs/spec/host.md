@@ -130,6 +130,10 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   one after another, as that many `i` (or `f`) in its sig: `rect* :: host proc(pos, size: [2]Int, c:
   Int)` is the host's `"iiiii"`. Calls take any such array, so a literal is typed by the parameter:
   `pc.rect({x, y}, {8, 8}, 7)`.
+- **Lists of points:** a `[][N]Int` (or `[][N]Float`, N from 2 to 8) is a slice like any other, 2 words:
+  where its elements start and how many there are; its sig writes the element's words in the brackets:
+  `polygon* :: host proc(points: [][2]Int, c: Int)` is the host's `"[ii]i"`, and the host reads the
+  points as `int32_t` pairs, x then y.
 - **Results as points:** `pointerAt* :: host proc() -> [2]Int` is the host's `">ii"`: it writes the
   words back in order.
 - **Results:** a host proc returns what a proc may: an `Int`, `Float`, `String` or `Blob`, or a struct,

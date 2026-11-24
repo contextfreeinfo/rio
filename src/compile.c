@@ -312,11 +312,13 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
       }
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;
       if (ch == 'B' && !isResult) t = rio_builderViewOf(vm, rio_TypeId_byte); /* (a Blob[..], 3 words: where its length is, where its bytes start, its capacity) */
-      if (ch == '[' && !isResult) { /* [x]: a slice of x (i, f, s or b), 2 words: where its elements start, how many */
-        int e = g[1] == 'i' ? rio_TypeId_int : g[1] == 'f' ? rio_TypeId_float : g[1] == 's' ? rio_TypeId_string : g[1] == 'b' ? rio_TypeId_blob : -1;
-        if (e < 0 || g[2] != ']') rio_FAIL(, "bad ffi signature: [ takes i, f, s or b, then ]");
-        t = rio_sliceOf(vm, e);
-        g += 2;
+      if (ch == '[' && !isResult) { /* [x]: a slice of x (i, f, s or b), 2 words: where its elements start, how many;
+                                       [ii] (2 to 8 of i or f): of [2]Int, points */
+        int e = g[1] == 'i' ? rio_TypeId_int : g[1] == 'f' ? rio_TypeId_float : g[1] == 's' ? rio_TypeId_string : g[1] == 'b' ? rio_TypeId_blob : -1, n = 1;
+        while (e >= 0 && (g[1] == 'i' || g[1] == 'f') && g[1 + n] == g[1] && n < 9) n++;
+        if (e < 0 || g[1 + n] != ']' || n > 8) rio_FAIL(, "bad ffi signature: [ takes i, f, s or b (or 2 to 8 of i or f), then ]");
+        t = rio_sliceOf(vm, n > 1 ? rio_arrayOf(vm, e, (uint32_t)n) : e);
+        g += 1 + n;
       }
       if (t < 0) rio_FAIL(, "bad ffi signature");
       if (c->paramCount >= (int)c->limits.params) rio_FAIL_FULL(, rio_Table_params, "too many params: the host procs' don't fit the compiler's tables (give it more room)");

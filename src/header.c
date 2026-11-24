@@ -262,10 +262,14 @@ static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procTy
       for (w = 0; w < rio_type(vm, type)->count; w++) rio_hostPut(o, rio_type(vm, type)->elem == rio_TypeId_float ? "f" : "i", 1);
       if (ref) rio_hostPut(o, ")", 1);
     }
-    else if (k == rio_TypeKind_slice && type != rio_TypeId_string && type != rio_TypeId_blob) { /* (a []T: [x], x its element's letter) */
+    else if (k == rio_TypeKind_slice && type != rio_TypeId_string && type != rio_TypeId_blob) { /* (a []T: [x], x its element's letter; a [][2]Int: [ii], its points' words) */
       int e = rio_type(vm, type)->elem, ek = rio_type(vm, e)->kind;
       rio_hostPut(o, "[", 1);
-      rio_hostPut(o, ek == rio_TypeKind_float ? "f" : e == rio_TypeId_string ? "s" : e == rio_TypeId_blob ? "b" : ek == rio_TypeKind_int || ek == rio_TypeKind_bool || ek == rio_TypeKind_enum ? "i" : "?", 1);
+      if (ek == rio_TypeKind_array && (rio_type(vm, e)->elem == rio_TypeId_int || rio_type(vm, e)->elem == rio_TypeId_float) && rio_type(vm, e)->count >= 2 && rio_type(vm, e)->count <= 8) {
+        uint32_t w;
+        for (w = 0; w < rio_type(vm, e)->count; w++) rio_hostPut(o, rio_type(vm, e)->elem == rio_TypeId_float ? "f" : "i", 1);
+      } else
+        rio_hostPut(o, ek == rio_TypeKind_float ? "f" : e == rio_TypeId_string ? "s" : e == rio_TypeId_blob ? "b" : ek == rio_TypeKind_int || ek == rio_TypeKind_bool || ek == rio_TypeKind_enum ? "i" : "?", 1);
       rio_hostPut(o, "]", 1);
     }
     else if (k == rio_TypeKind_builderView && rio_type(vm, type)->elem == rio_TypeId_byte) rio_hostPut(o, "B", 1); /* (a Blob[..]) */

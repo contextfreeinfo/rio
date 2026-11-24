@@ -179,7 +179,11 @@ static int rio_headerChecks(rio_Vm *vm, const uint32_t *h) {
 /* past the sig's part at s: a letter, a slice's [x], or a struct's {...} */
 static const char *rio_sigPart(const char *s) {
   int depth = 0;
-  if (*s == '[') return s[1] && s[2] ? s + 3 : s + 1;
+  if (*s == '[') { /* ([x], or [ii]: to its ]) */
+    const char *e = s + 1;
+    while (*e && *e != ']') e++;
+    return *e ? e + 1 : s + 1;
+  }
   if (*s == '&') s++; /* (&i, &f, &{...}) */
   if (*s == 'E') /* (Enum{...}) */
     while (*s && *s != '{') s++;
