@@ -100,6 +100,7 @@ typedef struct {
   uint16_t codeStart, codeEnd;
   uint8_t isPackage, state, isInclude;
   uint8_t declsOnly; /* a check takes only its declarations (rio_Source's declsOnly) */
+  uint8_t endsCheck; /* a check ends with it (rio_Source's endsCheck) */
 } rio_Module;
 
 /* a file's text, to read: all of it, in memory (src), or a part at a time (read, into the window) */
@@ -352,6 +353,7 @@ typedef struct rio_Compiler {
   rio_Limits limits;  /* capacities of the tables below, all carved from scratch */
   rio_Limits high;    /* the most of the shrinking ones used: symbols, nameBytes, blocks, exprDepth (rio_Usage) */
   uint8_t full;       /* the table that filled, if one did (rio_Table_...): compiled again with more room for it */
+  uint32_t skipped[8]; /* a check's: the names of the private procs it skipped, hashed (a bit each, of 256) */
   uint32_t room, source; /* the compiler's room, and the source's bytes when it's in mem (rio_Usage) */
   rio_Symbol *syms;
   rio_Type *types;
@@ -474,7 +476,8 @@ void rio_failAt(rio_Vm *vm, int line, int col, int width, const char *message);
 /* a table full (or the room code and strings share): which, kept for compiling again with room for more
    (rio_compileText), the first time only, then failed as rio_FAIL */
 enum { rio_Table_none, rio_Table_symbols, rio_Table_names, rio_Table_types, rio_Table_fields, rio_Table_procs, rio_Table_params,
-       rio_Table_consts, rio_Table_slots, rio_Table_blocks, rio_Table_expr, rio_Table_modules, rio_Table_room };
+       rio_Table_consts, rio_Table_slots, rio_Table_blocks, rio_Table_expr, rio_Table_modules, rio_Table_room,
+       rio_Table_private /* (not a table: a check that skipped a private proc it then needed: again, keeping them) */ };
 #define rio_FAIL_FULL(result, table, message)                                                       \
   do {                                                                                              \
     if (vm->compiler && !vm->compiler->full && vm->errorKind == rio_ErrorKind_none) vm->compiler->full = (uint8_t)(table); \
@@ -694,6 +697,7 @@ rio_Block *rio_pushBlock(rio_Vm *vm, int kind);
 void rio_endScope(rio_Vm *vm, const rio_Block *b);
 void rio_statement(rio_Vm *vm);
 void rio_finishProc(rio_Vm *vm);
+void rio_skippedName(rio_Vm *vm, const char *name, int len); /* a name not found: a check again if it was skipped */
 
 /* ------------------------------------------------------------------ modules.c */
 

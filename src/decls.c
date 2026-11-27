@@ -416,10 +416,24 @@ static void rio_loadTypeSizes(rio_Vm *vm, int proc) {
    with no self). The body follows as statements, until its end (in rio_statement). */
 /* name :: proc(...), and how (bit 1: static, on a type with no self; bit 2: a callback, which can be a
    proc value) */
+/* a name's bit in a check's skipped names */
+static uint32_t rio_nameBit(const char *s, int n) {
+  uint32_t h = 2166136261u;
+  while (n-- > 0) h = (h ^ (uint8_t)*s++) * 16777619u;
+  return h & 255;
+}
+
+void rio_skippedName(rio_Vm *vm, const char *name, int len) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t bit = rio_nameBit(name, len);
+  if (vm->checking && !vm->keepPrivate && c && !c->full && c->skipped[bit / 32] >> (bit % 32) & 1) c->full = rio_Table_private;
+}
+
 /* A check's proc in a file of declarations only (rio_Source's declsOnly): its body passed over to its end,
    uncompiled, by its blocks' keywords alone (types and procs are top-level, so only if, for, switch and do
-   open blocks in a body; a do after one on its line makes it a one-line block), then the proc ended */
-static void rio_skipBody(rio_Vm *vm) {
+   open blocks in a body; a do after one on its line makes it a one-line block); then the proc ended, if
+   one was begun (proc >= 0: not for a private proc skipped whole) */
+static void rio_skipBody(rio_Vm *vm, int proc) {
   rio_Compiler *c = vm->compiler;
   uint32_t pool = c->poolUsed;
   int depth = 1, opened = 0, start, t, afterSemi = 0;
@@ -451,8 +465,35 @@ static void rio_skipBody(rio_Vm *vm) {
     }
   if (rio_failed(vm)) return;
   if (c->tok.kind != rio_Tok_string && c->peek.kind != rio_Tok_string) c->poolUsed = pool; /* (the body's strings) */
-  rio_finishProc(vm);
+  if (proc >= 0) rio_finishProc(vm);
 }
+
+/* A check's private proc in an imported module of declarations only: nothing outside the module can call it,
+   and its module's bodies aren't compiled, so it's passed over whole, header and body (its name kept, hashed:
+   if top-level code used it after all, the check goes again, keeping them) */
+static int rio_skipPrivate(rio_Vm *vm, const char *name, int nameLen) {
+  rio_Compiler *c = vm->compiler;
+  rio_Module *m = &c->modules[c->curFile];
+  int depth = 0;
+  uint32_t bit;
+  if (!vm->checking || vm->keepPrivate || c->exporting || !m->declsOnly || m->isInclude || c->curFile != c->curModule) return 0;
+  bit = rio_nameBit(name, nameLen);
+  c->skipped[bit / 32] |= 1u << (bit % 32);
+  for (;;) { /* (its type parameters and parameters, to their close) */
+    int t = c->tok.kind;
+    if (rio_failed(vm) || t == rio_Tok_eof) return 1;
+    if (t == '(' || t == '[') depth++;
+    else if ((t == ')' || t == ']') && !--depth) {
+      if (t == ')' && c->peek.kind != '(') break;
+    }
+    rio_next(vm);
+  }
+  rio_next(vm);
+  while (!rio_failed(vm) && c->tok.kind != rio_Tok_eof && !c->tok.newline && c->tok.kind != rio_Tok_do) rio_next(vm); /* (its result) */
+  rio_skipBody(vm, -1);
+  return 1;
+}
+
 
 void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int how) {
   rio_Compiler *c = vm->compiler;
@@ -461,6 +502,7 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int ho
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
   if (vm->procCount >= (int)c->limits.procs) rio_FAIL_FULL(, rio_Table_procs, "too many procs");
   rio_next(vm);
+  if (rio_skipPrivate(vm, name, nameLen)) return;
   if (c->tok.kind == '[' && !c->tok.newline) { /* proc[T, U]: generic, the types named for the proc */
     rio_next(vm);
     while (c->tok.kind == rio_Tok_id && !rio_failed(vm)) {
@@ -545,7 +587,7 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int ho
   }
   rio_beginBody(vm, index);
   if (typeCount) rio_loadTypeSizes(vm, index);
-  if (vm->checking && c->modules[c->curFile].declsOnly) rio_skipBody(vm);
+  if (vm->checking && c->modules[c->curFile].declsOnly) rio_skipBody(vm, index);
 }
 
 /* Type.name :: proc(...), or :: static proc(...) for one called on the type, with no self */

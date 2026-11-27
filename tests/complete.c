@@ -30,6 +30,8 @@ static void twice(rio_Vm *v, rio_Val *a) {
   "  w := if t > 3\n    1\n  case t > 1\n    2\n  else\n    3\n  end\n  x := 1; do\n    t += x\n  end\n"
 #define BODIES_END \
   "  return t + w\nend\nshort* :: proc(n: Int) -> Int do return n + 1\n" \
+  "helper :: proc[T](xs: []T, f: proc(Int) -> Int) -> Int\n  return f(xs.len())\nend\nquiet :: proc() do return\n" \
+  "double :: proc(n: Int) -> Int\n  return n * 2\nend\nseed* := double(3)\n" \
   "after* :: proc(n: Int) -> Int\n  return twist(n) + short(n)\nend\nAfter* :: struct\n  late: Int\nend\n"
 static const char *const files[][2] = {
   {"shapes", "Box* :: struct\n  w, h: Int\nend\narea* :: proc(b: Box) -> Int\n  return b.w * b.h\nend\nSIDES* :: 4\nhidden :: 1\n"},
@@ -37,12 +39,21 @@ static const char *const files[][2] = {
   {"badbodies", BODIES "  t = \"not an Int\"\n" BODIES_END},
 };
 static const char *bigLib; /* (a library made by the test: "big") */
+static int cutPart; /* ("part.rio": the file being edited, cut where its cursor is, the check's end) */
 static int declsOnly; /* (the loader's sources: declarations only, for a check) */
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i;
   (void)ud;
   (void)kind;
   o->declsOnly = declsOnly;
+  if (cutPart && !strcmp(path, "part.rio")) { /* (its text up to the cursor: early's there, middle's after) */
+    static const char *const part = "early :: 1\n";
+    o->src = part;
+    o->len = (uint32_t)strlen(part);
+    o->declsOnly = 0;
+    o->endsCheck = 1;
+    return 0;
+  }
   if (bigLib && !strcmp(path, "big")) {
     o->src = bigLib;
     o->len = (uint32_t)strlen(bigLib);
@@ -325,7 +336,7 @@ int main(void) {
        reported (it is, compiled whole); and a library too big to check whole, checked */
     static unsigned char small[16 << 10], room[48 << 10];
     static char lib[160 << 10];
-    static const char *const uses = "import bodies\nb: bodies.Tail\nk := bodies.after(2)\na: bodies.After\n";
+    static const char *const uses = "import bodies\nb: bodies.Tail\nk := bodies.after(2)\na: bodies.After\nz := bodies.seed + 1\n";
     static const char *const usesBad = "import badbodies\nb: badbodies.Tail\nk := badbodies.after(2)\n";
     static const char *const usesBig = "import big\nk := big.last(2)\nc: big.Cell\n";
     rio_Vm cv;
@@ -391,8 +402,53 @@ int main(void) {
       printf("FAIL %d: a library too big to check whole, declarations only: %s\n", n, rio_error(&cv));
       fails++;
     }
+    gotLen = 0;
+    got[0] = 0;
+    rio_complete(&cv, "k := big.", 9, item, 0);
+    n++;
+    if (!offered("last:p") || offered("p0:") == 0 || offered("hidden")) {
+      printf("FAIL %d: a big library's exports: %s\n", n, got);
+      fails++;
+    }
+    len = 0; /* (a library of many private procs, which no other module can call: skipped whole, it fits) */
+    len += (size_t)snprintf(lib + len, sizeof lib - len, "Cell* :: struct\n  at, value: Int\nend\n");
+    for (i = 0; i < 400; i++)
+      len += (size_t)snprintf(lib + len, sizeof lib - len, "q%d :: proc(a: Int, b: Int, c: Int, d: Int) -> Int\n  return a + b + c + d\nend\n", i);
+    len += (size_t)snprintf(lib + len, sizeof lib - len, "last* :: proc(a: Int) -> Int\n  return q399(a, a, a, a)\nend\n");
+    r = rio_check(&cv, usesBig, (uint32_t)strlen(usesBig), 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: a library of many private procs, declarations only: %s\n", n, rio_error(&cv));
+      fails++;
+    }
     bigLib = 0;
     declsOnly = 0;
+  }
+
+  { /* a check of a part being edited (rio_Source's endsCheck), cut at its cursor: it ends there, so what
+       comes after it in the file that includes it, using the part's names past the cut, isn't reached */
+    static unsigned char small[16 << 10], room[48 << 10];
+    static const char *const main = "first :: 0\ninclude \"part.rio\"\nlater := middle + early\n";
+    rio_Vm cv;
+    int r;
+    rio_init(&cv, small, sizeof small, 0, 0);
+    rio_setLoader(&cv, loader, 0);
+    cutPart = 1;
+    r = rio_check(&cv, main, (uint32_t)strlen(main), 0, 0, room, sizeof room);
+    cutPart = 0;
+    n++;
+    if (r) {
+      printf("FAIL %d: a check of a part cut where it's edited: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    gotLen = 0;
+    got[0] = 0;
+    rio_complete(&cv, "x := ", 5, item, 0);
+    n++;
+    if (!offered("early:c") || !offered("first:c") || offered("later")) {
+      printf("FAIL %d: completing in a part cut where it's edited: %s\n", n, got);
+      fails++;
+    }
   }
 
   { /* a check whose first sizes are too small for one table (a struct of many fields; many strings): checked

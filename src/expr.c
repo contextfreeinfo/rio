@@ -193,6 +193,7 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
 static rio_Expr rio_identifier(rio_Vm *vm) {
   rio_Token *t = &vm->compiler->tok;
   int i = rio_lookup(vm, t->text, t->len);
+  if (i < 0) rio_skippedName(vm, t->text, t->len);
   if (i < 0) rio_FAIL_AT_TOKEN(rio_voidExpr(), vm->compiler->tok.len == 1 && vm->compiler->tok.text[0] == '_' ? rio_msgUnderscore : "undefined name");
   return rio_symbolExpr(vm, i);
 }
@@ -421,7 +422,8 @@ static void rio_member(rio_Vm *vm) {
              (k = rio_builtinNamed(t->text, t->len, rio_Builtin_pack, rio_Builtin_setInt)) >= 0) {
     method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* a Blob's (or String's) b.pack(at, x) ... */
   } else {
-    if ((i = rio_lookupMethod(vm, rio_valueType(e->type), t->text, t->len)) < 0)
+    if ((i = rio_lookupMethod(vm, rio_valueType(e->type), t->text, t->len)) < 0) rio_skippedName(vm, t->text, t->len);
+    if (i < 0)
       rio_FAIL(, ty->kind == rio_TypeKind_struct ? "no such field or method"
                  : ty->kind == rio_TypeKind_array ? "no such method (swizzles like .x .zy .rgba need 1-4 letters, on arrays of 1-4 numbers)"
                                                    : "no such method");

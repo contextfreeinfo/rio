@@ -182,7 +182,7 @@ These change a builder `[..N]T` or a builder view `[..]T` (`Blob[..N]` and `Blob
 | | |
 |---|---|
 | `xs.push(x) -> Bool` | adds one element at the end; `false`, and no change, when full |
-| `xs.pushAll(ys) -> Bool` | adds every element of an array, slice or builder of the same type (a `String` for byte builders): all or none |
+| `xs.pushAll(ys) -> Bool` | adds every element of an array, slice or builder of the same type (a `String` for byte builders): all or none; `ys` may view the memory it's written into, and moves as if copied out first |
 | `xs.pop() -> T` | removes the last element and gives it, to copy (not `&xs.pop()`: the next push reuses its slot); a runtime error when empty |
 | `xs.clear()` | removes them all |
 | `xs.remove(i)` | removes element `i`, keeping the order of the rest |

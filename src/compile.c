@@ -146,6 +146,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
         /* (an editor's check takes in its host's modules, as Rinc's pc: more types, fields and params a
            symbol than a program of its own, and shorter names) */
         l.types = l.symbols / 3;
+        l.procs = l.symbols / 2; /* (a studio app's own procs: nearly half its names) */
         l.fields = l.symbols * 3 / 4;
         l.params = l.symbols * 3 / 2;
         l.nameBytes = rio_clamp(l.symbols * 10, 512, 65535);
@@ -503,6 +504,7 @@ void rio_compileAll(rio_Vm *vm) {
       rio_makeThunks(vm); /* (host procs used as proc values: each one's proc, now nothing else is open) */
       break;
     }
+    if (vm->checking && c->modules[c->curFile].endsCheck) break; /* (the file being edited, cut: the check's end) */
     rio_endFile(vm);
   }
   if (rio_failed(vm) && c->full && vm->retryAllowed && !c->errorsKept) vm->retryQuiet = 1; /* (compiled again: not reported) */
@@ -1337,6 +1339,10 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
       continue;
     }
     if (!full || !vm->retryQuiet) break;
+    if (full == rio_Table_private) { /* (a private proc skipped, then used: again, keeping them, as big as before) */
+      vm->keepPrivate = 1;
+      continue;
+    }
     if (!tries && !vm->checking && !rio_measure(vm, src, len, read, readData, &cap, &next)) { /* (first: the tables as the program needs them) */
       grown = 0;
       vm->retryLimits = &next;
@@ -1369,6 +1375,7 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
   if (r && tries > 0 && (vm->retryQuiet || full == 0xff)) /* (tried again, still failing, unreported: as at first, reported) */
     r = rio_compileOnce(vm, src, len, read, readData, scratch, size, 0, &full, &cap, &used);
   vm->retryQuiet = 0;
+  vm->keepPrivate = 0;
   return r;
 }
 

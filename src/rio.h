@@ -179,6 +179,9 @@ typedef struct {
   int declsOnly; /* a check (rio_check) takes only this file's declarations, its procs' bodies skipped: for an
                     editor, the files other than the one being edited (their errors inside bodies aren't
                     reported, and they take far less of the check's room) */
+  int endsCheck; /* a check (rio_check) ends with this file: an editor's, being edited, its text cut at the
+                    cursor's line (what comes after, in the files that included or imported it, would use
+                    names from the rest of it) */
 } rio_Source;
 typedef int (*rio_LoadFn)(void *userData, const char *path, int kind, rio_Source *out);
 void rio_setLoader(rio_Vm *vm, rio_LoadFn fn, void *userData);
@@ -420,6 +423,7 @@ struct rio_Vm {
   void *errorData;
   int logLen, trapped, ready, procCount, ffiCount, defineCount, inRepl, running;
   int checking;            /* compiling for rio_check: not to run */
+  int keepPrivate;         /* a check keeps imported modules' private procs (rio_compileText's: one used, though skipped) */
   volatile int interrupted; /* set by rio_interrupt */
   rio_Define defines[rio_MAX_DEFINES];
   const char *autoImports[rio_MAX_AUTO_IMPORTS];

@@ -414,6 +414,14 @@ check(prOut.format({width = fmtWide + 1}, 9) and prSays("   9"), "format: settin
 more: [..8]Int
 check(more.pushAll(nums) and not more.pushAll(nums) and more.len() == 5 and more[4] == 16, "pushAll is all or nothing")
 check(more.pushAll(nums[3..]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")
+pamText: Blob[16]
+pamAll: Blob[..] = pamText[0..]
+_ = pamAll.pushAll("abcdefgh")
+pamRight: Blob[..] = pamText[4..] # (from the same memory, over itself: it moves, as memmove does)
+_ = pamRight.pushAll(pamText[2..<8])
+pamLeft: Blob[..] = pamText[1..]
+_ = pamLeft.pushAll(pamText[4..<10])
+check(pamText[0..<7].asString() == "acdefgh", "pushAll from the memory it's written into: moved, right or left")
 localBuilder :: proc() -> Int
   xs: [..3]Int
   _ = xs.push(5)
