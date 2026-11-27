@@ -416,6 +416,44 @@ static void rio_loadTypeSizes(rio_Vm *vm, int proc) {
    with no self). The body follows as statements, until its end (in rio_statement). */
 /* name :: proc(...), and how (bit 1: static, on a type with no self; bit 2: a callback, which can be a
    proc value) */
+/* A check's proc in a file of declarations only (rio_Source's declsOnly): its body passed over to its end,
+   uncompiled, by its blocks' keywords alone (types and procs are top-level, so only if, for, switch and do
+   open blocks in a body; a do after one on its line makes it a one-line block), then the proc ended */
+static void rio_skipBody(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t pool = c->poolUsed;
+  int depth = 1, opened = 0, start, t, afterSemi = 0;
+  if (c->tok.kind == rio_Tok_do && !c->tok.newline) /* (a one-line proc: its line) */
+    do rio_next(vm);
+    while (!rio_failed(vm) && c->tok.kind != rio_Tok_eof && !c->tok.newline);
+  else
+    for (;;) {
+      if (rio_failed(vm)) return;
+      t = c->tok.kind;
+      if (t == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
+      start = c->tok.newline || afterSemi; /* (a statement's start) */
+      if (c->tok.newline) opened = 0;
+      if (t == rio_Tok_if || t == rio_Tok_for || t == rio_Tok_switch) {
+        depth++;
+        opened++;
+      } else if (t == rio_Tok_do) {
+        if (start) depth++; /* (a do block) */
+        else if (opened) { /* (its line's block, one line) */
+          depth--;
+          opened--;
+        }
+      } else if (t == rio_Tok_end && !--depth) {
+        rio_next(vm);
+        break;
+      }
+      afterSemi = t == ';';
+      rio_next(vm);
+    }
+  if (rio_failed(vm)) return;
+  if (c->tok.kind != rio_Tok_string && c->peek.kind != rio_Tok_string) c->poolUsed = pool; /* (the body's strings) */
+  rio_finishProc(vm);
+}
+
 void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int how) {
   rio_Compiler *c = vm->compiler;
   const char *typeNames[8];
@@ -507,6 +545,7 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int ho
   }
   rio_beginBody(vm, index);
   if (typeCount) rio_loadTypeSizes(vm, index);
+  if (vm->checking && c->modules[c->curFile].declsOnly) rio_skipBody(vm);
 }
 
 /* Type.name :: proc(...), or :: static proc(...) for one called on the type, with no self */

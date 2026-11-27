@@ -20,13 +20,34 @@ static void twice(rio_Vm *v, rio_Val *a) {
   a[0].f = a[0].f * 2;
 }
 
+/* a library whose procs' bodies use every block form, for a check that skips them (declsOnly): its
+   declarations after them must still be found */
+#define BODIES \
+  "Tail* :: struct\n  head, rest: Int\nend\n" \
+  "twist* :: proc(n: Int) -> Int\n  t := 0\n  for i in 0..<n\n    if i % 2 == 0 do continue\n" \
+  "    switch i % 3\n    case 0\n      t += 1\n    case 1 do t += 2\n    else\n      t -= 1\n    end\n" \
+  "    do\n      u := i * 2\n      t += u\n    end\n  end\n" \
+  "  w := if t > 3\n    1\n  case t > 1\n    2\n  else\n    3\n  end\n  x := 1; do\n    t += x\n  end\n"
+#define BODIES_END \
+  "  return t + w\nend\nshort* :: proc(n: Int) -> Int do return n + 1\n" \
+  "after* :: proc(n: Int) -> Int\n  return twist(n) + short(n)\nend\nAfter* :: struct\n  late: Int\nend\n"
 static const char *const files[][2] = {
   {"shapes", "Box* :: struct\n  w, h: Int\nend\narea* :: proc(b: Box) -> Int\n  return b.w * b.h\nend\nSIDES* :: 4\nhidden :: 1\n"},
+  {"bodies", BODIES BODIES_END},
+  {"badbodies", BODIES "  t = \"not an Int\"\n" BODIES_END},
 };
+static const char *bigLib; /* (a library made by the test: "big") */
+static int declsOnly; /* (the loader's sources: declarations only, for a check) */
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i;
   (void)ud;
   (void)kind;
+  o->declsOnly = declsOnly;
+  if (bigLib && !strcmp(path, "big")) {
+    o->src = bigLib;
+    o->len = (uint32_t)strlen(bigLib);
+    return 0;
+  }
   for (i = 0; i < sizeof files / sizeof files[0]; i++)
     if (!strcmp(files[i][0], path)) {
       o->src = files[i][1];
@@ -295,6 +316,109 @@ int main(void) {
     n++;
     if (r) {
       printf("FAIL %d: a check of a long program: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+  }
+
+  { /* a check taking an imported library's declarations only (rio_Source's declsOnly): its procs' bodies
+       skipped, every block form in them, its declarations after them still there; an error in a body not
+       reported (it is, compiled whole); and a library too big to check whole, checked */
+    static unsigned char small[16 << 10], room[48 << 10];
+    static char lib[160 << 10];
+    static const char *const uses = "import bodies\nb: bodies.Tail\nk := bodies.after(2)\na: bodies.After\n";
+    static const char *const usesBad = "import badbodies\nb: badbodies.Tail\nk := badbodies.after(2)\n";
+    static const char *const usesBig = "import big\nk := big.last(2)\nc: big.Cell\n";
+    rio_Vm cv;
+    size_t len = 0;
+    int i, j, r;
+    rio_init(&cv, small, sizeof small, 0, 0);
+    rio_setLoader(&cv, loader, 0);
+    declsOnly = 0;
+    r = rio_check(&cv, uses, (uint32_t)strlen(uses), 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: the block forms' library, checked whole: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    declsOnly = 1;
+    r = rio_check(&cv, uses, (uint32_t)strlen(uses), 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: the block forms' library, declarations only: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    gotLen = 0;
+    got[0] = 0;
+    rio_complete(&cv, "b.", 2, item, 0);
+    n++;
+    if (strcmp(got, "head:f:Int rest:f:Int")) {
+      printf("FAIL %d: completing from a library of declarations only: %s\n", n, got);
+      fails++;
+    }
+    declsOnly = 0;
+    r = rio_check(&cv, usesBad, (uint32_t)strlen(usesBad), 0, 0, room, sizeof room);
+    n++;
+    if (r != -1 || !strstr(rio_error(&cv), "mismatch")) {
+      printf("FAIL %d: an error in a library's body, checked whole: %d %s\n", n, r, rio_error(&cv));
+      fails++;
+    }
+    declsOnly = 1;
+    r = rio_check(&cv, usesBad, (uint32_t)strlen(usesBad), 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: an error in a library's body, declarations only: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    len += (size_t)snprintf(lib + len, sizeof lib - len, "Cell* :: struct\n  at, value: Int\nend\n");
+    for (i = 0; i < 2; i++) { /* (procs of long bodies, each more code than the check's room) */
+      len += (size_t)snprintf(lib + len, sizeof lib - len, "p%d* :: proc(a: Int) -> Int\n  b := a\n  s := \"\"\n", i);
+      for (j = 0; j < 800; j++) len += (size_t)snprintf(lib + len, sizeof lib - len, "  if b > %d\n    b = b * 3 - a / %d\n    s = \"x%d\"\n  end\n", j, j + 1, j);
+      len += (size_t)snprintf(lib + len, sizeof lib - len, "  return b%s\nend\n", i ? "" : "");
+    }
+    len += (size_t)snprintf(lib + len, sizeof lib - len, "last* :: proc(a: Int) -> Int\n  return p3(a)\nend\n");
+    bigLib = lib;
+    declsOnly = 0;
+    r = rio_check(&cv, usesBig, (uint32_t)strlen(usesBig), 0, 0, room, sizeof room);
+    n++;
+    if (r != -1) {
+      printf("FAIL %d: a library too big to check whole: %d %s\n", n, r, rio_error(&cv));
+      fails++;
+    }
+    declsOnly = 1;
+    r = rio_check(&cv, usesBig, (uint32_t)strlen(usesBig), 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: a library too big to check whole, declarations only: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    bigLib = 0;
+    declsOnly = 0;
+  }
+
+  { /* a check whose first sizes are too small for one table (a struct of many fields; many strings): checked
+       again with more room for it, from the others, as a compile is */
+    static unsigned char small[16 << 10], room[48 << 10];
+    static char src[32 << 10];
+    rio_Vm cv;
+    size_t len = 0;
+    int i, r;
+    len += (size_t)snprintf(src + len, sizeof src - len, "Wide :: struct\n");
+    for (i = 0; i < 500; i++) len += (size_t)snprintf(src + len, sizeof src - len, "  f%d: Int\n", i);
+    len += (size_t)snprintf(src + len, sizeof src - len, "end\nw: Wide\n");
+    rio_init(&cv, small, sizeof small, 0, 0);
+    r = rio_check(&cv, src, (uint32_t)len, 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: a check of a struct of many fields: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    len = 0;
+    for (i = 0; i < 800; i++) len += (size_t)snprintf(src + len, sizeof src - len, "log(\"s%d\")\n", i);
+    rio_init(&cv, small, sizeof small, 0, 0);
+    r = rio_check(&cv, src, (uint32_t)len, 0, 0, room, sizeof room);
+    n++;
+    if (r) {
+      printf("FAIL %d: a check of many strings: %s\n", n, rio_error(&cv));
       fails++;
     }
   }

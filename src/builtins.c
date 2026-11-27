@@ -42,7 +42,7 @@ static int rio_argCount(rio_Vm *vm, const rio_PendingOp *call) { return vm->comp
 
 /* a word at the constants' end, for a descriptor */
 static void rio_descPush(rio_Vm *vm, uint32_t v) {
-  if (vm->constCount >= vm->constCap) rio_FAIL(, "too many constants");
+  if (vm->constCount >= vm->constCap) rio_FAIL_FULL(, rio_Table_consts, "too many constants");
   ((rio_Val *)vm->mem)[vm->constCount++].u = v;
 }
 

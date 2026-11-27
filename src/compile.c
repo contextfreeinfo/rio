@@ -129,13 +129,29 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   else if (vm->checking) { /* (a check: the code and strings of a statement at a time; the tables, as big as
                                leaves room for them, the source's window and its copies) */
     uint32_t k, room = (vm->sourceWindow ? vm->sourceWindow : 2048) * 2 + 4096;
-    l = rio_limitsFor(size / 4); /* (the smallest: if none fits, the error says so) */
-    for (k = size + size / 2; k > size / 4; k -= size / 32) {
-      l = rio_limitsFor(k);
+    if (vm->retryLimits) { /* (again, a table having filled: rio_compileText's sizes, if they leave that room) */
+      l = *vm->retryLimits;
       l.code = rio_clamp(size / 128, 256, 65535);
-      l.slots = rio_clamp(size / 32, 2048, 65536); /* (a check has no slot map: that's for finishing) */
-      if (l.slots < l.consts + 1024) l.slots = l.consts + 1024;
-      if (rio_layout(0, &l, 0) + 16 + room + 64 <= size) break;
+      if (rio_layout(0, &l, 0) + 16 + room + 64 > size) {
+        rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, "scratch too small for these limits");
+        return -1;
+      }
+    } else {
+      l = rio_limitsFor(size / 4); /* (the smallest: if none fits, the error says so) */
+      for (k = size + size / 2; k > size / 4; k -= size / 32) {
+        l = rio_limitsFor(k);
+        l.code = rio_clamp(size / 128, 256, 65535);
+        l.slots = rio_clamp(size / 16, 2048, 65536); /* (a check has no slot map: that's for finishing; nor shared
+                                                         frames, so each proc's locals add up) */
+        /* (an editor's check takes in its host's modules, as Rinc's pc: more types, fields and params a
+           symbol than a program of its own, and shorter names) */
+        l.types = l.symbols / 3;
+        l.fields = l.symbols * 3 / 4;
+        l.params = l.symbols * 3 / 2;
+        l.nameBytes = rio_clamp(l.symbols * 10, 512, 65535);
+        if (l.slots < l.consts + 1024) l.slots = l.consts + 1024;
+        if (rio_layout(0, &l, 0) + 16 + room + 64 <= size) break;
+      }
     }
   } else { /* the tables scale to half the room; the code (when it's compiled into scratch) starts with an
               eighth, and takes more from the string pool's free room as it needs it (rio_moreCode) */
@@ -1307,7 +1323,7 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
   rio_Limits cap, used, next;
   uint8_t full = 0, grown = 0;
   int r, tries;
-  if (lim || vm->checking) return rio_compileOnce(vm, src, len, read, readData, scratch, size, lim, &full, &cap, &used);
+  if (lim) return rio_compileOnce(vm, src, len, read, readData, scratch, size, lim, &full, &cap, &used);
   vm->retryAllowed = 1;
   vm->retryLimits = 0;
   for (tries = 0; tries < 16; tries++) {
@@ -1321,7 +1337,7 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
       continue;
     }
     if (!full || !vm->retryQuiet) break;
-    if (!tries && !rio_measure(vm, src, len, read, readData, &cap, &next)) { /* (first: the tables as the program needs them) */
+    if (!tries && !vm->checking && !rio_measure(vm, src, len, read, readData, &cap, &next)) { /* (first: the tables as the program needs them) */
       grown = 0;
       vm->retryLimits = &next;
       continue;

@@ -207,7 +207,7 @@ rio_Expr rio_stringConst(rio_Vm *vm, const char *s, int n) {
   int i, len = 0;
   rio_Expr e;
   if ((uint32_t)n > c->poolCap - c->poolUsed) rio_FAIL_FULL(rio_voidExpr(), rio_Table_room, "out of compiler memory");
-  if (k + 2 > vm->constCap) rio_FAIL(rio_voidExpr(), "too many constants");
+  if (k + 2 > vm->constCap) rio_FAIL_FULL(rio_voidExpr(), rio_Table_consts, "too many constants");
   for (i = 0; i < n; i++) {
     int used, ch;
     if (s[i] == '\\' && i + 1 < n && (ch = rio_escapeAt(s + i + 1, s + n, &used)) >= 0) {
@@ -232,7 +232,7 @@ rio_Expr rio_stringInPool(rio_Vm *vm, uint32_t at, int n) {
   rio_Val *R = (rio_Val *)vm->mem;
   uint32_t k = vm->constCount;
   rio_Expr e;
-  if (k + 2 > vm->constCap) rio_FAIL(rio_voidExpr(), "too many constants");
+  if (k + 2 > vm->constCap) rio_FAIL_FULL(rio_voidExpr(), rio_Table_consts, "too many constants");
   R[k].u = 0x80000000u | at;
   R[k + 1].u = (uint32_t)n;
   rio_bitSet(c->constIsString, k);

@@ -176,6 +176,9 @@ typedef struct {
   const char *name;
   rio_SourceFn read;
   void *readData;
+  int declsOnly; /* a check (rio_check) takes only this file's declarations, its procs' bodies skipped: for an
+                    editor, the files other than the one being edited (their errors inside bodies aren't
+                    reported, and they take far less of the check's room) */
 } rio_Source;
 typedef int (*rio_LoadFn)(void *userData, const char *path, int kind, rio_Source *out);
 void rio_setLoader(rio_Vm *vm, rio_LoadFn fn, void *userData);

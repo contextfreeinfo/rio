@@ -61,6 +61,7 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   m->keyLen = (uint16_t)keyLen;
   m->isPackage = (uint8_t)isPackage;
   m->isInclude = (uint8_t)isInclude;
+  m->declsOnly = (uint8_t)(vm->checking && s.declsOnly);
   m->state = rio_ModuleState_compiling;
   /* its own imports and includes start in its directory: a directory module's own, else the file's */
   if (s.isDir && !isInclude) {

@@ -99,6 +99,7 @@ typedef struct {
   uint16_t file;        /* a 0-terminated name for error messages */
   uint16_t codeStart, codeEnd;
   uint8_t isPackage, state, isInclude;
+  uint8_t declsOnly; /* a check takes only its declarations (rio_Source's declsOnly) */
 } rio_Module;
 
 /* a file's text, to read: all of it, in memory (src), or a part at a time (read, into the window) */
