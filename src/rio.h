@@ -251,6 +251,10 @@ void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes);
    rio_complete takes the text from there (the cursor's line, to the cursor): the rest is in the tables,
    in scope or not, as it should be. Returns 0 (no error) or -1; the vm isn't left ready to run either way */
 int rio_check(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size);
+/* the checks after it take the main source as declarations only (on), as rio_Source's declsOnly does a
+   loaded file: for an editor whose file being edited is a part, not the main source (its own private procs
+   are kept: its parts use them) */
+void rio_checkMainDeclsOnly(rio_Vm *vm, int on);
 #endif
 
 /* ------------------------------------------------------------------ running */
@@ -424,6 +428,7 @@ struct rio_Vm {
   int logLen, trapped, ready, procCount, ffiCount, defineCount, inRepl, running;
   int checking;            /* compiling for rio_check: not to run */
   int keepPrivate;         /* a check keeps imported modules' private procs (rio_compileText's: one used, though skipped) */
+  int mainDeclsOnly;       /* rio_checkMainDeclsOnly's */
   volatile int interrupted; /* set by rio_interrupt */
   rio_Define defines[rio_MAX_DEFINES];
   const char *autoImports[rio_MAX_AUTO_IMPORTS];

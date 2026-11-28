@@ -476,7 +476,7 @@ static int rio_skipPrivate(rio_Vm *vm, const char *name, int nameLen) {
   rio_Module *m = &c->modules[c->curFile];
   int depth = 0;
   uint32_t bit;
-  if (!vm->checking || vm->keepPrivate || c->exporting || !m->declsOnly || m->isInclude || c->curFile != c->curModule) return 0;
+  if (!vm->checking || vm->keepPrivate || c->exporting || !m->declsOnly || m->isInclude || c->curFile != c->curModule || c->curFile == 1) return 0; /* (not the main source's: its parts use them) */
   bit = rio_nameBit(name, nameLen);
   c->skipped[bit / 32] |= 1u << (bit % 32);
   for (;;) { /* (its type parameters and parameters, to their close) */

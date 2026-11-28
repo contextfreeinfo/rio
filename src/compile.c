@@ -400,6 +400,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
   }
   c->curModule = c->curFile = 1; /* the main source */
   c->modules[1].state = rio_ModuleState_compiling;
+  c->modules[1].declsOnly = (uint8_t)(vm->checking && vm->mainDeclsOnly);
 }
 
 /* the error just made, to rio_setErrorFn's fn (unless it's an undefined name whose declaration failed),
@@ -1168,6 +1169,8 @@ int rio_check(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void
   vm->checking = 0;
   return r;
 }
+
+void rio_checkMainDeclsOnly(rio_Vm *vm, int on) { vm->mainDeclsOnly = on; }
 
 void rio_trackUsage(rio_Vm *vm, rio_Usage *usage) { vm->usage = usage; }
 

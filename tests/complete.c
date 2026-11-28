@@ -40,6 +40,7 @@ static const char *const files[][2] = {
 };
 static const char *bigLib; /* (a library made by the test: "big") */
 static int cutPart; /* ("part.rio": the file being edited, cut where its cursor is, the check's end) */
+static const char *partText = "early :: 1\n"; /* (its text, up to the cursor) */
 static int declsOnly; /* (the loader's sources: declarations only, for a check) */
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i;
@@ -47,9 +48,8 @@ static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   (void)kind;
   o->declsOnly = declsOnly;
   if (cutPart && !strcmp(path, "part.rio")) { /* (its text up to the cursor: early's there, middle's after) */
-    static const char *const part = "early :: 1\n";
-    o->src = part;
-    o->len = (uint32_t)strlen(part);
+    o->src = partText;
+    o->len = (uint32_t)strlen(partText);
     o->declsOnly = 0;
     o->endsCheck = 1;
     return 0;
@@ -449,6 +449,43 @@ int main(void) {
       printf("FAIL %d: completing in a part cut where it's edited: %s\n", n, got);
       fails++;
     }
+  }
+
+  { /* a part being edited, the main source taken as declarations only (rio_checkMainDeclsOnly): an error in
+       a body of main's not reported; main's private procs kept, as its parts use them */
+    static unsigned char small[16 << 10], room[48 << 10];
+    static const char *const main = "first :: 0\nhelper :: proc() -> Int\n  return 2\nend\n"
+                                    "wrong :: proc() -> Int\n  return \"not an Int\"\nend\ninclude \"part.rio\"\n";
+    rio_Vm cv;
+    int r;
+    rio_init(&cv, small, sizeof small, 0, 0);
+    rio_setLoader(&cv, loader, 0);
+    cutPart = 1;
+    partText = "early := helper()\n";
+    r = rio_check(&cv, main, (uint32_t)strlen(main), 0, 0, room, sizeof room);
+    n++;
+    if (r != -1 || !strstr(rio_error(&cv), "mismatch")) {
+      printf("FAIL %d: main's body, checked whole: %d %s\n", n, r, rio_error(&cv));
+      fails++;
+    }
+    rio_checkMainDeclsOnly(&cv, 1);
+    r = rio_check(&cv, main, (uint32_t)strlen(main), 0, 0, room, sizeof room);
+    rio_checkMainDeclsOnly(&cv, 0);
+    n++;
+    if (r) {
+      printf("FAIL %d: a part edited, main as declarations only: %s\n", n, rio_error(&cv));
+      fails++;
+    }
+    gotLen = 0;
+    got[0] = 0;
+    rio_complete(&cv, "x := ", 5, item, 0);
+    n++;
+    if (!offered("early:v") || !offered("helper:p") || !offered("wrong:p")) {
+      printf("FAIL %d: completing in a part, main as declarations only: %s\n", n, got);
+      fails++;
+    }
+    cutPart = 0;
+    partText = "early :: 1\n";
   }
 
   { /* a check whose first sizes are too small for one table (a struct of many fields; many strings): checked
