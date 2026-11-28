@@ -134,6 +134,9 @@ int rio_allocSlots(rio_Vm *vm, int n) {
 uint32_t rio_allocHigh(rio_Vm *vm, uint32_t bytes) {
   rio_Compiler *c = vm->compiler;
   bytes = rio_align4(bytes);
+  if (vm->skipBig && c->curProc >= 0 && c->curProc < 1024 && vm->dropBig[c->curProc / 32] >> (c->curProc % 32) & 1 &&
+      vm->top >= bytes && vm->top - bytes >= c->slotHigh * 4)
+    return vm->top - bytes; /* (a dropped proc's, on the compile again: no room kept, as nothing runs its code) */
   if (vm->top < bytes || vm->top - bytes < c->slotHigh * 4) {
     c->bigWanted = bytes;
     c->bigLeft = vm->top > c->slotHigh * 4 ? vm->top - c->slotHigh * 4 : 0;

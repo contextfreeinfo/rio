@@ -923,6 +923,11 @@ static void rio_dropUnused(rio_Vm *vm) {
   } while (changed && !rio_failed(vm));
   for (k = 0; k < vm->procCount; k++) count += c->procDefs[k].defined == 2;
   if (!count || rio_failed(vm)) return;
+  for (k = 0; k < vm->procCount && k < 1024; k++) /* (the room their big locals had: given back by compiling again) */
+    if (c->procDefs[k].defined == 2 && c->procDefs[k].bigBytes && !vm->skipBig) {
+      vm->dropBig[k / 32] |= 1u << (k % 32);
+      vm->droppedBig += c->procDefs[k].bigBytes;
+    }
   if ((uint32_t)count * 3 > c->limits.slots) { /* (no room for the cuts: all kept) */
     for (k = 0; k < vm->procCount; k++) c->procDefs[k].defined = 1;
     return;
@@ -1323,8 +1328,27 @@ static int rio_measure(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn r
 /* compiled with the tables' room chosen for it (no rio_Limits): when one fills first, compiled again with
    more room for it, from those that used less (the room code and strings share, filling: from them all),
    a few times; failing still, compiled once more as at first, so its errors are reported as they'd be */
+static int rio_compileTry(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
+                          const rio_Limits *lim);
+/* compiled; then, if procs nothing calls were dropped with big locals (an imported library's procs this
+   program doesn't use, say), compiled again with no room for those: the program has all of it. Not for
+   a source in mem itself, which compiling's done writes over; and if that fails, as at first */
 static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
                            const rio_Limits *lim) {
+  int r, inMem = src && src >= (const char *)vm->mem && src < (const char *)vm->mem + vm->memSize;
+  vm->skipBig = 0;
+  vm->droppedBig = 0;
+  memset(vm->dropBig, 0, sizeof vm->dropBig);
+  r = rio_compileTry(vm, src, len, read, readData, scratch, size, lim);
+  if (r || vm->checking || vm->droppedBig < 64 || inMem) return r;
+  vm->skipBig = 1;
+  r = rio_compileTry(vm, src, len, read, readData, scratch, size, lim);
+  vm->skipBig = 0;
+  if (r) r = rio_compileTry(vm, src, len, read, readData, scratch, size, lim);
+  return r;
+}
+static int rio_compileTry(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
+                          const rio_Limits *lim) {
   rio_Limits cap, used, next;
   uint8_t full = 0, grown = 0;
   int r, tries;

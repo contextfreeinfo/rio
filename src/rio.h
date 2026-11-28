@@ -414,6 +414,10 @@ struct rio_Vm {
   uint32_t sourceWindow;   /* rio_setSourceWindow's bytes (0: the default) */
   const rio_Limits *retryLimits; /* (compiling again after a table filled: the tables' sizes this time) */
   int retryAllowed, retryQuiet; /* (a table filling may be tried again: then it's not reported, and stops the compile) */
+  /* procs nothing calls, dropped, whose big locals had room (rio_dropUnused): compiled again, their big
+     locals given none (their code's gone, so it's never used), by proc, a bit each, the first 1024 */
+  uint32_t droppedBig, dropBig[32];
+  int skipBig;
   uint32_t modulesAt, moduleCount; /* code ranges of modules, for naming files in errors */
   rio_Instr *code;         /* where the code is now: in mem, or the host's buffer */
   uint32_t codeCap, codeLen;

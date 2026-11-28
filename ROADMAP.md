@@ -349,6 +349,13 @@ In this order:
 
 ## Done recently
 
+- **Dropped procs' big locals given back** (2026-11-28): a proc nothing calls is dropped, code and all, but
+  its big locals (over 16 words, stored apart) had kept their room. Now a program whose dropped procs had
+  any is compiled again with none for them (vm->dropBig, by proc), so a library's procs a program doesn't
+  use cost it nothing (rinc's console importing appfiles: 2.5 KB back). Not for a source in mem itself;
+  and a program that doesn't fit only because of them still doesn't (the first compile fails before it
+  knows what's unused). tests/errors.c.
+
 - **`if name := value`** (2026-11-14): `if` and `case` declare a name for their branch alone and test it
   (a maybe: there, and its value inside; a Bool: its truth), as `switch name := value` already did
   (docs/spec/statements.md#if; tests/test.rio).

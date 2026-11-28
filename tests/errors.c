@@ -655,6 +655,24 @@ int main(void) {
       printf("FAIL an error past more procs than the tables start with: reported %d, \"%s\"\n", reported, rio_error(&vm)); fails++;
     }
   }
+  { /* a proc nothing calls, dropped, with a big local: compiled again with no room for that, so the
+       program has as much free as without the proc (a library's procs a program doesn't use, say) */
+    static const char *const with = "unused :: proc() -> Int\n  room: Blob[60000]\n  room[0] = 1\n  return room[0]\nend\nlog(1)\n";
+    static const char *const without = "log(1)\n";
+    static unsigned char room[256 << 10];
+    uint32_t freeWith, freeWithout;
+    rio_init(&vm, room, sizeof room, 0, 0);
+    rio_trackUsage(&vm, &usage);
+    n++;
+    if (rio_compile(&vm, with, (uint32_t)strlen(with))) { printf("FAIL a dropped proc's big local: %s\n", rio_error(&vm)); fails++; }
+    freeWith = usage.free;
+    rio_init(&vm, room, sizeof room, 0, 0);
+    rio_trackUsage(&vm, &usage);
+    if (rio_compile(&vm, without, (uint32_t)strlen(without))) { printf("FAIL without a dropped proc: %s\n", rio_error(&vm)); fails++; }
+    freeWithout = usage.free;
+    rio_trackUsage(&vm, 0);
+    if (freeWith + 1024 < freeWithout) { printf("FAIL a dropped proc's big local kept its room: %u free, %u without the proc\n", freeWith, freeWithout); fails++; }
+  }
   { /* explicit limits: tiny tables fail cleanly, and a scratch buffer too small for them is refused */
     static unsigned char scratch[1 << 16];
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
